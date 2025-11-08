@@ -2,7 +2,7 @@ from setuptools import setup
 from setuptools.command.install import install
 import os, shutil, platform, sys
 
-version = "0.0.2"
+version = "0.0.4"
 with open(os.path.join("biblemateweb", "version.txt"), "w", encoding="utf-8") as fileObj:
     fileObj.write(version)
 
@@ -47,6 +47,7 @@ setup(
         f"{package}.css",
         f"{package}.pages",
         f"{package}.pages.original",
+        f"{package}.pages.bibles",
     ],
     package_data={
         package: ["*.*"],
@@ -55,6 +56,7 @@ setup(
         f"{package}.css": ["*.*"],
         f"{package}.pages": ["*.*"],
         f"{package}.pages.original": ["*.*"],
+        f"{package}.pages.bibles": ["*.*"],
     },
     license="GNU General Public License (GPL)",
     install_requires=install_requires,

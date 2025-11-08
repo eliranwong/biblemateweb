@@ -11,3 +11,14 @@ Install for testing:
 Run:
 
 > biblemateweb
+
+## Use Existing UniqueBible App Data
+
+```
+cd
+mkdir biblemate
+cd biblemate
+ln -s ../UniqueBible/marvelData data
+cd data
+eliran@ai-desk:~/biblemate/data$ ln -s ../../UniqueBible/audio/ audio
+```

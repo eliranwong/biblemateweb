@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 from nicegui import app, ui
 
+from biblemateweb import BIBLEMATEWEB_APP_DIR
+
 from biblemateweb.pages.original.reader import original_reader
 from biblemateweb.pages.original.interlinear import original_interlinear
 from biblemateweb.pages.original.parallel import original_parallel
 from biblemateweb.pages.original.discourse import original_discourse
 from biblemateweb.pages.original.linguistic import original_linguistic
+
+from biblemateweb.pages.bibles.audio import bibles_audio
+
+import os
 
 # --- Define the Pages ---
 # We define our pages first. The create_menu() function will be
@@ -31,8 +37,8 @@ def page_home(q: str | None = None):
 
 # Bible
 
-@ui.page('/bible/chapter')
-def page_bible_chapter(q: str | None = None, m: bool = True):
+@ui.page('/bibles/chapter')
+def page_bibles_chapter(q: str | None = None, m: bool = True):
     if m:
         create_menu()
     with ui.column().classes('w-full items-center'):
@@ -47,8 +53,8 @@ def page_compare_chapter(q: str | None = None, m: bool = True):
         ui.label('Compare Bible Chapter(s)').classes('text-2xl mt-4')
         ui.label('Enjoy')
 
-@ui.page('/bible/verse')
-def page_bible_verse(q: str | None = None, m: bool = True):
+@ui.page('/bibles/verse')
+def page_bibles_verse(q: str | None = None, m: bool = True):
     if m:
         create_menu()
     with ui.column().classes('w-full items-center'):
@@ -63,13 +69,13 @@ def page_compare_verse(q: str | None = None, m: bool = True):
         ui.label('Compare Bible Verse(s)').classes('text-2xl mt-4')
         ui.label('Enjoy')
 
-@ui.page('/bible/audio')
-def page_bible_audio(q: str | None = None, m: bool = True):
+@ui.page('/bibles/audio')
+def page_bibles_audio(q: str | None = None, m: bool = True):
     if m:
         create_menu()
     with ui.column().classes('w-full items-center'):
         ui.label('Bible Audio').classes('text-2xl mt-4')
-        ui.label('Enjoy')
+        bibles_audio()
 
 # Original Bibles
 
@@ -344,6 +350,10 @@ def page_ai_agent(q: str | None = None, m: bool = True):
 def create_menu():
     """Create the responsive header and navigation drawer."""
     
+    # TODO: Consider dark mode latter
+    # Dark Mode
+    # ui.dark_mode().toggle()
+    
     # Use app.storage.user to store session-specific state
     # This keeps the drawer state unique for each user
     app.storage.user.setdefault('left_drawer_open', False)
@@ -367,7 +377,7 @@ def create_menu():
                 # This is a button that contains the avatar
                 with ui.button(on_click=lambda: ui.navigate.to('/')).props('flat round dense').classes('lt-sm'):
                     with ui.avatar(size='32px'):
-                         with ui.image('eliranwong.jpg') as image:
+                         with ui.image(os.path.join(BIBLEMATEWEB_APP_DIR, 'eliranwong.jpg')) as image:
                             with image.add_slot('error'):
                                 ui.icon('account_circle').classes('m-auto') # Center fallback icon
 
@@ -377,7 +387,7 @@ def create_menu():
                     with ui.row().classes('items-center no-wrap'):
                         # Use a fallback icon in case the image fails to load
                         with ui.avatar(size='32px'):
-                            with ui.image('eliranwong.jpg') as image:
+                            with ui.image(os.path.join(BIBLEMATEWEB_APP_DIR, 'eliranwong.jpg')) as image:
                                 with image.add_slot('error'):
                                     ui.icon('account_circle').classes('m-auto') # Center fallback icon
                         
@@ -402,9 +412,9 @@ def create_menu():
                     # Bible
                     with ui.button('Bibles').props('flat color=white'):
                         with ui.menu():
-                            ui.menu_item('Bible Chapter', on_click=lambda: ui.navigate.to('/bible/chapter'))
-                            ui.menu_item('Bible Verse', on_click=lambda: ui.navigate.to('/bible/verse'))
-                            ui.menu_item('Bible Audio', on_click=lambda: ui.navigate.to('/bible/audio'))
+                            ui.menu_item('Bible Chapter', on_click=lambda: ui.navigate.to('/bibles/chapter'))
+                            ui.menu_item('Bible Verse', on_click=lambda: ui.navigate.to('/bibles/verse'))
+                            ui.menu_item('Bible Audio', on_click=lambda: ui.navigate.to('/bibles/audio'))
                             ui.menu_item('Compare Chapter', on_click=lambda: ui.navigate.to('/compare/chapter'))
                             ui.menu_item('Compare Verse', on_click=lambda: ui.navigate.to('/compare/verse'))
 
@@ -468,7 +478,7 @@ def create_menu():
         )).props('clickable')
 
         # Original Bible Suite
-        with ui.expansion('Original', icon='book'):
+        with ui.expansion('Original', icon='book').props('header-class="text-primary"'):
             ui.item('Original Reader’s Bible', on_click=lambda: (
                 ui.navigate.to('/original/reader'),
                 app.storage.user.update(left_drawer_open=False)
@@ -491,17 +501,17 @@ def create_menu():
             )).props('clickable')
 
         # Bibles
-        with ui.expansion('Bibles', icon='book'):
+        with ui.expansion('Bibles', icon='book').props('header-class="text-primary"'):
             ui.item('Bible Chapter', on_click=lambda: (
-                ui.navigate.to('/bible/chapter'),
+                ui.navigate.to('/bibles/chapter'),
                 app.storage.user.update(left_drawer_open=False)
             )).props('clickable')
             ui.item('Bible Verse', on_click=lambda: (
-                ui.navigate.to('/bible/verse'),
+                ui.navigate.to('/bibles/verse'),
                 app.storage.user.update(left_drawer_open=False)
             )).props('clickable')
             ui.item('Bible Audio', on_click=lambda: (
-                ui.navigate.to('/bible/audio'),
+                ui.navigate.to('/bibles/audio'),
                 app.storage.user.update(left_drawer_open=False)
             )).props('clickable')
             ui.item('Compare Chapter', on_click=lambda: (
@@ -514,7 +524,7 @@ def create_menu():
             )).props('clickable')
 
         # Bible Tools
-        with ui.expansion('Tools', icon='build'):
+        with ui.expansion('Tools', icon='build').props('header-class="text-primary"'):
             ui.item('Bible Commentaries', on_click=lambda: (
                 ui.navigate.to('/tool/commentary'),
                 app.storage.user.update(left_drawer_open=False)
@@ -549,7 +559,7 @@ def create_menu():
             )).props('clickable')
 
         # Search
-        with ui.expansion('Search', icon='search'):
+        with ui.expansion('Search', icon='search').props('header-class="text-primary"'):
             ui.item('Bibles', on_click=lambda: (
                 ui.navigate.to('/search/bible'),
                 app.storage.user.update(left_drawer_open=False)
@@ -592,7 +602,7 @@ def create_menu():
             )).props('clickable')
         
         # AI
-        with ui.expansion('AI', icon='thumb_up'):
+        with ui.expansion('AI', icon='thumb_up').props('header-class="text-primary"'):
             ui.item('AI Commentary', on_click=lambda: (
                 ui.navigate.to('/ai/commentary'),
                 app.storage.user.update(left_drawer_open=False)
@@ -630,10 +640,9 @@ def main():
     # Make sure to replace the secret!
     ui.run(
         storage_secret='REPLACE_ME_WITH_A_REAL_SECRET',
-        port=9999,
+        port=8888,
         title='BibleMate AI',
-        favicon='eliranwong.jpg'
+        favicon=os.path.join(BIBLEMATEWEB_APP_DIR, 'eliranwong.jpg')
     )
 
-if __name__ in {"__main__", "__mp_main__"}:
-    main()
+main()
