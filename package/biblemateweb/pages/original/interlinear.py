@@ -27,6 +27,9 @@ def original_interlinear(q: str | None = None):
     # Fix known issues
     content = content.replace("<br<", "<br><")
 
+    # convert verse link, like '<vid id="v19.117.1" onclick="luV(1)">'
+    content = re.sub(r'<vid id="v([0-9]+?)\.([0-9]+?)\.([0-9]+?)" onclick="luV\(([0-9]+?)\)">', r'<vid id="v\1.\2.\3" onclick="luV(\1, \2, \3)">', content)
+    
     # Convert onclick and ondblclick links
     content = re.sub(r'''(onclick|ondblclick)="(luV|luW|lex|bdbid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
     content = re.sub(r"""(onclick|ondblclick)='(luV|luW|lex|bdbid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
