@@ -89,18 +89,18 @@ def create_home_layout():
             
             with area1_tab_panels_container:
                 with ui.tab_panel('tab1_1'):
-                    area1_tab_panels['tab1_1'] = ui.scroll_area().classes('w-full h-full p-4')
+                    area1_tab_panels['tab1_1'] = ui.scroll_area().classes('w-full h-full p-4 tab1_1')
                     with area1_tab_panels['tab1_1']:
                         ui.label('Bible Area').classes('text-2xl font-bold mb-4')
                         ui.label('Bible content is placed here.').classes('text-gray-600')
                 
                 with ui.tab_panel('tab1_2'):
-                    area1_tab_panels['tab1_2'] = ui.scroll_area().classes('w-full h-full p-4')
+                    area1_tab_panels['tab1_2'] = ui.scroll_area().classes('w-full h-full p-4 tab1_2')
                     with area1_tab_panels['tab1_2']:
                         ...
                 
                 with ui.tab_panel('tab1_3'):
-                    area1_tab_panels['tab1_3'] = ui.scroll_area().classes('w-full h-full p-4')
+                    area1_tab_panels['tab1_3'] = ui.scroll_area().classes('w-full h-full p-4 tab1_3')
                     with area1_tab_panels['tab1_3']:
                         ...
     
@@ -120,28 +120,28 @@ def create_home_layout():
             
             with area2_tab_panels_container:
                 with ui.tab_panel('tab2_1'):
-                    area2_tab_panels['tab2_1'] = ui.scroll_area().classes('w-full h-full p-4')
+                    area2_tab_panels['tab2_1'] = ui.scroll_area().classes('w-full h-full p-4 tab2_1')
                     with area2_tab_panels['tab2_1']:
                         ui.label('Tool Area').classes('text-2xl font-bold mb-4')
                         ui.label('Tool content is placed here.').classes('text-gray-600')
                 
                 with ui.tab_panel('tab2_2'):
-                    area2_tab_panels['tab2_2'] = ui.scroll_area().classes('w-full h-full p-4')
+                    area2_tab_panels['tab2_2'] = ui.scroll_area().classes('w-full h-full p-4 tab2_2')
                     with area2_tab_panels['tab2_2']:
                         ...
                 
                 with ui.tab_panel('tab2_3'):
-                    area2_tab_panels['tab2_3'] = ui.scroll_area().classes('w-full h-full p-4')
+                    area2_tab_panels['tab2_3'] = ui.scroll_area().classes('w-full h-full p-4 tab2_3')
                     with area2_tab_panels['tab2_3']:
                         ...
                 
                 with ui.tab_panel('tab2_4'):
-                    area2_tab_panels['tab2_4'] = ui.scroll_area().classes('w-full h-full p-4')
+                    area2_tab_panels['tab2_4'] = ui.scroll_area().classes('w-full h-full p-4 tab2_4')
                     with area2_tab_panels['tab2_4']:
                         ...
                 
                 with ui.tab_panel('tab2_5'):
-                    area2_tab_panels['tab2_5'] = ui.scroll_area().classes('w-full h-full p-4')
+                    area2_tab_panels['tab2_5'] = ui.scroll_area().classes('w-full h-full p-4 tab2_5')
                     with area2_tab_panels['tab2_5']:
                         ...
     
@@ -198,10 +198,20 @@ def load_area_1_content(content, title="Bible"):
     active_panel.clear()
     with active_panel:
         # load content here
-        content()
+        args = {
+            "b": 63,
+            "c": 1,
+            "v": 3,
+            "area": 1,
+            "tab1": active_tab,
+            "tab2": get_active_area2_tab(),
+        }
+        content(**args)
     # Update tab label to reflect new content
     for child in area1_tabs:
         if hasattr(child, '_props') and child._props.get('name') == active_tab:
+            # current label
+            # print(child._props.get('label'))
             child.props(f'label="{title}"')
             break
     #ui.notify(f'Loaded content in Area 1 - {active_tab}')
@@ -217,10 +227,20 @@ def load_area_2_content(content, title="Tool"):
     # Clear and load new content
     active_panel.clear()
     with active_panel:
-        content()
+        args = {
+            "b": 63,
+            "c": 1,
+            "v": 3,
+            "area": 2,
+            "tab1": get_active_area1_tab(),
+            "tab2": active_tab,
+        }
+        content(**args)
     # Update tab label to reflect new content
     for child in area2_tabs:
         if hasattr(child, '_props') and child._props.get('name') == active_tab:
+            # current label
+            # print(child._props.get('label'))
             child.props(f'label="{title}"')
             break
     #ui.notify(f'Loaded content in Area 2 - {active_tab}')
@@ -237,7 +257,7 @@ def add_tab_area1():
     # Add new tab panel
     with area1_tab_panels_container:
         with ui.tab_panel(new_tab_name):
-            area1_tab_panels[new_tab_name] = ui.scroll_area().classes('w-full h-full p-4')
+            area1_tab_panels[new_tab_name] = ui.scroll_area().classes(f'w-full h-full p-4 {new_tab_name}')
             with area1_tab_panels[new_tab_name]:
                 ...
     #ui.notify(f'Added Tab {area1_tab_counter} to Area 1')
@@ -282,7 +302,7 @@ def add_tab_area2():
     # Add new tab panel
     with area2_tab_panels_container:
         with ui.tab_panel(new_tab_name):
-            area2_tab_panels[new_tab_name] = ui.scroll_area().classes('w-full h-full p-4')
+            area2_tab_panels[new_tab_name] = ui.scroll_area().classes(f'w-full h-full p-4 {new_tab_name}')
             with area2_tab_panels[new_tab_name]:
                 ...
     #ui.notify(f'Added Tab {area2_tab_counter} to Area 2')

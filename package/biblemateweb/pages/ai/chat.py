@@ -76,7 +76,7 @@ async def handle_send_click():
         await asyncio.sleep(1)
         n.dismiss()
 
-def ai_chat():
+def ai_chat(**_):
     global REQUEST_INPUT, MESSAGE_CONTAINER, SEND_BUTTON, AUTO_SCROLL_CHECKBOX, SCROLL_AREA
 
     with ui.column().classes('w-full h-screen p-4 gap-0'):

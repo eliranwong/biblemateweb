@@ -133,7 +133,7 @@ class BibleAudioPlayer:
 # Create the application
 player = BibleAudioPlayer()
 
-def bibles_audio():
+def bibles_audio(**_):
     player.create_ui()
     # Auto-start playing after page loads
     ui.timer(0.5, player.auto_start, once=True)

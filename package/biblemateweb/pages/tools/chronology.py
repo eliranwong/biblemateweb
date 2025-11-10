@@ -24,7 +24,7 @@ def create_internal_link(reference: str):
     
     return link_component
 
-def bible_chronology():
+def bible_chronology(**_):
     global output_label
     ui.page_title('Bible Chronology')
     

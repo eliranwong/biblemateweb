@@ -2,10 +2,11 @@ from nicegui import ui
 from biblemateweb.css.original import ORIGINAL_CSS
 from biblemateweb.fx.bible import *
 from biblemateweb.fx.original import *
+from biblemateweb.js.sync_scrolling import *
 import re
 
 
-def original_linguistic(q: str | None = None):
+def original_linguistic(b=1, c=1, v=1, area=1, tab1=None, tab2=None, **_):
 
     # listen for custom event "luW"
     ui.on('luW', luW)
@@ -124,7 +125,15 @@ def original_linguistic(q: str | None = None):
 
     # Render the HTML inside a styled container
     # REMEMBER: sanitize=False is required to keep your onclick/onmouseover attributes
-    ui.html(f'<div class="bible-text">{content}</div>', sanitize=False).classes('w-full')
+    ui.html(f'<div class="bible-text">{content}</div>', sanitize=False).classes(f'w-full pb-[60vh] {(tab1+"_chapter") if area == 1 else (tab2+"_chapter")}')
+
+    # After the page is built and ready, run our JavaScript
+    if (not area == 1) and tab1 and tab2:
+        ui.run_javascript(f"""
+            {SYNC_JS}
+            
+            {get_sync_fx(tab1, tab2)}
+        """)
 
     # scrolling, e.g.
-    # ui.run_javascript('scrollToVerse("v63.1.10")')
+    ui.run_javascript(f'scrollToVerse("v{b}.{c}.{v}")')
