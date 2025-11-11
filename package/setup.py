@@ -68,6 +68,7 @@ setup(
     entry_points={
         "console_scripts": [
             f"bmweb={package}.main:main",
+            f"biblemateweb={package}.main:main",
             f"{package}={package}.main:main",
         ],
     },

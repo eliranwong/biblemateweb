@@ -10,11 +10,24 @@ with ui.row().classes('w-full overflow-x-auto no-wrap scroll_row'):
     for i in range(15):
         ui.button(icon='book', on_click=lambda i=i: ui.notify(f'Opened Book {i}'))
 
+# Option 1b
+
+ui.label('Row with Horizontal-Only Scroll').classes('text-h6')
+
+# 'overflow-x-auto': Enables horizontal scroll only when needed
+# 'overflow-y-hidden': Disables vertical scroll and hides the scrollbar
+# 'no-wrap': Keeps all buttons on a single line
+# 'py-2': Adds a little vertical padding, which is more flexible than a fixed height
+with ui.row().classes('w-full overflow-x-auto overflow-y-hidden no-wrap py-2'):
+    for i in range(15):
+        # .props('dense') makes the buttons a bit smaller and more compact
+        ui.button(icon='bookmark', color='secondary').props('dense')
+
 # Option 2
 
 ui.label('NiceGUI Scroll Area').classes('text-h6')
 
-with ui.scroll_area().classes('w-full h-16'):
+with ui.scroll_area().classes('w-full h-16 overflow-y-hidden'):
     with ui.row().classes('no-wrap'):
         for i in range(15):
             ui.button(icon='bookmark', color='secondary')

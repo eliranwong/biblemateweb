@@ -26,7 +26,7 @@ area2_container = None
 area1_wrapper = None
 area2_wrapper = None
 splitter = None
-is_lt_sm = False
+is_portrait = False
 
 # Tab panels and active tab tracking
 area1_tabs = None
@@ -38,15 +38,16 @@ area2_tab_panels_container = None
 area1_tab_counter = 3  # Counter for new tabs in Area 1
 area2_tab_counter = 5  # Counter for new tabs in Area 2
 
-def work_in_progress():
+def work_in_progress(**_):
     with ui.column().classes('w-full items-center'):
         ui.label('BibleMate AI').classes('text-2xl mt-4')
         ui.label('This feature is currently in progress.').classes('text-gray-600')
         ui.notify("This feature is currently in progress.")
 
 def check_breakpoint(ev):
-    global is_lt_sm, splitter
+    global is_portrait, splitter
     # prefer the well-known attributes
+    # width
     width = getattr(ev, 'width', None)
     # fallback: some versions wrap data inside an attribute (try common names)
     if width is None:
@@ -58,16 +59,28 @@ def check_breakpoint(ev):
     if width is None:
         print('Could not determine width from event:', ev)
         return
-    is_lt_sm = width < 640   # tailwind sm = 640px
+    # height
+    height = getattr(ev, 'height', None)
+    # fallback: some versions wrap data inside an attribute (try common names)
+    if height is None:
+        for maybe in ('args', 'arguments', 'data', 'payload'):
+            candidate = getattr(ev, maybe, None)
+            if isinstance(candidate, dict) and 'height' in candidate:
+                height = candidate['height']
+                break
+    if height is None:
+        print('Could not determine height from event:', ev)
+        return
+    is_portrait = width < height
     if splitter:
-        if is_lt_sm:
+        if is_portrait:
             splitter.props('horizontal')
         else:
             splitter.props(remove='horizontal')
 
 def create_home_layout():
     """Create two scrollable areas with responsive layout"""
-    global area1_wrapper, area2_wrapper, splitter, is_lt_sm
+    global area1_wrapper, area2_wrapper, splitter, is_portrait
     global area1_tabs, area2_tabs, area1_tab_panels, area2_tab_panels
     global area1_tab_panels_container, area2_tab_panels_container
 
@@ -79,7 +92,7 @@ def create_home_layout():
     ui.add_head_html(ORIGINAL_JS) # for interactive highlighting
 
     # Create splitter
-    splitter = ui.splitter(value=100, horizontal=is_lt_sm).classes('w-full').style('height: calc(100vh - 64px)')
+    splitter = ui.splitter(value=100, horizontal=is_portrait).classes('w-full').style('height: calc(100vh - 64px)')
     
     # Area 1 with 4 tabs
     with splitter.before:
@@ -154,11 +167,11 @@ def create_home_layout():
     # Set initial visibility (Area 1 visible, Area 2 hidden)
     update_visibility()
 
-def swap_layout():
+def swap_layout(layout=None):
     """Swap between three layout modes"""
     global current_layout
     
-    current_layout = (current_layout % 3) + 1
+    current_layout = layout if layout else (current_layout % 3) + 1
     update_visibility()
     #ui.notify(f'Switched to Layout {current_layout}')
 
@@ -397,45 +410,57 @@ def create_menu():
             # --- Right Aligned Group (Features & About Us) ---
             with ui.row().classes('items-center no-wrap'):
                 
-                # --- Desktop Menu (Features & About) ---
-                # This row contains buttons only visible on desktop
-                with ui.row().classes('gt-xs items-center no-wrap'):                            
-                    # Bibles
-                    with ui.button('Bibles').props('flat color=white'):
-                        with ui.menu():
-                            ui.menu_item('Add Bible Tab', on_click=add_tab_area1)
-                            ui.menu_item('Remove Bible Tab', on_click=remove_tab_area1)
-                            ui.separator()
-                            ui.menu_item('Original Reader’s Bible', on_click=lambda: load_area_1_content(original_reader, 'ORB'))
-                            ui.menu_item('Original Interlinear Bible', on_click=lambda: load_area_1_content(original_interlinear, 'OIB'))
-                            ui.menu_item('Original Parallel Bible', on_click=lambda: load_area_1_content(original_parallel, 'OPB'))
-                            ui.menu_item('Original Discourse Bible', on_click=lambda: load_area_1_content(original_discourse, 'ODB'))
-                            ui.menu_item('Original Linguistic Bible', on_click=lambda: load_area_1_content(original_linguistic, 'OLB'))
-                            ui.separator()
-                            ui.menu_item('Bible Chapter', on_click=lambda: load_area_1_content(work_in_progress))
-                            ui.menu_item('Bible Verse', on_click=lambda: load_area_2_content(work_in_progress))
-                            ui.menu_item('Bible Audio', on_click=lambda: load_area_2_content(bibles_audio, 'Audio'))
-                            ui.menu_item('Compare Chapter', on_click=lambda: load_area_2_content(work_in_progress))
-                            ui.menu_item('Compare Verse', on_click=lambda: load_area_2_content(work_in_progress))
+                #with ui.row().classes('gt-xs items-center overflow-x-auto overflow-y-hidden no-wrap'):                            
+                # Bibles
+                with ui.button(icon='book').props('flat color=white round').tooltip('Bibles'):
+                    with ui.menu():
+                        ui.menu_item('Add Bible Tab', on_click=add_tab_area1)
+                        ui.menu_item('Remove Bible Tab', on_click=remove_tab_area1)
+                        ui.separator()
+                        ui.menu_item('Original Reader’s Bible', on_click=lambda: load_area_1_content(original_reader, 'ORB'))
+                        ui.menu_item('Original Interlinear Bible', on_click=lambda: load_area_1_content(original_interlinear, 'OIB'))
+                        ui.menu_item('Original Parallel Bible', on_click=lambda: load_area_1_content(original_parallel, 'OPB'))
+                        ui.menu_item('Original Discourse Bible', on_click=lambda: load_area_1_content(original_discourse, 'ODB'))
+                        ui.menu_item('Original Linguistic Bible', on_click=lambda: load_area_1_content(original_linguistic, 'OLB'))
+                        ui.separator()
+                        ui.menu_item('Bible Chapter', on_click=lambda: load_area_1_content(work_in_progress))
+                        ui.menu_item('Bible Verse', on_click=lambda: load_area_2_content(work_in_progress))
+                        ui.menu_item('Bible Audio', on_click=lambda: load_area_2_content(bibles_audio, 'Audio'))
+                        ui.menu_item('Compare Chapter', on_click=lambda: load_area_2_content(work_in_progress))
+                        ui.menu_item('Compare Verse', on_click=lambda: load_area_2_content(work_in_progress))
 
-                    # Bible Tools
-                    with ui.button('Tools').props('flat color=white'):
-                        with ui.menu():
-                            ui.menu_item('Add Tool Tab', on_click=add_tab_area2)
-                            ui.menu_item('Remove Tool Tab', on_click=remove_tab_area2)
-                            ui.separator()
-                            ui.menu_item('Bible Commentaries', on_click=lambda: load_area_2_content(work_in_progress))
-                            ui.menu_item('Cross-references', on_click=lambda: load_area_2_content(work_in_progress))
-                            ui.menu_item('Treasury of Scripture Knowledge', on_click=lambda: load_area_2_content(work_in_progress))
-                            ui.menu_item('Discourse Analysis', on_click=lambda: load_area_2_content(work_in_progress))
-                            ui.menu_item('Morphological Data', on_click=lambda: load_area_2_content(work_in_progress))
-                            ui.menu_item('Translation Spectrum', on_click=lambda: load_area_2_content(work_in_progress))
-                            ui.menu_item('Bible Timelines', on_click=lambda: load_area_2_content(work_in_progress))
-                            ui.menu_item('Bible Chronology', on_click=lambda: load_area_2_content(bible_chronology, 'Chronology'))
+                with ui.button(icon='menu_book').props('flat color=white round').tooltip('Parallel Bibles'):
+                    with ui.menu():
+                        ui.menu_item('Add Bible Tab', on_click=add_tab_area1)
+                        ui.menu_item('Remove Bible Tab', on_click=remove_tab_area1)
+                        ui.separator()
+                        ui.menu_item('Original Reader’s Bible', on_click=lambda: load_area_1_content(original_reader, 'ORB'))
+                        ui.menu_item('Original Interlinear Bible', on_click=lambda: load_area_1_content(original_interlinear, 'OIB'))
+                        ui.menu_item('Original Parallel Bible', on_click=lambda: load_area_1_content(original_parallel, 'OPB'))
+                        ui.menu_item('Original Discourse Bible', on_click=lambda: load_area_1_content(original_discourse, 'ODB'))
+                        ui.menu_item('Original Linguistic Bible', on_click=lambda: load_area_1_content(original_linguistic, 'OLB'))
+                        ui.separator()
+                        ui.menu_item('Bible Chapter', on_click=lambda: load_area_1_content(work_in_progress))
+                        ui.menu_item('Bible Verse', on_click=lambda: load_area_2_content(work_in_progress))
+                        ui.menu_item('Bible Audio', on_click=lambda: load_area_2_content(bibles_audio, 'Audio'))
+                        ui.menu_item('Compare Chapter', on_click=lambda: load_area_2_content(work_in_progress))
+                        ui.menu_item('Compare Verse', on_click=lambda: load_area_2_content(work_in_progress))
+
+                # Bible Tools
+                with ui.button(icon='build').props('flat color=white round').tooltip('Tools'):
+                    with ui.menu():
+                        ui.menu_item('Add Tool Tab', on_click=add_tab_area2)
+                        ui.menu_item('Remove Tool Tab', on_click=remove_tab_area2)
+                        ui.separator()
+                        ui.menu_item('Bible Commentaries', on_click=lambda: load_area_2_content(work_in_progress))
+                        ui.menu_item('Cross-references', on_click=lambda: load_area_2_content(work_in_progress))
+                        ui.menu_item('Treasury of Scripture Knowledge', on_click=lambda: load_area_2_content(work_in_progress))
+                        ui.menu_item('Discourse Analysis', on_click=lambda: load_area_2_content(work_in_progress))
+                        ui.menu_item('Morphological Data', on_click=lambda: load_area_2_content(work_in_progress))
+                        ui.menu_item('Translation Spectrum', on_click=lambda: load_area_2_content(work_in_progress))
+                        ui.menu_item('Bible Timelines', on_click=lambda: load_area_2_content(work_in_progress))
+                        ui.menu_item('Bible Chronology', on_click=lambda: load_area_2_content(bible_chronology, 'Chronology'))
                 
-                # --- Mobile "About Us" Icon Button ---
-                # This button is only visible on mobile
-
                 """with ui.button(icon='book').props('flat color=white round'):
                     with ui.menu():
                         ..."""
@@ -461,7 +486,13 @@ def create_menu():
                         ui.menu_item('Partner Mode', on_click=lambda: load_area_2_content(work_in_progress))
                         ui.menu_item('Agent Mode', on_click=lambda: load_area_2_content(work_in_progress))
 
-                ui.button(on_click=swap_layout, icon='swap_horiz').props('flat color=white round').tooltip('Swap Layout')
+                with ui.button(icon='settings').props('flat color=white round').tooltip('Settings'):
+                    with ui.menu():
+                        ui.menu_item('Bible Only', on_click=lambda: swap_layout(1))
+                        ui.menu_item('Tool Only', on_click=lambda: swap_layout(3))
+                        ui.menu_item('Bible & Tool', on_click=lambda: swap_layout(2))
+                        ui.separator()
+                        ui.menu_item('Preferences', on_click=lambda: load_area_2_content(work_in_progress))
 
     # --- Drawer (Mobile Menu) ---
     # This section is unchanged
