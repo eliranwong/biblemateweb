@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from nicegui import ui
 
-from biblemategui import BIBLEMATEGUI_APP_DIR
+from biblemategui import config, BIBLEMATEGUI_APP_DIR, BIBLEMATEGUI_DATA, BIBLEMATEGUI_DATA_CUSTOM
 
 from biblemategui.pages.home import *
 
@@ -13,47 +13,89 @@ from biblemategui.pages.bibles.original_linguistic import original_linguistic
 
 from biblemategui.pages.tools.audio import bibles_audio
 
-import os
-
-# --- Define the Pages ---
-# We define our pages first. The create_menu() function will be
-# called inside each page function to add the shared navigation.
+import os, glob
 
 """
-q - query
+# Supported parameters
+
 t - token
 m - menu
 
-b - book
-c - chapter
-v - verse
+bbt - bible bible text
+bb - bible book
+bc - bible chapter
+bv - bible verse
 
-bb - default bible
-cc - default commentary
-ee - default encyclopedia
-ll - default lexicon
+tbt - tool bible text
+tb - tool book
+tc - tool chapter
+tv - tool verse
+
+db - default bible
+dc - default commentary
+de - default encyclopedia
+dl - default lexicon
 """
 
 # Home Page
 
 @ui.page('/')
-def page_home(q: str | None = None):
+def page_home(
+    #t: str | None = None, # token for using custom data
+    m: bool | None = True,
+    bbt: str | None = None,
+    bb: int | None = None,
+    bc: int | None = None,
+    bv: int | None = None,
+    tbt: str | None = None,
+    tb: int | None = None,
+    tc: int | None = None,
+    tv: int | None = None,
+):
     """
-    Home page that accepts an optional 'q' q parameter.
-    Example: /?q=hello
+    Home page that accepts optional parameters.
+    Example: /?bb=1&bc=1&bv=1
     """
-    create_menu() # Add the shared menu
-    create_home_layout()
-    '''with ui.column().classes('w-full items-center'):
-        ui.label('Welcome to BibleMate AI!').classes('text-2xl mt-4')
-        ui.label('Resize your browser window to see the menu change.')
 
-        # --- Display the q parameter ---
-        if q:
-            ui.label(f'You passed a parameter:').classes('text-lg mt-4')
-            ui.label(f'q = {q}').classes('text-xl font-bold bg-yellow-200 p-4 rounded-lg shadow-md') # <-- USE RENAMED PARAMETER
-        else:
-            ui.label('Try adding "?q=hello" to the URL!').classes('text-lg mt-4')'''
+    # general settings; stored on sever side
+    config.bibles = {os.path.basename(i)[:-6]: i for i in glob.glob(os.path.join(BIBLEMATEGUI_DATA, "bibles", "*.bible"))}
+    config.bibles_custom = {os.path.basename(i)[:-6]: i for i in glob.glob(os.path.join(BIBLEMATEGUI_DATA_CUSTOM, "bibles", "*.bible"))}
+
+    # default user settings; stored in users' web browser Local Storage
+    # Use app.storage.user to store session-specific state
+    # This keeps the settings unique for each user
+    app.storage.user.setdefault('left_drawer_open', False)
+    
+    app.storage.user.setdefault('bible_book_text', "NET")
+    if bbt is not None:
+        app.storage.user['bible_book_text'] = bbt
+    app.storage.user.setdefault('bible_book_number', 1)
+    if bb is not None:
+        app.storage.user['bible_book_number'] = bb
+    app.storage.user.setdefault('bible_chapter_number', 1)
+    if bc is not None:
+        app.storage.user['bible_chapter_number'] = bc
+    app.storage.user.setdefault('bible_verse_number', 1)
+    if bv is not None:
+        app.storage.user['bible_verse_number'] = bv
+    app.storage.user.setdefault('tool_book_text', "KJV")
+    if tbt is not None:
+        app.storage.user['tool_book_text'] = tbt
+    app.storage.user.setdefault('tool_book_number', 1)
+    if tb is not None:
+        app.storage.user['tool_book_number'] = tb
+    app.storage.user.setdefault('tool_chapter_number', 1)
+    if tc is not None:
+        app.storage.user['tool_chapter_number'] = tc
+    app.storage.user.setdefault('tool_verse_number', 1)
+    if tv is not None:
+        app.storage.user['tool_verse_number'] = tv
+        
+    # navigation menu
+    if m:
+        create_menu() # Add the shared menu
+    # main content
+    create_home_layout()
 
 # Settings
 

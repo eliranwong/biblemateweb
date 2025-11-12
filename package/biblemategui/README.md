@@ -1,6 +1,6 @@
-# BibleMate AI Web
+# BibleMate AI GUI
 
-BibleMate AI Web Application - Web UI
+BibleMate AI Web Application - Web GUI
 
 BibleMate AI Web Version is designed to combine the most valuable features from the following two projects into a single, unified web interface:
 

@@ -12,3 +12,17 @@ if not os.path.isdir(BIBLEMATEGUI_DATA_CUSTOM):
 for i in ("audio", "bibles"):
     if not os.path.isdir(os.path.join(BIBLEMATEGUI_DATA, i)):
         Path(os.path.join(BIBLEMATEGUI_DATA, i)).mkdir(parents=True, exist_ok=True)
+
+from biblemategui import config
+from biblemategui.pages.bibles.original_reader import original_reader
+from biblemategui.pages.bibles.original_interlinear import original_interlinear
+from biblemategui.pages.bibles.original_parallel import original_parallel
+from biblemategui.pages.bibles.original_discourse import original_discourse
+from biblemategui.pages.bibles.original_linguistic import original_linguistic
+from biblemategui.pages.bibles.bible_translation import bible_translation
+config.original_reader = original_reader
+config.original_interlinear = original_interlinear
+config.original_parallel = original_parallel
+config.original_discourse = original_discourse
+config.original_linguistic = original_linguistic
+config.bible_translation = bible_translation

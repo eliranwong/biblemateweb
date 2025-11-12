@@ -1,14 +1,8 @@
 import os
-
 from nicegui import app, ui
+from functools import partial
 
-from biblemategui import BIBLEMATEGUI_APP_DIR
-
-from biblemategui.pages.bibles.original_reader import original_reader
-from biblemategui.pages.bibles.original_interlinear import original_interlinear
-from biblemategui.pages.bibles.original_parallel import original_parallel
-from biblemategui.pages.bibles.original_discourse import original_discourse
-from biblemategui.pages.bibles.original_linguistic import original_linguistic
+from biblemategui import config, BIBLEMATEGUI_APP_DIR
 
 from biblemategui.pages.tools.audio import bibles_audio
 from biblemategui.pages.tools.chronology import bible_chronology
@@ -108,20 +102,22 @@ def create_home_layout():
             
             with area1_tab_panels_container:
                 with ui.tab_panel('tab1_1'):
-                    area1_tab_panels['tab1_1'] = ui.scroll_area().classes('w-full h-full p-4 tab1_1')
+                    area1_tab_panels['tab1_1'] = ui.scroll_area().classes('w-full h-full tab1_1')
                     with area1_tab_panels['tab1_1']:
-                        ui.label('Bible Area').classes('text-2xl font-bold mb-4')
-                        ui.label('Bible content is placed here.').classes('text-gray-600')
+                        ui.label('Bible Area - Tab 1').classes('text-2xl font-bold mb-4')
+                        ui.label('[Content will be displayed here.]').classes('text-gray-600')
                 
                 with ui.tab_panel('tab1_2'):
-                    area1_tab_panels['tab1_2'] = ui.scroll_area().classes('w-full h-full p-4 tab1_2')
+                    area1_tab_panels['tab1_2'] = ui.scroll_area().classes('w-full h-full tab1_2')
                     with area1_tab_panels['tab1_2']:
-                        ...
+                        ui.label('Bible Area - Tab 2').classes('text-2xl font-bold mb-4')
+                        ui.label('[Content will be displayed here.]').classes('text-gray-600')
                 
                 with ui.tab_panel('tab1_3'):
-                    area1_tab_panels['tab1_3'] = ui.scroll_area().classes('w-full h-full p-4 tab1_3')
+                    area1_tab_panels['tab1_3'] = ui.scroll_area().classes('w-full h-full tab1_3')
                     with area1_tab_panels['tab1_3']:
-                        ...
+                        ui.label('Bible Area - Tab 3').classes('text-2xl font-bold mb-4')
+                        ui.label('[Content will be displayed here.]').classes('text-gray-600')
     
     # Area 2 with 5 tabs
     with splitter.after:
@@ -139,30 +135,34 @@ def create_home_layout():
             
             with area2_tab_panels_container:
                 with ui.tab_panel('tab2_1'):
-                    area2_tab_panels['tab2_1'] = ui.scroll_area().classes('w-full h-full p-4 tab2_1')
+                    area2_tab_panels['tab2_1'] = ui.scroll_area().classes('w-full h-full tab2_1')
                     with area2_tab_panels['tab2_1']:
-                        ui.label('Tool Area').classes('text-2xl font-bold mb-4')
-                        ui.label('Tool content is placed here.').classes('text-gray-600')
+                        ui.label('Tool Area - Tab 1').classes('text-2xl font-bold mb-4')
+                        ui.label('[Content will be displayed here.]').classes('text-gray-600')
                 
                 with ui.tab_panel('tab2_2'):
-                    area2_tab_panels['tab2_2'] = ui.scroll_area().classes('w-full h-full p-4 tab2_2')
+                    area2_tab_panels['tab2_2'] = ui.scroll_area().classes('w-full h-full tab2_2')
                     with area2_tab_panels['tab2_2']:
-                        ...
+                        ui.label('Tool Area - Tab 2').classes('text-2xl font-bold mb-4')
+                        ui.label('[Content will be displayed here.]').classes('text-gray-600')
                 
                 with ui.tab_panel('tab2_3'):
-                    area2_tab_panels['tab2_3'] = ui.scroll_area().classes('w-full h-full p-4 tab2_3')
+                    area2_tab_panels['tab2_3'] = ui.scroll_area().classes('w-full h-full tab2_3')
                     with area2_tab_panels['tab2_3']:
-                        ...
+                        ui.label('Tool Area - Tab 3').classes('text-2xl font-bold mb-4')
+                        ui.label('[Content will be displayed here.]').classes('text-gray-600')
                 
                 with ui.tab_panel('tab2_4'):
-                    area2_tab_panels['tab2_4'] = ui.scroll_area().classes('w-full h-full p-4 tab2_4')
+                    area2_tab_panels['tab2_4'] = ui.scroll_area().classes('w-full h-full tab2_4')
                     with area2_tab_panels['tab2_4']:
-                        ...
+                        ui.label('Tool Area - Tab 4').classes('text-2xl font-bold mb-4')
+                        ui.label('[Content will be displayed here.]').classes('text-gray-600')
                 
                 with ui.tab_panel('tab2_5'):
-                    area2_tab_panels['tab2_5'] = ui.scroll_area().classes('w-full h-full p-4 tab2_5')
+                    area2_tab_panels['tab2_5'] = ui.scroll_area().classes('w-full h-full tab2_5')
                     with area2_tab_panels['tab2_5']:
-                        ...
+                        ui.label('Tool Area - Tab 5').classes('text-2xl font-bold mb-4')
+                        ui.label('[Content will be displayed here.]').classes('text-gray-600')
     
     # Set initial visibility (Area 1 visible, Area 2 hidden)
     update_visibility()
@@ -218,9 +218,10 @@ def load_area_1_content(content, title="Bible"):
     with active_panel:
         # load content here
         args = {
-            "b": 63,
-            "c": 1,
-            "v": 3,
+            "title": title,
+            "b": app.storage.user.get('bible_book_number'),
+            "c": app.storage.user.get('bible_chapter_number'),
+            "v": app.storage.user.get('bible_verse_number'),
             "area": 1,
             "tab1": active_tab,
             "tab2": get_active_area2_tab(),
@@ -235,6 +236,8 @@ def load_area_1_content(content, title="Bible"):
             break
     #ui.notify(f'Loaded content in Area 1 - {active_tab}')
 
+config.load_area_1_content = load_area_1_content
+
 def load_area_2_content(content, title="Tool"):
     """Load example content in the active tab of Area 2"""
     global area2_tab_panels, area2_tabs
@@ -247,9 +250,10 @@ def load_area_2_content(content, title="Tool"):
     active_panel.clear()
     with active_panel:
         args = {
-            "b": 63,
-            "c": 1,
-            "v": 3,
+            "title": title,
+            "b": app.storage.user.get('bible_book_number'),
+            "c": app.storage.user.get('bible_chapter_number'),
+            "v": app.storage.user.get('bible_verse_number'),
             "area": 2,
             "tab1": get_active_area1_tab(),
             "tab2": active_tab,
@@ -264,6 +268,8 @@ def load_area_2_content(content, title="Tool"):
             break
     #ui.notify(f'Loaded content in Area 2 - {active_tab}')
 
+config.load_area_2_content = load_area_2_content
+
 def add_tab_area1():
     """Dynamically add a new tab to Area 1"""
     global area1_tab_counter, area1_tabs, area1_tab_panels, area1_tab_panels_container
@@ -276,10 +282,10 @@ def add_tab_area1():
     # Add new tab panel
     with area1_tab_panels_container:
         with ui.tab_panel(new_tab_name):
-            area1_tab_panels[new_tab_name] = ui.scroll_area().classes(f'w-full h-full p-4 {new_tab_name}')
+            area1_tab_panels[new_tab_name] = ui.scroll_area().classes(f'w-full h-full {new_tab_name}')
             with area1_tab_panels[new_tab_name]:
-                ...
-    #ui.notify(f'Added Tab {area1_tab_counter} to Area 1')
+                ui.label(f'Bible Area - Tab {area1_tab_counter}').classes('text-2xl font-bold mb-4')
+                ui.label('[Content will be displayed here.]').classes('text-gray-600')
 
 def remove_tab_area1():
     """Remove the currently active tab from Area 1"""
@@ -321,10 +327,10 @@ def add_tab_area2():
     # Add new tab panel
     with area2_tab_panels_container:
         with ui.tab_panel(new_tab_name):
-            area2_tab_panels[new_tab_name] = ui.scroll_area().classes(f'w-full h-full p-4 {new_tab_name}')
+            area2_tab_panels[new_tab_name] = ui.scroll_area().classes(f'w-full h-full {new_tab_name}')
             with area2_tab_panels[new_tab_name]:
-                ...
-    #ui.notify(f'Added Tab {area2_tab_counter} to Area 2')
+                ui.label(f'Tool Area - Tab {area2_tab_counter}').classes('text-2xl font-bold mb-4')
+                ui.label('[Content will be displayed here.]').classes('text-gray-600')
 
 def remove_tab_area2():
     """Remove the currently active tab from Area 2"""
@@ -366,10 +372,6 @@ def create_menu():
     # TODO: Consider dark mode latter
     # Dark Mode
     # ui.dark_mode().toggle()
-    
-    # Use app.storage.user to store session-specific state
-    # This keeps the drawer state unique for each user
-    app.storage.user.setdefault('left_drawer_open', False)
 
     # --- Header ---
     with ui.header(elevated=True).classes('bg-primary text-white'):
@@ -417,40 +419,48 @@ def create_menu():
                         ui.menu_item('Add Bible Tab', on_click=add_tab_area1)
                         ui.menu_item('Remove Bible Tab', on_click=remove_tab_area1)
                         ui.separator()
-                        ui.menu_item('Original Reader’s Bible', on_click=lambda: load_area_1_content(original_reader, 'ORB'))
-                        ui.menu_item('Original Interlinear Bible', on_click=lambda: load_area_1_content(original_interlinear, 'OIB'))
-                        ui.menu_item('Original Parallel Bible', on_click=lambda: load_area_1_content(original_parallel, 'OPB'))
-                        ui.menu_item('Original Discourse Bible', on_click=lambda: load_area_1_content(original_discourse, 'ODB'))
-                        ui.menu_item('Original Linguistic Bible', on_click=lambda: load_area_1_content(original_linguistic, 'OLB'))
+                        ui.menu_item('Original Reader’s Bible', on_click=lambda: load_area_1_content(config.original_reader, 'ORB'))
+                        ui.menu_item('Original Interlinear Bible', on_click=lambda: load_area_1_content(config.original_interlinear, 'OIB'))
+                        ui.menu_item('Original Parallel Bible', on_click=lambda: load_area_1_content(config.original_parallel, 'OPB'))
+                        ui.menu_item('Original Discourse Bible', on_click=lambda: load_area_1_content(config.original_discourse, 'ODB'))
+                        ui.menu_item('Original Linguistic Bible', on_click=lambda: load_area_1_content(config.original_linguistic, 'OLB'))
                         ui.separator()
-                        ui.menu_item('Bible Chapter', on_click=lambda: load_area_1_content(work_in_progress))
-                        ui.menu_item('Bible Verse', on_click=lambda: load_area_2_content(work_in_progress))
-                        ui.menu_item('Bible Audio', on_click=lambda: load_area_2_content(bibles_audio, 'Audio'))
-                        ui.menu_item('Compare Chapter', on_click=lambda: load_area_2_content(work_in_progress))
-                        ui.menu_item('Compare Verse', on_click=lambda: load_area_2_content(work_in_progress))
+                        if config.bibles_custom:
+                            for i in config.bibles_custom:
+                                ui.menu_item(i, on_click=partial(load_area_1_content, config.bible_translation, i))
+                            ui.separator()
+                        for i in config.bibles:
+                            ui.menu_item(i, on_click=partial(load_area_1_content, config.bible_translation, i))
 
                 with ui.button(icon='menu_book').props('flat color=white round').tooltip('Parallel Bibles'):
                     with ui.menu():
-                        ui.menu_item('Add Bible Tab', on_click=add_tab_area1)
-                        ui.menu_item('Remove Bible Tab', on_click=remove_tab_area1)
+                        ui.menu_item('Add Parallel Tab', on_click=add_tab_area2)
+                        ui.menu_item('Remove Parallel Tab', on_click=remove_tab_area2)
                         ui.separator()
-                        ui.menu_item('Original Reader’s Bible', on_click=lambda: load_area_1_content(original_reader, 'ORB'))
-                        ui.menu_item('Original Interlinear Bible', on_click=lambda: load_area_1_content(original_interlinear, 'OIB'))
-                        ui.menu_item('Original Parallel Bible', on_click=lambda: load_area_1_content(original_parallel, 'OPB'))
-                        ui.menu_item('Original Discourse Bible', on_click=lambda: load_area_1_content(original_discourse, 'ODB'))
-                        ui.menu_item('Original Linguistic Bible', on_click=lambda: load_area_1_content(original_linguistic, 'OLB'))
+                        ui.menu_item('Original Reader’s Bible', on_click=lambda: load_area_2_content(config.original_reader, 'ORB'))
+                        ui.menu_item('Original Interlinear Bible', on_click=lambda: load_area_2_content(config.original_interlinear, 'OIB'))
+                        ui.menu_item('Original Parallel Bible', on_click=lambda: load_area_2_content(config.original_parallel, 'OPB'))
+                        ui.menu_item('Original Discourse Bible', on_click=lambda: load_area_2_content(config.original_discourse, 'ODB'))
+                        ui.menu_item('Original Linguistic Bible', on_click=lambda: load_area_2_content(config.original_linguistic, 'OLB'))
                         ui.separator()
-                        ui.menu_item('Bible Chapter', on_click=lambda: load_area_1_content(work_in_progress))
-                        ui.menu_item('Bible Verse', on_click=lambda: load_area_2_content(work_in_progress))
-                        ui.menu_item('Bible Audio', on_click=lambda: load_area_2_content(bibles_audio, 'Audio'))
-                        ui.menu_item('Compare Chapter', on_click=lambda: load_area_2_content(work_in_progress))
-                        ui.menu_item('Compare Verse', on_click=lambda: load_area_2_content(work_in_progress))
+                        if config.bibles_custom:
+                            for i in config.bibles_custom:
+                                ui.menu_item(i, on_click=partial(load_area_2_content, config.bible_translation, i))
+                            ui.separator()
+                        for i in config.bibles:
+                            ui.menu_item(i, on_click=partial(load_area_2_content, config.bible_translation, i))
+                        
 
                 # Bible Tools
                 with ui.button(icon='build').props('flat color=white round').tooltip('Tools'):
                     with ui.menu():
                         ui.menu_item('Add Tool Tab', on_click=add_tab_area2)
                         ui.menu_item('Remove Tool Tab', on_click=remove_tab_area2)
+                        ui.separator()
+                        ui.menu_item('Bible Verse', on_click=lambda: load_area_2_content(work_in_progress))
+                        ui.menu_item('Bible Audio', on_click=lambda: load_area_2_content(bibles_audio, 'Audio'))
+                        ui.menu_item('Compare Chapter', on_click=lambda: load_area_2_content(work_in_progress))
+                        ui.menu_item('Compare Verse', on_click=lambda: load_area_2_content(work_in_progress))
                         ui.separator()
                         ui.menu_item('Bible Commentaries', on_click=lambda: load_area_2_content(work_in_progress))
                         ui.menu_item('Cross-references', on_click=lambda: load_area_2_content(work_in_progress))
@@ -501,7 +511,7 @@ def create_menu():
             .props('overlay') \
             .bind_value(app.storage.user, 'left_drawer_open') as left_drawer:
         
-        ui.label('Navigation').classes('text-xl p-4')
+        ui.label('Navigation').classes('text-xl')
 
         # Home Link
         ui.item('Home', on_click=lambda: (
@@ -509,35 +519,80 @@ def create_menu():
             app.storage.user.update(left_drawer_open=False)
         )).props('clickable')
 
-        # Original Bible Suite
+        # Bibles
         with ui.expansion('Original', icon='book').props('header-class="text-primary"'):
             ui.item('Original Reader’s Bible', on_click=lambda: (
-                load_area_1_content(original_reader, 'ORB'),
+                load_area_1_content(config.original_reader, 'ORB'),
                 app.storage.user.update(left_drawer_open=False)
             )).props('clickable')
             ui.item('Original Interlinear Bible', on_click=lambda: (
-                load_area_1_content(original_interlinear, 'OIB'),
+                load_area_1_content(config.original_interlinear, 'OIB'),
                 app.storage.user.update(left_drawer_open=False)
             )).props('clickable')
             ui.item('Original Parallel Bible', on_click=lambda: (
-                load_area_1_content(original_parallel, 'OPB'),
+                load_area_1_content(config.original_parallel, 'OPB'),
                 app.storage.user.update(left_drawer_open=False)
             )).props('clickable')
             ui.item('Original Discourse Bible', on_click=lambda: (
-                load_area_1_content(original_discourse, 'ODB'),
+                load_area_1_content(config.original_discourse, 'ODB'),
                 app.storage.user.update(left_drawer_open=False)
             )).props('clickable')
             ui.item('Original Linguistic Bible', on_click=lambda: (
-                load_area_1_content(original_linguistic, 'OLB'),
+                load_area_1_content(config.original_linguistic, 'OLB'),
                 app.storage.user.update(left_drawer_open=False)
             )).props('clickable')
+            ui.separator()
+            if config.bibles_custom:
+                for i in config.bibles_custom:
+                    ui.item(i, on_click=lambda: (
+                        load_area_1_content(config.bible_translation, i),
+                        app.storage.user.update(left_drawer_open=False)
+                    )).props('clickable')
+                ui.separator()
+            for i in config.bibles:
+                ui.item(i, on_click=lambda: (
+                    load_area_1_content(config.bible_translation, i),
+                    app.storage.user.update(left_drawer_open=False)
+                )).props('clickable')
 
-        # Bibles
-        with ui.expansion('Bibles', icon='book').props('header-class="text-primary"'):
-            ui.item('Bible Chapter', on_click=lambda: (
-                load_area_2_content(work_in_progress),
+        # Parallel Bibles
+        with ui.expansion('Original', icon='book').props('header-class="text-primary"'):
+            ui.item('Original Reader’s Bible', on_click=lambda: (
+                load_area_2_content(config.original_reader, 'ORB'),
                 app.storage.user.update(left_drawer_open=False)
             )).props('clickable')
+            ui.item('Original Interlinear Bible', on_click=lambda: (
+                load_area_2_content(config.original_interlinear, 'OIB'),
+                app.storage.user.update(left_drawer_open=False)
+            )).props('clickable')
+            ui.item('Original Parallel Bible', on_click=lambda: (
+                load_area_2_content(config.original_parallel, 'OPB'),
+                app.storage.user.update(left_drawer_open=False)
+            )).props('clickable')
+            ui.item('Original Discourse Bible', on_click=lambda: (
+                load_area_2_content(config.original_discourse, 'ODB'),
+                app.storage.user.update(left_drawer_open=False)
+            )).props('clickable')
+            ui.item('Original Linguistic Bible', on_click=lambda: (
+                load_area_2_content(config.original_linguistic, 'OLB'),
+                app.storage.user.update(left_drawer_open=False)
+            )).props('clickable')
+            ui.separator()
+            if config.bibles_custom:
+                for i in config.bibles_custom:
+                    ui.item(i, on_click=lambda: (
+                        load_area_2_content(config.bible_translation, i),
+                        app.storage.user.update(left_drawer_open=False)
+                    )).props('clickable')
+                ui.separator()
+            for i in config.bibles:
+                ui.item(i, on_click=lambda: (
+                    load_area_2_content(config.bible_translation, i),
+                    app.storage.user.update(left_drawer_open=False)
+                )).props('clickable')
+
+        # Bible Tools
+        with ui.expansion('Tools', icon='build').props('header-class="text-primary"'):
             ui.item('Bible Verse', on_click=lambda: (
                 load_area_2_content(work_in_progress),
                 app.storage.user.update(left_drawer_open=False)
@@ -555,8 +610,6 @@ def create_menu():
                 app.storage.user.update(left_drawer_open=False)
             )).props('clickable')
 
-        # Bible Tools
-        with ui.expansion('Tools', icon='build').props('header-class="text-primary"'):
             ui.item('Bible Commentaries', on_click=lambda: (
                 load_area_2_content(work_in_progress),
                 app.storage.user.update(left_drawer_open=False)

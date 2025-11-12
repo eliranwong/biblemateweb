@@ -7,18 +7,11 @@ from biblemategui.js.sync_scrolling import *
 import re, os
 
 
-def original_parallel(b=1, c=1, v=1, area=1, tab1=None, tab2=None, **_):
+def bible_translation(b=1, c=1, v=1, area=1, tab1=None, tab2=None, title="", **_):
 
-    ui.on('luW', luW)
     ui.on('luV', luV)
-    ui.on('lex', lex)
-    ui.on('bdbid', bdbid)
-    ui.on('etcbcmorph', etcbcmorph)
-    ui.on('rmac', rmac)
-    ui.on('searchWord', searchWord)
-    ui.on('searchLexicalEntry', searchLexicalEntry)
 
-    db = os.path.join(BIBLEMATEGUI_DATA, "original", "OPB.bible")
+    db = getBiblePath(title)
     if not os.path.isfile(db):
         return None
     content = getBibleChapter(db, b, c)
@@ -116,10 +109,10 @@ def original_parallel(b=1, c=1, v=1, area=1, tab1=None, tab2=None, **_):
         """)
 
     ui.add_head_html(ORIGINAL_CSS)
-    
+
     # Bible Selection menu
     bible_selector = BibleSelector(on_chapter_changed=change_area_1_bible_chapter if area == 1 else change_area_2_bible_chapter, on_verse_changed=change_bible_chapter_verse)
-    bible_selector.create_ui("OPB", b, c, v)
+    bible_selector.create_ui(title, b, c, v)
 
     # Render the HTML inside a styled container
     # REMEMBER: sanitize=False is required to keep your onclick/onmouseover attributes
