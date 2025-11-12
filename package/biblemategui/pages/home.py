@@ -392,7 +392,7 @@ def create_menu():
                 # This is a button that contains the avatar
                 with ui.button(on_click=lambda: load_area_2_content(work_in_progress)).props('flat round dense').classes('lt-sm'):
                     with ui.avatar(size='32px'):
-                         with ui.image(os.path.join(BIBLEMATEGUI_APP_DIR, 'eliranwong.jpg')) as image:
+                         with ui.image(config.avatar if config.avatar else os.path.join(BIBLEMATEGUI_APP_DIR, 'eliranwong.jpg')) as image:
                             with image.add_slot('error'):
                                 ui.icon('account_circle').classes('m-auto') # Center fallback icon
 
@@ -402,7 +402,7 @@ def create_menu():
                     with ui.row().classes('items-center no-wrap'):
                         # Use a fallback icon in case the image fails to load
                         with ui.avatar(size='32px'):
-                            with ui.image(os.path.join(BIBLEMATEGUI_APP_DIR, 'eliranwong.jpg')) as image:
+                            with ui.image(config.avatar if config.avatar else os.path.join(BIBLEMATEGUI_APP_DIR, 'eliranwong.jpg')) as image:
                                 with image.add_slot('error'):
                                     ui.icon('account_circle').classes('m-auto') # Center fallback icon
                         

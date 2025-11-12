@@ -26,6 +26,11 @@ def original_discourse(b=1, c=1, v=1, area=1, tab1=None, tab2=None, **_):
     # Fix known issues
     content = content.replace("<br<", "<br><")
 
+    # add new tags
+    content = content.replace("</vid> ", "</vid> <txt>")
+    content = content.replace("<div class='bhsa'>", "</txt><div class='bhsa'>")
+    content = content.replace("<div class='e'>", "</txt><div class='e'>")
+
     # convert verse link, like '<vid id="v19.117.1" onclick="luV(1)">'
     content = re.sub(r'<vid id="v([0-9]+?)\.([0-9]+?)\.([0-9]+?)" onclick="luV\(([0-9]+?)\)">', r'<vid id="v\1.\2.\3" onclick="luV(\1, \2, \3)">', content)
     
@@ -117,7 +122,7 @@ def original_discourse(b=1, c=1, v=1, area=1, tab1=None, tab2=None, **_):
     ui.add_head_html(ORIGINAL_CSS)
 
     # Bible Selection menu
-    bible_selector = BibleSelector(on_chapter_changed=change_area_1_bible_chapter if area == 1 else change_area_2_bible_chapter, on_verse_changed=change_bible_chapter_verse)
+    bible_selector = BibleSelector(on_version_changed=change_area_1_bible_chapter if area == 1 else change_area_2_bible_chapter, on_book_changed=change_area_1_bible_chapter if area == 1 else change_area_2_bible_chapter, on_chapter_changed=change_area_1_bible_chapter if area == 1 else change_area_2_bible_chapter, on_verse_changed=change_bible_chapter_verse)
     bible_selector.create_ui("ODB", b, c, v)
 
     # Render the HTML inside a styled container

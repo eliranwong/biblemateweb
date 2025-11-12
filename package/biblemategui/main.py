@@ -51,51 +51,83 @@ def page_home(
     tb: int | None = None,
     tc: int | None = None,
     tv: int | None = None,
+    tool: str | None = None,
 ):
     """
     Home page that accepts optional parameters.
     Example: /?bb=1&bc=1&bv=1
     """
-
-    # general settings; stored on sever side
-    config.bibles = {os.path.basename(i)[:-6]: i for i in glob.glob(os.path.join(BIBLEMATEGUI_DATA, "bibles", "*.bible"))}
-    config.bibles_custom = {os.path.basename(i)[:-6]: i for i in glob.glob(os.path.join(BIBLEMATEGUI_DATA_CUSTOM, "bibles", "*.bible"))}
-
     # default user settings; stored in users' web browser Local Storage
     # Use app.storage.user to store session-specific state
     # This keeps the settings unique for each user
     app.storage.user.setdefault('left_drawer_open', False)
-    
-    app.storage.user.setdefault('bible_book_text', "NET")
+
     if bbt is not None:
         app.storage.user['bible_book_text'] = bbt
-    app.storage.user.setdefault('bible_book_number', 1)
+    else:
+        bbt = app.storage.user.setdefault('bible_book_text', "NET")
     if bb is not None:
         app.storage.user['bible_book_number'] = bb
-    app.storage.user.setdefault('bible_chapter_number', 1)
+    else:
+        bb = app.storage.user.setdefault('bible_book_number', 1)
     if bc is not None:
         app.storage.user['bible_chapter_number'] = bc
-    app.storage.user.setdefault('bible_verse_number', 1)
+    else:
+        bc = app.storage.user.setdefault('bible_chapter_number', 1)
     if bv is not None:
         app.storage.user['bible_verse_number'] = bv
-    app.storage.user.setdefault('tool_book_text', "KJV")
+    else:
+        bv = app.storage.user.setdefault('bible_verse_number', 1)
     if tbt is not None:
         app.storage.user['tool_book_text'] = tbt
-    app.storage.user.setdefault('tool_book_number', 1)
+    else:
+        tbt = app.storage.user.setdefault('tool_book_text', "KJV")
     if tb is not None:
         app.storage.user['tool_book_number'] = tb
-    app.storage.user.setdefault('tool_chapter_number', 1)
+    else:
+        tb = app.storage.user.setdefault('tool_book_number', 1)
     if tc is not None:
         app.storage.user['tool_chapter_number'] = tc
-    app.storage.user.setdefault('tool_verse_number', 1)
+    else:
+        tc = app.storage.user.setdefault('tool_chapter_number', 1)
     if tv is not None:
         app.storage.user['tool_verse_number'] = tv
+    else:
+        tv = app.storage.user.setdefault('tool_verse_number', 1)
         
     # navigation menu
     if m:
         create_menu() # Add the shared menu
     # main content
     create_home_layout()
+
+    if bbt == "ORB":
+        config.load_area_1_content(config.original_reader, bbt)
+    elif bbt == "OIB":
+        config.load_area_1_content(config.original_interlinear, bbt)
+    elif bbt == "OPB":
+        config.load_area_1_content(config.original_parallel, bbt)
+    elif bbt == "ODB":
+        config.load_area_1_content(config.original_discourse, bbt)
+    elif bbt == "OLB":
+        config.load_area_1_content(config.original_linguistic, bbt)
+    else:
+        config.load_area_1_content(config.bible_translation, bbt)
+
+    if tool:
+        if tool == "bible":
+            if tbt == "ORB":
+                config.load_area_2_content(config.original_reader, tbt)
+            elif tbt == "OIB":
+                config.load_area_2_content(config.original_interlinear, tbt)
+            elif tbt == "OPB":
+                config.load_area_2_content(config.original_parallel, tbt)
+            elif tbt == "ODB":
+                config.load_area_2_content(config.original_discourse, tbt)
+            elif tbt == "OLB":
+                config.load_area_2_content(config.original_linguistic, tbt)
+            else:
+                config.load_area_2_content(config.bible_translation, tbt)
 
 # Settings
 
@@ -113,10 +145,10 @@ def main():
     # --- Run the App ---
     # Make sure to replace the secret!
     ui.run(
-        storage_secret='REPLACE_ME_WITH_A_REAL_SECRET', # TODO
-        port=8888,
+        storage_secret=config.storage_secret,
+        port=config.port,
         title='BibleMate AI',
-        favicon=os.path.join(BIBLEMATEGUI_APP_DIR, 'eliranwong.jpg')
+        favicon=config.avatar if config.avatar else os.path.join(BIBLEMATEGUI_APP_DIR, 'eliranwong.jpg')
     )
 
 main()

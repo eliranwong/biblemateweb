@@ -38,5 +38,12 @@ mkdir biblemate
 cd biblemate
 ln -s ../UniqueBible/marvelData data
 cd data
-eliran@ai-desk:~/biblemate/data$ ln -s ../../UniqueBible/audio/ audio
+ln -s ../../UniqueBible/audio/ audio
+mkdir original
+cd original
+ln -s ~/UniqueBible/marvelData/bibles/MOB.bible ORB.bible
+ln -s ~/UniqueBible/marvelData/bibles/MIB.bible OIB.bible
+ln -s ~/UniqueBible/marvelData/bibles/MPB.bible OPB.bible
+ln -s ~/UniqueBible/marvelData/bibles/MTB.bible ODB.bible
+ln -s ~/UniqueBible/marvelData/bibles/MAB.bible OLB.bible
 ```
