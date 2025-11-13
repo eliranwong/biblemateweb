@@ -150,7 +150,6 @@ class BibleSelector:
         self.selected_verse = v
 
         self.version_options = getBibleVersionList()
-        #self.book_options = getBibleBookList(getBiblePath(self.selected_version))
         self.book_options = [BibleBooks.abbrev["eng"][str(i)][0] for i in getBibleBookList(getBiblePath(self.selected_version))]
         self.chapter_options = getBibleChapterList(getBiblePath(self.selected_version), self.selected_book)
         self.verse_options = getBibleVerseList(getBiblePath(self.selected_version), self.selected_book, self.selected_chapter)
@@ -191,57 +190,21 @@ class BibleSelector:
         # replace default action
         if self.on_version_changed is not None:
             return self.on_version_changed(self.selected_version)
-
-        # Reset book dropdowns if no version selected
-        self.reset_book_dropdown()
         
-        if self.selected_version:
-            # Update book list based on selected version
-            #self.book_options = getBibleBookList(getBiblePath(self.selected_version))
-            self.book_options = [BibleBooks.abbrev["eng"][str(i)][0] for i in getBibleBookList(getBiblePath(self.selected_version))]
-            
-            self.book_select.options = self.book_options
-            #self.book_select.props(remove='disable')
-            self.book_select.value = "Gen"
-            
-            # Reset and disable chapter and verse dropdowns
-            self.reset_chapter_dropdown()
-            self.reset_verse_dropdown()
-            
-            # Update reference display
-            #self.update_reference_display()
-        else:
-            # Reset chapter and verse dropdowns if no version selected
-            self.reset_chapter_dropdown()
-            self.reset_verse_dropdown()
+        self.reset_book_dropdown()
+        self.reset_chapter_dropdown()
+        self.reset_verse_dropdown()
     
     def on_book_change(self, e):
         """Handle book selection change"""
-        #self.selected_book = e.value
         self.selected_book = int(BibleBooks.name2number[e.value]) if e.value in BibleBooks.name2number else int(BibleBooks.name2number[e.value+"."])
 
         # replace default action
         if self.on_book_changed is not None:
             return self.on_book_changed(self.selected_version, self.selected_book)
 
-        # place reset chapter here
         self.reset_chapter_dropdown()
-        
-        if self.selected_book and self.selected_version:
-            # Update chapter list based on selected book
-            self.chapter_options = getBibleChapterList(getBiblePath(self.selected_version), self.selected_book)
-            self.chapter_select.options = self.chapter_options
-            #self.chapter_select.props(remove='disable')
-            self.chapter_select.value = 1
-            
-            # Reset verse dropdown
-            self.reset_verse_dropdown()
-            
-            # Update reference display
-            #self.update_reference_display()
-        else:
-            # Reset verse dropdowns
-            self.reset_verse_dropdown()
+        self.reset_verse_dropdown()
     
     def on_chapter_change(self, e):
         """Handle chapter selection change"""
@@ -253,20 +216,6 @@ class BibleSelector:
 
         # Reset verse dropdown
         self.reset_verse_dropdown()
-        
-        if self.selected_chapter and self.selected_book and self.selected_version:
-            # Update verse list based on selected chapter
-            self.verse_options = getBibleVerseList(
-                getBiblePath(self.selected_version), 
-                self.selected_book, 
-                self.selected_chapter
-            )
-            self.verse_select.options = self.verse_options
-            #self.verse_select.props(remove='disable')
-            self.verse_select.value = 1
-            
-            # Update reference display
-            #self.update_reference_display()
     
     def on_verse_change(self, e):
         """Handle verse selection change"""
@@ -276,28 +225,36 @@ class BibleSelector:
         if self.on_verse_changed is not None:
             return self.on_verse_changed(self.selected_version, self.selected_book, self.selected_chapter, self.selected_verse)
 
-        #self.update_reference_display()
-    
     def reset_book_dropdown(self):
         """Reset book dropdown to initial state"""
-        self.book_select.options = []
-        self.book_select.value = "Gen"
-        #self.book_select.props('disable')
-        self.selected_book = 1
+        book_list = getBibleBookList(getBiblePath(self.selected_version))
+        self.book_options = [BibleBooks.abbrev["eng"][str(i)][0] for i in book_list]
+        self.book_select.options = self.book_options
+        self.book_select.value = self.book_options[0]
+        self.selected_book = book_list[0]
+        # refresh
+        self.book_select.props('disable')
+        self.book_select.props(remove='disable')
     
     def reset_chapter_dropdown(self):
         """Reset chapter dropdown to initial state"""
-        self.chapter_select.options = []
-        self.chapter_select.value = 1
-        #self.chapter_select.props('disable')
-        self.selected_chapter = 1
+        self.chapter_options = getBibleChapterList(getBiblePath(self.selected_version), self.selected_book)
+        self.chapter_select.options = self.chapter_options
+        self.chapter_select.value = self.chapter_options[0]
+        self.selected_chapter = self.chapter_options[0]
+        # refresh
+        self.chapter_select.props('disable')
+        self.chapter_select.props(remove='disable')
     
     def reset_verse_dropdown(self):
         """Reset verse dropdown to initial state"""
-        self.verse_select.options = []
-        self.verse_select.value = 1
-        #self.verse_select.props('disable')
-        self.selected_verse = 1
+        self.verse_options = getBibleVerseList(getBiblePath(self.selected_version), self.selected_book, self.selected_chapter)
+        self.verse_select.options = self.verse_options
+        self.verse_select.value = self.verse_options[0]
+        self.selected_verse = self.verse_options[0]
+        # refresh
+        self.verse_select.props('disable')
+        self.verse_select.props(remove='disable')
     
     def update_reference_display(self):
         """Update the displayed Bible reference"""
