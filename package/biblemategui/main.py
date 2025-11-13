@@ -145,7 +145,8 @@ def main():
     # --- Run the App ---
     # Make sure to replace the secret!
     ui.run(
-        storage_secret=config.storage_secret,
+        reload=config.hot_reload,
+        storage_secret=config.storage_secret, # e.g. generate one by running `openssl rand -hex 32` or `openssl rand -base64 32`
         port=config.port,
         title='BibleMate AI',
         favicon=config.avatar if config.avatar else os.path.join(BIBLEMATEGUI_APP_DIR, 'eliranwong.jpg')

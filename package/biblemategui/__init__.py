@@ -20,13 +20,15 @@ CONFIG_FILE_BACKUP = os.path.join(BIBLEMATEGUI_USER_DIR, "biblemategui.config")
 
 def write_user_config():
     """Writes the current configuration to the user's config file."""
-    configurations = f"""config.avatar="{config.avatar}"
+    configurations = f"""config.hot_reload="{config.hot_reload}
+config.avatar="{config.avatar}"
 config.storage_secret="{config.storage_secret}"
 config.port={config.port}"""
     writeTextFile(CONFIG_FILE_BACKUP, configurations)
 
 # restore config backup after upgrade
-default_config = '''config.avatar=""
+default_config = '''config.hot_reload=False
+config.avatar=""
 config.storage_secret="REPLACE_ME_WITH_A_REAL_SECRET"
 config.port=33355'''
 
