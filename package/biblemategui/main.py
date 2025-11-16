@@ -8,6 +8,8 @@ import os
 
 @ui.page('/')
 def page_home(
+    d: bool | None = None, # dark mode
+    f: bool | None = None, # fullscreen # TODO
     t: str | None = None, # Token for using custom data: allow users to pass a custom token, which won't be stored, via a parameter when using public devices. For personal devices, enable persistent settings using `custom_token`.
     k: bool | None = True, # keep valid specified parameters in history
     m: bool | None = True, # display menu
@@ -39,6 +41,11 @@ def page_home(
     # Bind app state to user storage
     ui.dark_mode().bind_value(app.storage.user, 'dark_mode')
     ui.fullscreen().bind_value(app.storage.user, 'fullscreen')
+
+    if d is not None:
+        app.storage.user['dark_mode'] = d
+    if f is not None:
+        app.storage.user['fullscreen'] = f
 
     # manage custom resources
     if not config.custom_token or (t and t == config.custom_token) or (app.storage.user.setdefault('custom_token', "") == config.custom_token):
@@ -228,7 +235,7 @@ def main():
         storage_secret=config.storage_secret, # e.g. generate one by running `openssl rand -hex 32` or `openssl rand -base64 32`
         port=config.port,
         title='BibleMate AI',
-        favicon=config.avatar if config.avatar else os.path.join(BIBLEMATEGUI_APP_DIR, 'eliranwong.jpg')
+        favicon=os.path.expanduser(config.avatar) if config.avatar else os.path.join(BIBLEMATEGUI_APP_DIR, 'eliranwong.jpg')
     )
 
 main()

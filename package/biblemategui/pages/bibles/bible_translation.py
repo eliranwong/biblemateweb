@@ -1,4 +1,4 @@
-from nicegui import ui
+from nicegui import ui, app
 from biblemategui.css.original import ORIGINAL_CSS
 from biblemategui.fx.bible import *
 from biblemategui.fx.original import *
@@ -27,27 +27,26 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
 
     # Inject CSS to handle the custom tags and layout
     if "</heb>" in content:
-        ui.add_head_html("""
+        ui.add_head_html(f"""
         <style>
             /* Main container for the Bible text - ensures RTL flow for verses */
-            .bible-text {
+            .bible-text {{
                 direction: rtl;
                 font-family: sans-serif;
                 font-size: 130%;
-                padding: 5px;
+                padding: 0px;
                 margin: 0px;
-                background-color: #fafafa;
-            }
+            }}
             /* Verse ID Number */
-            vid {
-                color: navy;
+            vid {{
+                color: {'#f2c522' if app.storage.user['dark_mode'] else 'navy'};
                 font-weight: bold;
                 font-size: 0.9rem;
                 margin-left: 10px; /* appears on the right due to RTL */
                 cursor: pointer;
-            }
+            }}
             /* Hebrew Word Layer */
-            wform, heb, bdbheb, bdbarc, hu {
+            wform, heb, bdbheb, bdbarc, hu {{
                 font-family: 'SBL Hebrew', 'Ezra SIL', serif;
                 font-size: 1.6rem;
                 color: #2c3e50;
@@ -57,39 +56,38 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
                 margin-top: 0;
                 margin-bottom: -2px;
                 cursor: pointer;
-            }
+            }}
             /* Lexical Form & Strong's Number Layers */
-            wlex {
+            wlex {{
                 display: block;
                 font-family: 'SBL Hebrew', serif;
                 font-size: 1rem;
                 color: #555;
                 cursor: pointer;
-            }
+            }}
         </style>
         """)
     else:
-        ui.add_head_html("""
+        ui.add_head_html(f"""
         <style>
             /* Main container for the Bible text - LTR flow for Greek */
-            .bible-text {
+            .bible-text {{
                 direction: ltr;
                 font-family: sans-serif;
                 font-size: 130%;
-                padding: 5px;
+                padding: 0px;
                 margin: 0px;
-                background-color: #fafafa;
-            }
+            }}
             /* Verse ID Number */
-            vid {
-                color: navy;
+            vid {{
+                color: {'#f2c522' if app.storage.user['dark_mode'] else 'navy'};
                 font-weight: bold;
                 font-size: 0.9rem;
                 margin-right: 10px;
                 cursor: pointer;
-            }
+            }}
             /* Greek Word Layer (targets <grk> tag) */
-            wform, grk, kgrk, gu {
+            wform, grk, kgrk, gu {{
                 font-family: 'SBL Greek', 'Galatia SIL', 'Times New Roman', serif; /* CHANGED */
                 font-size: 1.6rem;
                 color: #2c3e50;
@@ -99,15 +97,15 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
                 margin-top: 0;
                 margin-bottom: -2px;
                 cursor: pointer;
-            }
+            }}
             /* Lexical Form (lemma) & Strong's Number Layers */
-            wlex {
+            wlex {{
                 display: block;
                 font-family: 'SBL Greek', 'Galatia SIL', 'Times New Roman', serif; /* CHANGED */
                 font-size: 1rem;
                 color: #555;
                 cursor: pointer;
-            }
+            }}
         </style>
         """)
 
