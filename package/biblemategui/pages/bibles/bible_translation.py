@@ -1,5 +1,5 @@
 from nicegui import ui, app
-from biblemategui.css.original import ORIGINAL_CSS
+from biblemategui.css.original import get_original_css
 from biblemategui.fx.bible import *
 from biblemategui.fx.original import *
 from biblemategui.js.sync_scrolling import *
