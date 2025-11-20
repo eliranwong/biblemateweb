@@ -40,7 +40,11 @@ https://github.com/eliranwong/UniqueBible
 
 # Development in Progress ...
 
-Install for testing:
+## Public Testing
+
+https://biblemate.gospelchurch.uk
+
+## Local Testing:
 
 > pip install --upgrade biblemategui
 

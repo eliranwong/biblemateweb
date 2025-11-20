@@ -2,11 +2,12 @@ from nicegui import ui, app
 from biblemategui import config
 from typing import List, Optional
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
+from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 import re, apsw
 
 
 def luV(event):
-    b, c, v = event.args
+    """b, c, v = event.args
     ui.notify(f"b: {b}, c: {c}, v: {v}")
     
     # Create a context menu at the click position
@@ -17,11 +18,53 @@ def luV(event):
         ui.menu_item('Discourse Analysis', on_click=lambda: ui.navigate.to('/tool/discourse'))
         ui.menu_item('Morphological Data', on_click=lambda: ui.navigate.to('/tool/morphology'))
         ui.menu_item('Translation Spectrum', on_click=lambda: ui.navigate.to('/tool/translations'))
-    menu.open()
+    menu.open()"""
+    pass # TODO
 
 def regexp(expr, item, case_sensitive=False):
     reg = re.compile(expr, flags=0 if case_sensitive else re.IGNORECASE)
     return reg.search(item) is not None
+
+
+def get_bible_content(user_input, bible="NET"):
+    db = getBiblePath(bible)
+    parser = BibleVerseParser(False)
+    refs = []
+    results = []
+    if re.search(" [0-9]+?:[0-9]", user_input):
+        refs = parser.extractAllReferences(user_input)
+    if refs:
+        query = "SELECT Scripture FROM Verses WHERE Book=? AND Chapter=? AND Verse =?"
+        with apsw.Connection(db) as connn:
+            cursor = connn.cursor()
+            for ref in refs:
+                if len(ref) == 5:
+                    content = ""
+                    for r in parser.extractExhaustiveReferences([ref]):
+                        b, c, v = r
+                        cursor.execute(query, (b, c, v))
+                        verse = cursor.fetchone()
+                        content += f"<vid>{v}</vid> {verse[0].strip()} "
+                    ref = parser.bcvToVerseReference(b, c, v)
+                    results.append({'ref': ref, 'content': content.rstrip()})
+                else:
+                    b, c, v = ref
+                    ref = parser.bcvToVerseReference(b, c, v)
+                    cursor.execute(query, (b, c, v))
+                    verse = cursor.fetchone()
+                    results.append({'ref': ref, 'content': verse[0].strip()})
+    else:
+        # search the bible with regular expression
+        query = "PRAGMA case_sensitive_like = false; SELECT Book, Chapter, Verse, Scripture FROM Verses WHERE (Scripture REGEXP ?) ORDER BY Book, Chapter, Verse"
+        with apsw.Connection(db) as connn:
+            connn.createscalarfunction("REGEXP", regexp)
+            cursor = connn.cursor()
+            cursor.execute(query, (user_input,))
+            fetches = cursor.fetchall()
+            for verse in fetches:
+                ref = parser.bcvToVerseReference(verse[0], verse[1], verse[2])
+                results.append({'ref': ref, 'content': verse[3].strip()})
+    return results
 
 # Bible Selection
 

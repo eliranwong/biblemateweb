@@ -12,6 +12,18 @@ https://github.com/eliranwong/UniqueBible
 
 ## Recent Updates
 
+[Hebrew & Greek Tooltips](https://youtu.be/qCMku8-UZ3I)
+
+[![Watch the video](https://img.youtube.com/vi/qCMku8-UZ3I/maxresdefault.jpg)](https://youtu.be/qCMku8-UZ3I)
+
+[User Customization](https://youtu.be/QMJ2oo1qkjY)
+
+[![Watch the video](https://img.youtube.com/vi/QMJ2oo1qkjY/maxresdefault.jpg)](https://youtu.be/QMJ2oo1qkjY)
+
+[Bible Audio](https://youtu.be/GL98FaJlYUQ)
+
+[![Watch the video](https://img.youtube.com/vi/GL98FaJlYUQ/maxresdefault.jpg)](https://youtu.be/GL98FaJlYUQ)
+
 [Cross-Highlighting & Synchronized Scrolling](https://youtu.be/TDyT1ioesmY)
 
 [![Watch the video](https://img.youtube.com/vi/TDyT1ioesmY/maxresdefault.jpg)](https://youtu.be/TDyT1ioesmY)
@@ -28,7 +40,11 @@ https://github.com/eliranwong/UniqueBible
 
 # Development in Progress ...
 
-Install for testing:
+## Public Testing
+
+https://biblemate.gospelchurch.uk
+
+## Local Testing:
 
 > pip install --upgrade biblemategui
 

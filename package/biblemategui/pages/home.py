@@ -19,6 +19,7 @@ from biblemategui.pages.bibles.bible_translation import bible_translation
 
 from biblemategui.pages.tools.audio import bibles_audio
 from biblemategui.pages.tools.chronology import bible_chronology
+from biblemategui.pages.tools.search_bible_verses import search_bible_verses
 
 class BibleMateGUI:
     def __init__(self):
@@ -237,6 +238,8 @@ class BibleMateGUI:
     def get_content(self, title):
         if title.lower() == "audio":
             return bibles_audio
+        elif title.lower() == "search":
+            return search_bible_verses
         elif title.lower() == "chronology":
             return bible_chronology
         elif title == "ORB":
@@ -269,6 +272,8 @@ class BibleMateGUI:
         try:
             # modify tab label here for particular features TODO
             tab_label = title
+            if not app.storage.user['bible_book_text'] == title:
+                app.storage.user['bible_book_text'] = title
             # Get the currently active tab
             active_tab = tab if tab else self.get_active_area1_tab()
             # args holder
@@ -349,12 +354,14 @@ class BibleMateGUI:
             print(traceback.format_exc())
 
     def change_area_1_bible_chapter(self, version, book=1, chapter=1):
+        app.storage.user['bible_book_text'] = version
         app.storage.user['bible_book_number']= book
         app.storage.user['bible_chapter_number']= chapter
         app.storage.user['bible_verse_number']= 1
         self.load_area_1_content(title=version)
 
     def change_area_2_bible_chapter(self, version, book=1, chapter=1):
+        app.storage.user['tool_book_text'] = version
         app.storage.user['bible_book_number']= book
         app.storage.user['bible_chapter_number']= chapter
         app.storage.user['bible_verse_number']= 1
@@ -468,21 +475,13 @@ class BibleMateGUI:
                         icon='menu'
                     ).props('flat color=white').classes('lt-sm')
 
-                    # --- Mobile Avatar Button (Home) ---
-                    # This is a button that contains the avatar
-                    with ui.button(on_click=lambda: ui.navigate.to('/')).props('flat round dense').classes('lt-sm'):
-                        with ui.avatar(size='32px'):
-                            with ui.image(config.avatar if config.avatar else os.path.join(BIBLEMATEGUI_APP_DIR, 'eliranwong.jpg')) as image:
-                                with image.add_slot('error'):
-                                    ui.icon('account_circle').classes('m-auto') # Center fallback icon
-
                     # --- Desktop Avatar + Title (Home) ---
                     # The button contains a row with the avatar and the label
                     with ui.button(on_click=lambda: ui.navigate.to('/')).props('flat text-color=white').classes('gt-xs'):
                         with ui.row().classes('items-center no-wrap'):
                             # Use a fallback icon in case the image fails to load
                             with ui.avatar(size='32px'):
-                                with ui.image(config.avatar if config.avatar else os.path.join(BIBLEMATEGUI_APP_DIR, 'eliranwong.jpg')) as image:
+                                with ui.image(app.storage.user["avatar"] if app.storage.user["avatar"] else config.avatar if config.avatar else os.path.join(BIBLEMATEGUI_APP_DIR, 'eliranwong.jpg')) as image:
                                     with image.add_slot('error'):
                                         ui.icon('account_circle').classes('m-auto') # Center fallback icon
                             
@@ -559,7 +558,7 @@ class BibleMateGUI:
                     
                     with ui.button(icon='search').props('flat color=white round').tooltip('Search'):
                         with ui.menu():
-                            ui.menu_item('Bibles', on_click=lambda: self.load_area_2_content(self.work_in_progress))
+                            ui.menu_item('Bibles', on_click=lambda: self.load_area_2_content(title='Search'))
                             ui.menu_item('Parallels', on_click=lambda: self.load_area_2_content(self.work_in_progress))
                             ui.menu_item('Promises', on_click=lambda: self.load_area_2_content(self.work_in_progress))
                             ui.menu_item('Topics', on_click=lambda: self.load_area_2_content(self.work_in_progress))
@@ -605,14 +604,19 @@ class BibleMateGUI:
                 .classes('lt-sm') \
                 .props('overlay') \
                 .bind_value(app.storage.user, 'left_drawer_open') as left_drawer:
-            
-            ui.label('Navigation').classes('text-xl')
 
-            # Home Link
-            ui.item('Home', on_click=lambda: (
-                ui.navigate.to('/'),
-                app.storage.user.update(left_drawer_open=False)
-            )).props('clickable')
+            # The button contains a row with the avatar and the label
+            with ui.button(on_click=lambda: ui.navigate.to('/')).props('flat text-color=white'):
+                with ui.row().classes('items-center no-wrap'):
+                    # Use a fallback icon in case the image fails to load
+                    with ui.avatar(size='32px'):
+                        with ui.image(app.storage.user["avatar"] if app.storage.user["avatar"] else config.avatar if config.avatar else os.path.join(BIBLEMATEGUI_APP_DIR, 'eliranwong.jpg')) as image:
+                            with image.add_slot('error'):
+                                ui.icon('account_circle').classes('m-auto') # Center fallback icon
+                    
+                    # This is just a label now; the parent button handles the click
+                    ui.label('BibleMate AI').classes('text-lg ml-2')
+
             ui.switch('Dark Mode').bind_value(app.storage.user, 'dark_mode').on_value_change(lambda: ui.run_javascript('location.reload()'))
             ui.switch('Fullscreen').bind_value(app.storage.user, 'fullscreen')
 
@@ -745,7 +749,7 @@ class BibleMateGUI:
             # Search
             with ui.expansion('Search', icon='search').props('header-class="text-secondary"'):
                 ui.item('Bibles', on_click=lambda: (
-                    self.load_area_2_content(self.work_in_progress),
+                    self.load_area_2_content(title='Search'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.item('Parallels', on_click=lambda: (
@@ -809,7 +813,7 @@ class BibleMateGUI:
                 )).props('clickable')
 
             # Preferences
-            with ui.expansion('Settings', icon='auto_awesome').props('header-class="text-secondary"'):
+            with ui.expansion('Settings', icon='settings').props('header-class="text-secondary"'):
                 ui.item('Bible Only', on_click=lambda: (
                     self.swap_layout(1),
                     app.storage.user.update(left_drawer_open=False)
