@@ -140,12 +140,6 @@ class BibleMateGUI:
                                     content(gui=self, **args)
                                     if saved_tab_id != tab_id:
                                         app.storage.user[tab_id] = app.storage.user.pop(saved_tab_id)
-                                    # update
-                                    app.storage.user['bible_book_text'] = args.get('bt', "NET")
-                                    app.storage.user['bible_book_number']= args.get('b', 1)
-                                    app.storage.user['bible_chapter_number']= args.get('c', 1)
-                                    app.storage.user['bible_verse_number']= args.get('v', 1)
-                                    app.storage.user['bible_query']= args.get('q', '')
                     if len(previous_tabs1) < default_number_of_tabs1:
                         for i in range(len(previous_tabs1)+1, default_number_of_tabs1+1):
                             tab_id = f'tab1_{i}'
@@ -196,12 +190,6 @@ class BibleMateGUI:
                                     content(gui=self, **args)
                                     if saved_tab_id != tab_id:
                                         app.storage.user[tab_id] = app.storage.user.pop(saved_tab_id)
-                                    # update
-                                    app.storage.user['tool_book_text'] = args.get('bt', "NET")
-                                    app.storage.user['tool_book_number']= args.get('b', 1)
-                                    app.storage.user['tool_chapter_number']= args.get('c', 1)
-                                    app.storage.user['tool_verse_number']= args.get('v', 1)
-                                    app.storage.user['tool_query']= args.get('q', '')
                     if len(previous_tabs2) < default_number_of_tabs2:
                         for i in range(len(previous_tabs2)+1, default_number_of_tabs2+1):
                             tab_id = f'tab2_{i}'
@@ -317,6 +305,10 @@ class BibleMateGUI:
 
     def load_area_1_content(self, content=None, title="Bible", tab=None, args=None, keep=True):
         """Load example content in the active tab of Area 1"""
+
+        if app.storage.user['layout'] == 3:
+            self.swap_layout(2)
+
         if content is None:
             content = self.get_content(title)
             if content is None:
@@ -347,19 +339,17 @@ class BibleMateGUI:
             active_panel = self.area1_tab_panels[active_tab]
             # Clear and load new content
             active_panel.clear()
+            # store as history
+            if keep:
+                app.storage.user[active_tab] = args
+            # load content
             with active_panel:
-                # load content here
                 content(gui=self, **args)
             # Update tab label to reflect new content
             for child in self.area1_tabs:
                 if hasattr(child, '_props') and child._props.get('name') == active_tab:
-                    # current label
-                    # print(child._props.get('label'))
                     child.props(f'label="{tab_label}"')
                     break
-            # store as history
-            if keep:
-                app.storage.user[active_tab] = args
         except:
             print(traceback.format_exc())
 
@@ -369,6 +359,9 @@ class BibleMateGUI:
 
     def load_area_2_content(self, content=None, title="Tool", tab=None, args=None, keep=True, sync=True):
         """Load example content in the active tab of Area 2"""
+
+        if app.storage.user['layout'] == 1:
+            self.swap_layout(2)
 
         is_sync = True if sync or (sync and app.storage.user.get("sync") and not self.is_tool(title)) else False
 
@@ -400,18 +393,17 @@ class BibleMateGUI:
             active_panel = self.area2_tab_panels[active_tab]
             # Clear and load new content
             active_panel.clear()
+            # store as history
+            if keep:
+                app.storage.user[active_tab] = args
+            # load content
             with active_panel:
                 content(gui=self, **args)
             # Update tab label to reflect new content
             for child in self.area2_tabs:
                 if hasattr(child, '_props') and child._props.get('name') == active_tab:
-                    # current label
-                    # print(child._props.get('label'))
                     child.props(f'label="{tab_label}"')
                     break
-            # store as history
-            if keep:
-                app.storage.user[active_tab] = args
         except:
             print(traceback.format_exc())
 
@@ -437,7 +429,9 @@ class BibleMateGUI:
         if app.storage.user["sync"]:
             args = app.storage.user[self.get_active_area2_tab()]
             if not self.is_tool(args.get("title")) and (not args.get("b") == book or not args.get("c") == chapter):
-                self.change_area_1_bible_chapter(args.get("bt"), book, chapter, verse)
+                self.change_area_2_bible_chapter(args.get("bt"), book, chapter, verse)
+                if config.reload_after_sync:
+                    ui.run_javascript('location.reload()')
 
     def change_area_2_bible_chapter(self, version, book=1, chapter=1, verse=1, sync=True):
         app.storage.user['tool_book_text'] = version
@@ -467,6 +461,8 @@ class BibleMateGUI:
             args = app.storage.user[self.get_active_area1_tab()]
             if not args.get("b") == book or not args.get("c") == chapter:
                 self.change_area_1_bible_chapter(args.get("bt"), book, chapter, verse)
+                if config.reload_after_sync:
+                    ui.run_javascript('location.reload()')
 
     def add_tab_area1(self):
         """Dynamically add a new tab to Area 1"""
@@ -582,7 +578,7 @@ class BibleMateGUI:
                         with ui.row().classes('items-center no-wrap'):
                             # Use a fallback icon in case the image fails to load
                             with ui.avatar(size='32px'):
-                                with ui.image(app.storage.user["avatar"] if app.storage.user["avatar"] else config.avatar if config.avatar else os.path.join(BIBLEMATEGUI_APP_DIR, 'eliranwong.jpg')) as image:
+                                with ui.image(app.storage.user["avatar"] if app.storage.user["avatar"] else os.path.expanduser(config.avatar) if config.avatar else os.path.join(BIBLEMATEGUI_APP_DIR, 'eliranwong.jpg')) as image:
                                     with image.add_slot('error'):
                                         ui.icon('account_circle').classes('m-auto') # Center fallback icon
                             
@@ -721,7 +717,7 @@ class BibleMateGUI:
                 with ui.row().classes('items-center no-wrap'):
                     # Use a fallback icon in case the image fails to load
                     with ui.avatar(size='32px'):
-                        with ui.image(app.storage.user["avatar"] if app.storage.user["avatar"] else config.avatar if config.avatar else os.path.join(BIBLEMATEGUI_APP_DIR, 'eliranwong.jpg')) as image:
+                        with ui.image(app.storage.user["avatar"] if app.storage.user["avatar"] else os.path.expanduser(config.avatar) if config.avatar else os.path.join(BIBLEMATEGUI_APP_DIR, 'eliranwong.jpg')) as image:
                             with image.add_slot('error'):
                                 ui.icon('account_circle').classes('m-auto') # Center fallback icon
                     

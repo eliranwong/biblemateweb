@@ -185,7 +185,52 @@ def page_home(
             gui.add_tab_area2()
         gui.load_area_2_content(title=tbt if tool == "bible" else tool, keep=k, sync=s)
     elif not gui.area2_tab_loaded: # when nothing is loaded
-        ... # TODO - decides later
+        gui.load_area_2_content(title="Audio", sync=True)
+
+    if k:
+        # update storage based on latest loaded content
+        args = app.storage.user[gui.get_active_area1_tab()]
+        app.storage.user['bible_book_text'] = args.get('bt', "NET")
+        app.storage.user['bible_book_number'] = args.get('b', 1)
+        app.storage.user['bible_chapter_number'] = args.get('c', 1)
+        app.storage.user['bible_verse_number'] = args.get('v', 1)
+        app.storage.user['bible_query'] = args.get('q', '')
+
+        args = app.storage.user[gui.get_active_area2_tab()]
+        app.storage.user['tool_book_text'] = args.get('bt', "NET")
+        app.storage.user['tool_book_number'] = args.get('b', 1)
+        app.storage.user['tool_chapter_number'] = args.get('c', 1)
+        app.storage.user['tool_verse_number'] = args.get('v', 1)
+        app.storage.user['tool_query'] = args.get('q', '')
+    
+    if l is not None and l in (1, 2, 3):
+        gui.swap_layout(l)
+
+    # update the URL to reflect current settings without reloading
+    '''def update_url():
+        params = []
+        params.append(f'pc={app.storage.user["primary_color"]}')
+        params.append(f'sc={app.storage.user["secondary_color"]}')
+        params.append(f'fs={app.storage.user["font_size"]}')
+        params.append(f's={str(app.storage.user["sync"]).lower()}')
+        params.append(f'd={str(app.storage.user["dark_mode"]).lower()}')
+        if config.custom_token:
+            params.append(f't={config.custom_token}')
+        params.append(f'k={str(k).lower()}')
+        params.append(f'm={str(m).lower()}')
+        params.append(f'l={app.storage.user["layout"]}')
+        params.append(f'bbt={app.storage.user["bible_book_text"]}')
+        params.append(f'bb={app.storage.user["bible_book_number"]}')
+        params.append(f'bc={app.storage.user["bible_chapter_number"]}')
+        params.append(f'bv={app.storage.user["bible_verse_number"]}')
+        params.append(f'tbt={app.storage.user["tool_book_text"]}')
+        params.append(f'tb={app.storage.user["tool_book_number"]}')
+        params.append(f'tc={app.storage.user["tool_chapter_number"]}')
+        params.append(f'tv={app.storage.user["tool_verse_number"]}')
+        params.append(f'bq={app.storage.user["bible_query"]}')
+        params.append(f'tq={app.storage.user["tool_query"]}')
+        new_url = '/?' + '&'.join(params)
+        ui.run_javascript(f"history.replaceState(null, '', '{new_url}');")''' # TODO - update url when content is loaded
 
 # Settings
 @ui.page('/settings')

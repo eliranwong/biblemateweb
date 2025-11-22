@@ -8,7 +8,7 @@ import re, apsw
 
 def luV(event):
     """b, c, v = event.args
-    ui.notify(f"b: {b}, c: {c}, v: {v}")
+    #ui.notify(f"b: {b}, c: {c}, v: {v}")
     
     # Create a context menu at the click position
     with ui.context_menu() as menu:
@@ -19,7 +19,7 @@ def luV(event):
         ui.menu_item('Morphological Data', on_click=lambda: ui.navigate.to('/tool/morphology'))
         ui.menu_item('Translation Spectrum', on_click=lambda: ui.navigate.to('/tool/translations'))
     menu.open()"""
-    pass # TODO
+    pass
 
 def regexp(expr, item, case_sensitive=False):
     reg = re.compile(expr, flags=0 if case_sensitive else re.IGNORECASE)
@@ -187,9 +187,17 @@ class BibleSelector:
 
         if not self.version_options:
             self.version_options = getBibleVersionList()
-        self.book_options = [BibleBooks.abbrev["eng"][str(i)][0] for i in getBibleBookList(getBiblePath(self.selected_version)) if str(i) in BibleBooks.abbrev["eng"]]
+        bible_book_list = getBibleBookList(getBiblePath(self.selected_version))
+        self.book_options = [BibleBooks.abbrev["eng"][str(i)][0] for i in bible_book_list if str(i) in BibleBooks.abbrev["eng"]]
         self.chapter_options = getBibleChapterList(getBiblePath(self.selected_version), self.selected_book)
         self.verse_options = getBibleVerseList(getBiblePath(self.selected_version), self.selected_book, self.selected_chapter)
+        try:
+            default_book = BibleBooks.abbrev["eng"][str(self.selected_book)][0]
+        except:
+            self.selected_book = bible_book_list[0]
+            default_book = self.book_options[0]
+            self.chapter_options = getBibleChapterList(getBiblePath(self.selected_version), self.selected_book)
+            self.verse_options = getBibleVerseList(getBiblePath(self.selected_version), self.selected_book, self.selected_chapter)
         with ui.row().classes('w-full justify-center'):
             # Bible
             self.version_select = ui.select(
@@ -202,7 +210,7 @@ class BibleSelector:
             self.book_select = ui.select(
                 options=self.book_options,
                 label='Book',
-                value=BibleBooks.abbrev["eng"][str(self.selected_book)][0], # b
+                value=default_book, # b
                 on_change=self.on_book_change
             )
             # Chapter
