@@ -1,4 +1,4 @@
-import os, traceback
+import os, traceback, re
 from nicegui import app, ui
 from functools import partial
 
@@ -19,7 +19,7 @@ from biblemategui.pages.bibles.bible_translation import bible_translation
 
 from biblemategui.pages.tools.audio import bibles_audio
 from biblemategui.pages.tools.chronology import bible_chronology
-from biblemategui.pages.tools.search_bible_verses import search_bible_verses
+from biblemategui.pages.search.bible_verses import search_bible_verses
 
 class BibleMateGUI:
     def __init__(self):
@@ -140,6 +140,12 @@ class BibleMateGUI:
                                     content(gui=self, **args)
                                     if saved_tab_id != tab_id:
                                         app.storage.user[tab_id] = app.storage.user.pop(saved_tab_id)
+                                    # update
+                                    app.storage.user['bible_book_text'] = args.get('bt', "NET")
+                                    app.storage.user['bible_book_number']= args.get('b', 1)
+                                    app.storage.user['bible_chapter_number']= args.get('c', 1)
+                                    app.storage.user['bible_verse_number']= args.get('v', 1)
+                                    app.storage.user['bible_query']= args.get('q', '')
                     if len(previous_tabs1) < default_number_of_tabs1:
                         for i in range(len(previous_tabs1)+1, default_number_of_tabs1+1):
                             tab_id = f'tab1_{i}'
@@ -190,6 +196,12 @@ class BibleMateGUI:
                                     content(gui=self, **args)
                                     if saved_tab_id != tab_id:
                                         app.storage.user[tab_id] = app.storage.user.pop(saved_tab_id)
+                                    # update
+                                    app.storage.user['tool_book_text'] = args.get('bt', "NET")
+                                    app.storage.user['tool_book_number']= args.get('b', 1)
+                                    app.storage.user['tool_chapter_number']= args.get('c', 1)
+                                    app.storage.user['tool_verse_number']= args.get('v', 1)
+                                    app.storage.user['tool_query']= args.get('q', '')
                     if len(previous_tabs2) < default_number_of_tabs2:
                         for i in range(len(previous_tabs2)+1, default_number_of_tabs2+1):
                             tab_id = f'tab2_{i}'
@@ -234,6 +246,48 @@ class BibleMateGUI:
     def get_active_area2_tab(self):
         """Get the currently active tab in Area 2"""
         return self.area2_tab_panels_container.value
+
+    def select_next_area1_tab(self):
+        if len(self.area1_tab_panels) == 1:
+            self.add_tab_area1()
+        else:
+            next_tab = False
+            while not next_tab:
+                for i in self.area1_tab_panels:
+                    if next_tab:
+                        self.area1_tab_panels_container.value = i
+                        return None
+                    elif i == self.area1_tab_panels_container.value:
+                        next_tab = True
+
+    def select_next_area2_tab(self):
+        if len(self.area2_tab_panels) == 1:
+            self.add_tab_area2()
+        else:
+            next_tab = False
+            while not next_tab:
+                for i in self.area2_tab_panels:
+                    if next_tab:
+                        self.area2_tab_panels_container.value = i
+                        return None
+                    elif i == self.area2_tab_panels_container.value:
+                        next_tab = True
+
+    def select_empty_area1_tab(self):
+        for child in self.area2_tabs:
+            if hasattr(child, '_props') and re.search("^Bible [0-9]", child._props.get('label', '')):
+                if tab_name := child._props.get('name', ''):
+                   self.area1_tab_panels_container.value = tab_name
+                   return None
+        self.add_tab_area1()
+
+    def select_empty_area2_tab(self):
+        for child in self.area2_tabs:
+            if hasattr(child, '_props') and re.search("^Tool [0-9]", child._props.get('label', '')):
+                if tab_name := child._props.get('name', ''):
+                   self.area2_tab_panels_container.value = tab_name
+                   return None
+        self.add_tab_area2()
 
     def get_content(self, title):
         if title.lower() == "audio":
@@ -280,10 +334,11 @@ class BibleMateGUI:
             args = args if args else {
                 "title": title,
                 "label": tab_label,
-                "bt": app.storage.user.get('bible_book_text'),
-                "b": app.storage.user.get('bible_book_number'),
-                "c": app.storage.user.get('bible_chapter_number'),
-                "v": app.storage.user.get('bible_verse_number'),
+                "bt": app.storage.user.get('bible_book_text', "NET"),
+                "b": app.storage.user.get('bible_book_number', 1),
+                "c": app.storage.user.get('bible_chapter_number', 1),
+                "v": app.storage.user.get('bible_verse_number', 1),
+                "q": app.storage.user.get('bible_query', ''),
                 "area": 1,
                 "tab1": active_tab,
                 "tab2": self.get_active_area2_tab(),
@@ -308,9 +363,15 @@ class BibleMateGUI:
         except:
             print(traceback.format_exc())
 
+    def is_tool(self, title):
+        tools = ("audio", "search", "chronology")
+        return True if title.lower() in tools else False
 
-    def load_area_2_content(self, content=None, title="Tool", tab=None, args=None, keep=True):
+    def load_area_2_content(self, content=None, title="Tool", tab=None, args=None, keep=True, sync=True):
         """Load example content in the active tab of Area 2"""
+
+        is_sync = True if sync or (sync and app.storage.user.get("sync") and not self.is_tool(title)) else False
+
         if content is None:
             content = self.get_content(title)
             if content is None:
@@ -327,9 +388,10 @@ class BibleMateGUI:
                 "title": title,
                 "label": tab_label,
                 "bt": app.storage.user.get('tool_book_text'),
-                "b": app.storage.user.get('bible_book_number') if app.storage.user.get("sync") else app.storage.user.get('tool_book_number'),
-                "c": app.storage.user.get('bible_chapter_number') if app.storage.user.get("sync") else app.storage.user.get('tool_chapter_number'),
-                "v": app.storage.user.get('bible_verse_number') if app.storage.user.get("sync") else app.storage.user.get('tool_verse_number'),
+                "b": app.storage.user.get('bible_book_number') if is_sync else app.storage.user.get('tool_book_number'),
+                "c": app.storage.user.get('bible_chapter_number') if is_sync else app.storage.user.get('tool_chapter_number'),
+                "v": app.storage.user.get('bible_verse_number') if is_sync else app.storage.user.get('tool_verse_number'),
+                "q": app.storage.user.get('tool_query', ''),
                 "area": 2,
                 "tab1": self.get_active_area1_tab(),
                 "tab2": active_tab,
@@ -353,19 +415,58 @@ class BibleMateGUI:
         except:
             print(traceback.format_exc())
 
-    def change_area_1_bible_chapter(self, version, book=1, chapter=1):
+    def change_area_1_bible_chapter(self, version, book=1, chapter=1, verse=1):
         app.storage.user['bible_book_text'] = version
-        app.storage.user['bible_book_number']= book
-        app.storage.user['bible_chapter_number']= chapter
-        app.storage.user['bible_verse_number']= 1
-        self.load_area_1_content(title=version)
+        app.storage.user['bible_book_number'] = book
+        app.storage.user['bible_chapter_number'] = chapter
+        app.storage.user['bible_verse_number'] = verse
+        # in some cases, self.get_content do not work
+        if version == "ORB":
+            content = original_reader
+        elif version == "OIB":
+            content = original_interlinear
+        elif version == "OPB":
+            content = original_parallel
+        elif version == "ODB":
+            content = original_discourse
+        elif version == "OLB":
+            content = original_linguistic
+        else:
+            content = bible_translation
+        self.load_area_1_content(content=content, title=version)
+        if app.storage.user["sync"]:
+            args = app.storage.user[self.get_active_area2_tab()]
+            if not self.is_tool(args.get("title")) and (not args.get("b") == book or not args.get("c") == chapter):
+                self.change_area_1_bible_chapter(args.get("bt"), book, chapter, verse)
 
-    def change_area_2_bible_chapter(self, version, book=1, chapter=1):
+    def change_area_2_bible_chapter(self, version, book=1, chapter=1, verse=1, sync=True):
         app.storage.user['tool_book_text'] = version
-        app.storage.user['bible_book_number']= book
-        app.storage.user['bible_chapter_number']= chapter
-        app.storage.user['bible_verse_number']= 1
-        self.load_area_2_content(title=version)
+        if sync and app.storage.user.get("sync"):
+            app.storage.user['bible_book_number'] = book
+            app.storage.user['bible_chapter_number'] = chapter
+            app.storage.user['bible_verse_number'] = verse
+        else:
+            app.storage.user['tool_book_number'] = book
+            app.storage.user['tool_chapter_number'] = chapter
+            app.storage.user['tool_verse_number'] = verse
+        # in some cases, self.get_content do not work
+        if version == "ORB":
+            content = original_reader
+        elif version == "OIB":
+            content = original_interlinear
+        elif version == "OPB":
+            content = original_parallel
+        elif version == "ODB":
+            content = original_discourse
+        elif version == "OLB":
+            content = original_linguistic
+        else:
+            content = bible_translation
+        self.load_area_2_content(content=content, title=version, sync=sync)
+        if sync and app.storage.user["sync"]:
+            args = app.storage.user[self.get_active_area1_tab()]
+            if not args.get("b") == book or not args.get("c") == chapter:
+                self.change_area_1_bible_chapter(args.get("bt"), book, chapter, verse)
 
     def add_tab_area1(self):
         """Dynamically add a new tab to Area 1"""
@@ -539,7 +640,7 @@ class BibleMateGUI:
                             ui.menu_item('Remove Tool Tab', on_click=self.remove_tab_area2)
                             ui.separator()
                             ui.menu_item('Bible Verse', on_click=lambda: self.load_area_2_content(self.work_in_progress))
-                            ui.menu_item('Bible Audio', on_click=lambda: self.load_area_2_content(title='Audio'))
+                            ui.menu_item('Bible Audio', on_click=lambda: self.load_area_2_content(title='Audio', sync=True))
                             ui.menu_item('Compare Chapter', on_click=lambda: self.load_area_2_content(self.work_in_progress))
                             ui.menu_item('Compare Verse', on_click=lambda: self.load_area_2_content(self.work_in_progress))
                             ui.separator()
@@ -582,7 +683,22 @@ class BibleMateGUI:
                             ui.menu_item('Bible Only', on_click=lambda: self.swap_layout(1))
                             ui.menu_item('Tool Only', on_click=lambda: self.swap_layout(3))
                             ui.menu_item('Bible & Tool', on_click=lambda: self.swap_layout(2))
+                            # sync
+                            def toggleSync():
+                                app.storage.user["sync"] = not app.storage.user["sync"]
+                            with ui.row().tooltip('Toggle Bible Synchronization'):
+                                ui.menu_item('Sync', on_click=toggleSync)
+                                ui.space()
+                                ui.switch().bind_value(app.storage.user, 'sync')
                             ui.separator()
+                            # full screen
+                            def toggleFullscreen(): # ui.fullscreen().toggle does not work in this case
+                                app.storage.user["fullscreen"] = not app.storage.user["fullscreen"]
+                            with ui.row().tooltip('Toggle Fullscreen'):
+                                ui.menu_item('Fullscreen', on_click=toggleFullscreen)
+                                ui.space()
+                                ui.switch().bind_value(app.storage.user, 'fullscreen')
+                            # dark mode
                             with ui.menu_item() as dark_mode_menu_item:
                                 dark_mode_label = ui.label("Light Mode" if app.storage.user["dark_mode"] else "Dark Mode").classes('flex items-center')
                             def toggle_dark_mode_menu_item(text_label: ui.label):
@@ -590,11 +706,6 @@ class BibleMateGUI:
                                 #text_label.set_text("Light Mode" if app.storage.user["dark_mode"] else "Dark Mode")
                                 ui.run_javascript('location.reload()')
                             dark_mode_menu_item.on('click', lambda: toggle_dark_mode_menu_item(dark_mode_label))
-                            def toggleFullscreen(): # ui.fullscreen().toggle does not work in this case
-                                app.storage.user["fullscreen"] = not app.storage.user["fullscreen"]
-                            with ui.row():
-                                ui.menu_item('Fullscreen', on_click=toggleFullscreen)
-                                ui.switch().bind_value(app.storage.user, 'fullscreen')
                             ui.separator()
                             ui.menu_item('Preferences', on_click=lambda: ui.navigate.to('/settings'))
 
@@ -617,8 +728,9 @@ class BibleMateGUI:
                     # This is just a label now; the parent button handles the click
                     ui.label('BibleMate AI').classes('text-lg ml-2')
 
-            ui.switch('Dark Mode').bind_value(app.storage.user, 'dark_mode').on_value_change(lambda: ui.run_javascript('location.reload()'))
+            ui.switch('Sync').bind_value(app.storage.user, 'sync')
             ui.switch('Fullscreen').bind_value(app.storage.user, 'fullscreen')
+            ui.switch('Dark Mode').bind_value(app.storage.user, 'dark_mode').on_value_change(lambda: ui.run_javascript('location.reload()'))
 
             # Bibles
             with ui.expansion('Bibles', icon='local_library').props('header-class="text-secondary"'):
@@ -701,7 +813,7 @@ class BibleMateGUI:
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.item('Bible Audio', on_click=lambda: (
-                    self.load_area_2_content(title='Audio'),
+                    self.load_area_2_content(title='Audio', sync=True),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.item('Compare Chapter', on_click=lambda: (

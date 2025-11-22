@@ -26,7 +26,7 @@ def regexp(expr, item, case_sensitive=False):
     return reg.search(item) is not None
 
 
-def get_bible_content(user_input, bible="NET"):
+def get_bible_content(user_input, bible="NET", sql_query=""):
     db = getBiblePath(bible)
     parser = BibleVerseParser(False)
     refs = []
@@ -40,22 +40,25 @@ def get_bible_content(user_input, bible="NET"):
             for ref in refs:
                 if len(ref) == 5:
                     content = ""
+                    b1, c1, v1 = 1, 1, 1
                     for r in parser.extractExhaustiveReferences([ref]):
                         b, c, v = r
+                        if not content:
+                            b1, c1, v1 = r
                         cursor.execute(query, (b, c, v))
                         verse = cursor.fetchone()
                         content += f"<vid>{v}</vid> {verse[0].strip()} "
                     ref = parser.bcvToVerseReference(b, c, v)
-                    results.append({'ref': ref, 'content': content.rstrip()})
+                    results.append({'ref': ref, 'content': content.rstrip(), 'bible': bible, 'b': b1, 'c': c1, 'v': v1})
                 else:
                     b, c, v = ref
                     ref = parser.bcvToVerseReference(b, c, v)
                     cursor.execute(query, (b, c, v))
                     verse = cursor.fetchone()
-                    results.append({'ref': ref, 'content': verse[0].strip()})
+                    results.append({'ref': ref, 'content': verse[0].strip(), 'bible': bible, 'b': b, 'c': c, 'v': v})
     else:
         # search the bible with regular expression
-        query = "PRAGMA case_sensitive_like = false; SELECT Book, Chapter, Verse, Scripture FROM Verses WHERE (Scripture REGEXP ?) ORDER BY Book, Chapter, Verse"
+        query = sql_query if sql_query else "PRAGMA case_sensitive_like = false; SELECT Book, Chapter, Verse, Scripture FROM Verses WHERE (Scripture REGEXP ?) ORDER BY Book, Chapter, Verse"
         with apsw.Connection(db) as connn:
             connn.createscalarfunction("REGEXP", regexp)
             cursor = connn.cursor()
@@ -63,7 +66,7 @@ def get_bible_content(user_input, bible="NET"):
             fetches = cursor.fetchall()
             for verse in fetches:
                 ref = parser.bcvToVerseReference(verse[0], verse[1], verse[2])
-                results.append({'ref': ref, 'content': verse[3].strip()})
+                results.append({'ref': ref, 'content': verse[3].strip(), 'bible': bible, 'b': verse[0], 'c': verse[1], 'v': verse[2]})
     return results
 
 # Bible Selection

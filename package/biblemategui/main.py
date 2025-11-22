@@ -40,6 +40,7 @@ def page_home(
     pc: str | None = None, # primary color
     sc: str | None = None, # secondary color
     fs: int | None = None, # font size in %
+    s: bool | None = None, # sync
     d: bool | None = None, # dark mode
     t: str | None = None, # Token for using custom data: allow users to pass a custom token, which won't be stored, via a parameter when using public devices. For personal devices, enable persistent settings using `custom_token`.
     k: bool | None = True, # keep valid specified parameters in history
@@ -53,7 +54,9 @@ def page_home(
     tb: int | None = None, # tool book
     tc: int | None = None, # tool chapter
     tv: int | None = None, # tool verse
-    tool: str | None = None, # supported options: bible, ...
+    tool: str | None = None, # supported options: bible, audio, chronology, search ...
+    bq: str | None = None, # bible query; currently not in use
+    tq: str | None = None, # tool query
 ):
     """
     Home page that accepts optional parameters.
@@ -87,6 +90,12 @@ def page_home(
         app.storage.user["secondary_color"] = sc
     ui.colors(primary=app.storage.user["primary_color"], secondary=app.storage.user["secondary_color"])
 
+    # sync
+    if s is not None:
+        app.storage.user['sync'] = s
+    else:
+        s = app.storage.user.setdefault('sync', True)
+
     # Bind app state to user storage
     app.storage.user["fullscreen"] = False
     ui.fullscreen().bind_value(app.storage.user, 'fullscreen')
@@ -105,7 +114,18 @@ def page_home(
     else:
         l = app.storage.user.setdefault('layout', 2)
 
+    if bq is not None:
+        app.storage.user['bible_query'] = bq
+    else:
+        bq = app.storage.user.setdefault('bible_query', '')    
+    if tq is not None:
+        app.storage.user['tool_query'] = tq
+    else:
+        tq = app.storage.user.setdefault('tool_query', '')
+
+    load_bible_at_start = False
     if bbt is not None:
+        load_bible_at_start = True
         app.storage.user['bible_book_text'] = bbt
     else:
         bbt = app.storage.user.setdefault('bible_book_text', "NET")
@@ -150,7 +170,7 @@ def page_home(
     gui.create_home_layout()
 
     # load bible content at start
-    if bb and bc and bv:
+    if load_bible_at_start:
         next_tab_num = gui.area1_tab_loaded + 1
         if next_tab_num > gui.area1_tab_counter:
             gui.add_tab_area1()
@@ -163,7 +183,7 @@ def page_home(
         next_tab_num = gui.area2_tab_loaded + 1
         if next_tab_num > gui.area2_tab_counter:
             gui.add_tab_area2()
-        gui.load_area_2_content(title=tbt if tool == "bible" else tool, keep=k)
+        gui.load_area_2_content(title=tbt if tool == "bible" else tool, keep=k, sync=s)
     elif not gui.area2_tab_loaded: # when nothing is loaded
         ... # TODO - decides later
 

@@ -120,7 +120,11 @@ class BibleAudioPlayer:
         # Start playing from the specified verse
         self.play_verse(self.start_verse)
 
-def bibles_audio(gui=None, bt="NET", b=1, c=1, v=1, area=2, **_):
+def bibles_audio(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
+    if not bt:
+        active_bible_tab = gui.get_active_area1_tab()
+        bt = app.storage.user[active_bible_tab]["bt"] if active_bible_tab in app.storage.user else "NET"
+
     # version options
     version_options = list(config.audio.keys())
     if app.storage.client["custom"]:
@@ -142,8 +146,12 @@ def bibles_audio(gui=None, bt="NET", b=1, c=1, v=1, area=2, **_):
     def additional_items():
         nonlocal gui, bible_selector, area
         def change_audio_chapter(selection):
-            app.storage.user['tool_book_text'], app.storage.user['bible_book_number'], app.storage.user['bible_chapter_number'], app.storage.user['bible_verse_number'] = selection
-            gui.load_area_1_content(title="Audio") if area == 1 else gui.load_area_2_content(title="Audio")
+            if area == 1:
+                app.storage.user['tool_book_text'], app.storage.user['bible_book_number'], app.storage.user['bible_chapter_number'], app.storage.user['bible_verse_number'] = selection
+                gui.load_area_1_content(title="Audio")
+            else:
+                app.storage.user['tool_book_text'], app.storage.user['tool_book_number'], app.storage.user['tool_chapter_number'], app.storage.user['tool_verse_number'] = selection
+                gui.load_area_2_content(title="Audio", sync=False)
         ui.button('Go', on_click=lambda: change_audio_chapter(bible_selector.get_selection()))
     bible_selector.create_ui(version, b, c, v, additional_items=additional_items)
     # Text file list

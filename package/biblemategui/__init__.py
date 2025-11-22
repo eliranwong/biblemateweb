@@ -121,5 +121,4 @@ USER_DEFAULT_SETTINGS = {
     'language': 'English',
     'dark_mode': True,
     'left_drawer_open': False,
-    'sync': True, # TODO - add disable sync option later
 }
