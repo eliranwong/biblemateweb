@@ -11,6 +11,12 @@ def original_reader(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, **_):
 
     bible_selector = BibleSelector(on_version_changed=gui.change_area_1_bible_chapter if area == 1 else gui.change_area_2_bible_chapter, on_book_changed=gui.change_area_1_bible_chapter if area == 1 else gui.change_area_2_bible_chapter, on_chapter_changed=gui.change_area_1_bible_chapter if area == 1 else gui.change_area_2_bible_chapter, on_verse_changed=change_bible_chapter_verse)
     
+    def wd(event):
+        nonlocal gui
+        lexical_entry, *_ = event.args
+        app.storage.user['tool_query'] = lexical_entry
+        gui.load_area_2_content(title='Lexicons')
+
     def luV(event):
         nonlocal bible_selector
         b, c, v = event.args
@@ -22,14 +28,15 @@ def original_reader(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, **_):
             ui.menu_item('Cross-references', on_click=lambda: ...))
         menu.open()"""
 
-    ui.on('luW', luW)
+    ui.on('wd', wd)
     ui.on('luV', luV)
-    ui.on('lex', lex)
-    ui.on('bdbid', bdbid)
-    ui.on('etcbcmorph', etcbcmorph)
-    ui.on('rmac', rmac)
-    ui.on('searchWord', searchWord)
-    ui.on('searchLexicalEntry', searchLexicalEntry)
+    #ui.on('luW', luW)
+    #ui.on('lex', lex)
+    #ui.on('bdbid', bdbid)
+    #ui.on('etcbcmorph', etcbcmorph)
+    #ui.on('rmac', rmac)
+    #ui.on('searchWord', searchWord)
+    #ui.on('searchLexicalEntry', searchLexicalEntry)
 
     db = os.path.join(BIBLEMATEGUI_DATA, "original", "ORB.bible")
     if not os.path.isfile(db):

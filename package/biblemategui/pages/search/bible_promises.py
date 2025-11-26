@@ -18,6 +18,7 @@ def search_bible_promises(gui=None, q='', **_):
         sql_query = "SELECT entry FROM PROMISES"
         cursor.execute(sql_query)
         all_entries = [i[0] for i in cursor.fetchall()]
+    all_entries = list(set([i for i in all_entries if i]))
 
     SQL_QUERY = "PRAGMA case_sensitive_like = false; SELECT Book, Chapter, Verse, Scripture FROM Verses WHERE (Scripture REGEXP ?) ORDER BY Book, Chapter, Verse"
 
@@ -203,6 +204,8 @@ def search_bible_promises(gui=None, q='', **_):
                 elif len(rows) == 1: # single exact match
                     path = rows[0][0]
                     show_verses(path)
+                else:
+                    options = [row[0] for row in rows]
         except Exception as ex:
             print("Error during database operation:", ex)
             ui.notify('Error during database operation!', type='negative')

@@ -8,7 +8,7 @@ import os
 
 def get_tooltip_data(word):
     """Fetch tooltip data from database"""
-    import apsw, json
+    import apsw
     result = None
     db = os.path.join(BIBLEMATEGUI_DATA, "morphology.sqlite")
     with apsw.Connection(db) as connn:
@@ -18,24 +18,26 @@ def get_tooltip_data(word):
         result = cursor.fetchone()    
     if result:
         wordID, clauseID, book, chapter, verse, word, lexicalEntry, morphologyCode, morphology, lexeme, transliteration, pronunciation, interlinear, translation, gloss = result
-        audio_path = '/bhs5_audio' if chapter < 40 else '/ognt_audio'
-        audio_module = 'BHS5' if chapter < 40 else 'OGNT'
+        audio_path = '/bhs5_audio' if book < 40 else '/ognt_audio'
+        audio_module = 'BHS5' if book < 40 else 'OGNT'
         audio_file = f'{audio_path}/{book}_{chapter}/{audio_module}_{book}_{chapter}_{verse}_{wordID}.mp3'
         audio_file_lex = f'{audio_path}/{book}_{chapter}/lex_{audio_module}_{book}_{chapter}_{verse}_{wordID}.mp3'
-        description = f'''<{'heb' if chapter < 40 else 'grk'}>{word}</{'heb' if chapter < 40 else 'grk'}> | <wphono>{transliteration}</wphono> | <wphono>{pronunciation}</wphono><br>
-<audio controls>
+        lexicon_entry_1, lexicon_entry_2, *_ = lexicalEntry.split(',')
+        if not lexicon_entry_2:
+            lexicon_entry_2 = lexicon_entry_1
+        description = f'''<{'heb' if book < 40 else 'grk'} onclick="emitEvent('wd', ['{lexicon_entry_1}']); return false;">{word}</{'heb' if book < 40 else 'grk'}> | <wphono>{transliteration}</wphono> | <wphono>{pronunciation}</wphono><br>
+<audio controls style="margin-top: 4px;">
   <source src="{audio_file}" type="audio/mpeg">
   Your browser does not support the audio element.
 </audio>
-<{'heb' if chapter < 40 else 'grk'}>{lexeme}</{'heb' if chapter < 40 else 'grk'}><br>
-<audio controls>
+<{'heb' if book < 40 else 'grk'} onclick="emitEvent('wd', ['{lexicon_entry_2}']); return false;">{lexeme}</{'heb' if book < 40 else 'grk'}><br>
+<audio controls style="margin-top: 4px;">
   <source src="{audio_file_lex}" type="audio/mpeg">
   Your browser does not support the audio element.
 </audio>
 <clid>{morphology[:-1].replace(",", ", ")}</clid><br>
 <wgloss>{interlinear}</wgloss><br>
 <wtrans>{translation}</wtrans>'''
-        #links = json.loads(links_json)
         return {'description': description, 'links': ""}
     return None
 
@@ -219,8 +221,7 @@ def page_home(
         app.storage.user['tool_verse_number'] = args.get('v', 1)
         app.storage.user['tool_query'] = args.get('q', '')
     
-    if l is not None and l in (1, 2, 3):
-        gui.swap_layout(l)
+    gui.swap_layout(app.storage.user['layout'])
 
     # update the URL to reflect current settings without reloading
     '''def update_url():
@@ -336,19 +337,19 @@ def page_Settings():
             with ui.grid(columns=2).classes('w-full p-4 gap-4'):
                 ui.select(label='Default Bible',
                           options=['NET', 'NIV', 'ESV', 'KJV']) \
-                    .bind_value(app.storage.user, 'default_bible')
+                    .bind_value(app.storage.user, 'favorite_bible')
 
                 ui.select(label='Default Commentary',
                           options=['CBSC', 'CBC', 'Calvin']) \
-                    .bind_value(app.storage.user, 'default_commentary')
+                    .bind_value(app.storage.user, 'favorite_commentary')
 
                 ui.select(label='Default Encyclopedia',
-                          options=['ISBE', 'Hasting', 'Kitto']) \
-                    .bind_value(app.storage.user, 'default_encyclopedia')
+                          options=list(config.encyclopedias.keys())) \
+                    .bind_value(app.storage.user, 'favorite_encyclopedia')
 
                 ui.select(label='Default Lexicon',
                           options=['Morphology', 'Strong', 'HALOT', 'BDAG']) \
-                    .bind_value(app.storage.user, 'default_lexicon')
+                    .bind_value(app.storage.user, 'favorite_lexicon')
 
         # --- AI Backend Section ---
         with ui.expansion('AI Backend', icon='memory').classes('w-full rounded-lg'):

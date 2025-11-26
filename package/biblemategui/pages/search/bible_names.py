@@ -70,6 +70,8 @@ def search_bible_names(gui=None, q='', **_):
                         options = [entries[i] for i in top_indices]
                     elif len(rows) == 1: # single exact match
                         options = [rows[0][0]]
+                    else:
+                        options = [row[0] for row in rows]
             except Exception as ex:
                 print("Error during database operation:", ex)
                 traceback.print_exc()

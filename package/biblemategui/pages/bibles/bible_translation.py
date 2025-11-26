@@ -9,7 +9,13 @@ import re, os
 def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, title="", **_):
 
     bible_selector = BibleSelector(on_version_changed=gui.change_area_1_bible_chapter if area == 1 else gui.change_area_2_bible_chapter, on_book_changed=gui.change_area_1_bible_chapter if area == 1 else gui.change_area_2_bible_chapter, on_chapter_changed=gui.change_area_1_bible_chapter if area == 1 else gui.change_area_2_bible_chapter, on_verse_changed=change_bible_chapter_verse)
-    
+
+    def wd(event):
+        nonlocal gui
+        lexical_entry, *_ = event.args
+        app.storage.user['tool_query'] = lexical_entry
+        gui.load_area_2_content(title='Lexicons')
+
     def luV(event):
         nonlocal bible_selector
         b, c, v = event.args
@@ -22,6 +28,7 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
         menu.open()"""
 
     ui.on('luV', luV)
+    ui.on('wd', wd)
 
     db = getBiblePath(title)
     if not os.path.isfile(db):
@@ -31,6 +38,12 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
     # Fix known issues
     content = content.replace("<br<", "<br><")
     content = content.replace("<heb> </heb>", "<heb>&nbsp;</heb>")
+
+    # add tooltip
+    if "</heb>" in content:
+        content = re.sub('(<heb id=")(.*?)"(.*?)class="', r'\1\2" data-word="\2" \3class="tooltip-word ', content)
+    elif "</grk>" in content:
+        content = re.sub('(<grk id=")(.*?)"(.*?)class="', r'\1\2" data-word="\2" \3class="tooltip-word ', content)
 
     # convert verse link, like '<vid id="v19.117.1" onclick="luV(1)">'
     content = re.sub(r'<vid id="v([0-9]+?)\.([0-9]+?)\.([0-9]+?)" onclick="luV\(([0-9]+?)\)">', r'<vid id="v\1.\2.\3" onclick="luV(\1, \2, \3)">', content)

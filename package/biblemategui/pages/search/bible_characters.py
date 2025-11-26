@@ -4,9 +4,15 @@ from nicegui import ui, app
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 import numpy as np
 import re, apsw, os, json, traceback
-
+from biblemategui.data.cr_books import cr_books
 
 def search_bible_characters(gui=None, q='', **_):
+
+    def cr(event):
+        nonlocal gui
+        b, c, v, *_ = event.args
+        b = cr_books.get(b, b)
+        gui.change_area_1_bible_chapter(None, b, c, v)
 
     def bcv(event):
         nonlocal gui
@@ -14,6 +20,7 @@ def search_bible_characters(gui=None, q='', **_):
         gui.change_area_1_bible_chapter(None, b, c, v)
 
     ui.on('bcv', bcv)
+    ui.on('cr', cr)
 
     # all characters
     all_characters = []
@@ -23,6 +30,7 @@ def search_bible_characters(gui=None, q='', **_):
         sql_query = "SELECT entry FROM exlbp"
         cursor.execute(sql_query)
         all_characters = [i[0] for i in cursor.fetchall()]
+    all_characters = list(set([i for i in all_characters if i]))
 
     # --- Fuzzy Match Dialog ---
     with ui.dialog() as dialog, ui.card().classes('w-full max-w-md'):
@@ -84,12 +92,12 @@ def search_bible_characters(gui=None, q='', **_):
             </style>
             """)
             # convert links, e.g. <ref onclick="bcv(3,19,26)">
-            content = re.sub(r'''(onclick|ondblclick)="(bcv)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
-            content = re.sub(r"""(onclick|ondblclick)='(bcv)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
+            content = re.sub(r'''(onclick|ondblclick)="(cr|bcv)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
+            content = re.sub(r"""(onclick|ondblclick)='(cr|bcv)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
             # convert colors for dark mode, e.g. <font color="brown">
             if app.storage.user['dark_mode']:
-                content = content.replace('<font color="brown">', '<font color="pink">')
-                content = content.replace('<font color="navy">', '<font color="lightskyblue">')
+                content = content.replace('color="brown">', 'color="pink">')
+                content = content.replace('color="navy">', 'color="lightskyblue">')
                 content = content.replace('<table bgcolor="#BFBFBF"', '<table bgcolor="#424242"')
                 content = content.replace('<td bgcolor="#FFFFFF">', '<td bgcolor="#212121">')
                 content = content.replace('<tr bgcolor="#FFFFFF">', '<tr bgcolor="#212121">')
@@ -132,6 +140,8 @@ def search_bible_characters(gui=None, q='', **_):
                 elif len(rows) == 1: # single exact match
                     path = rows[0][0]
                     show_entry(path)
+                else:
+                    options = [f"[{row[0]}] {row[1]}" for row in rows]
         except Exception as ex:
             print("Error during database operation:", ex)
             traceback.print_exc()
@@ -151,7 +161,7 @@ def search_bible_characters(gui=None, q='', **_):
             with selection_container:
                 # We use a radio button for selection
                 radio = ui.radio(options).classes('w-full').props('color=primary')
-                ui.button('Show Verses', on_click=lambda: handle_selection(radio.value)) \
+                ui.button('Show Content', on_click=lambda: handle_selection(radio.value)) \
                     .classes('w-full mt-4 bg-blue-500 text-white shadow-md')    
             dialog.open()
 

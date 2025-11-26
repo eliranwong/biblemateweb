@@ -1,12 +1,18 @@
 from biblemategui import BIBLEMATEGUI_DATA, config
-from functools import partial
 from nicegui import ui, app
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 import numpy as np
-import re, apsw, os, json, traceback, webbrowser
+import re, apsw, os, json, traceback
+from biblemategui.data.cr_books import cr_books
 
 
 def search_bible_locations(gui=None, q='', **_):
+
+    def cr(event):
+        nonlocal gui
+        b, c, v, *_ = event.args
+        b = cr_books.get(b, b)
+        gui.change_area_1_bible_chapter(None, b, c, v)
 
     def bcv(event):
         nonlocal gui
@@ -15,10 +21,10 @@ def search_bible_locations(gui=None, q='', **_):
     
     def website(event):
         url, *_ = event.args
-        print(url)
         ui.navigate.to(url, new_tab=True)
 
     ui.on('bcv', bcv)
+    ui.on('cr', cr)
     ui.on('website', website)
 
     # all locations
@@ -51,7 +57,6 @@ def search_bible_locations(gui=None, q='', **_):
         db = os.path.join(BIBLEMATEGUI_DATA, "data", "exlb3.data")
         with apsw.Connection(db) as connn:
             cursor = connn.cursor()
-            topic = path
             sql_query = "SELECT content FROM exlbl WHERE path=? limit 1"
             cursor.execute(sql_query, (path,))
             fetch = cursor.fetchone()
@@ -90,15 +95,15 @@ def search_bible_locations(gui=None, q='', **_):
             </style>
             """)
             # convert links, e.g. <ref onclick="bcv(3,19,26)">
-            content = re.sub(r'''(onclick|ondblclick)="(bcv|website)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
-            content = re.sub(r"""(onclick|ondblclick)='(bcv|website)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
+            content = re.sub(r'''(onclick|ondblclick)="(cr|bcv|website)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
+            content = re.sub(r"""(onclick|ondblclick)='(cr|bcv|website)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
             # remove map
             content = content.replace('<div id="map" style="width:100%;height:500px"></div>', "")
             content = re.sub(r'<script.*?>.*?</script>', '', content, flags=re.DOTALL)
             # convert colors for dark mode, e.g. <font color="brown">
             if app.storage.user['dark_mode']:
-                content = content.replace('<font color="brown">', '<font color="pink">')
-                content = content.replace('<font color="navy">', '<font color="lightskyblue">')
+                content = content.replace('color="brown">', 'color="pink">')
+                content = content.replace('color="navy">', 'color="lightskyblue">')
                 content = content.replace('<table bgcolor="#BFBFBF"', '<table bgcolor="#424242"')
                 content = content.replace('<td bgcolor="#FFFFFF">', '<td bgcolor="#212121">')
                 content = content.replace('<tr bgcolor="#FFFFFF">', '<tr bgcolor="#212121">')
@@ -141,6 +146,8 @@ def search_bible_locations(gui=None, q='', **_):
                 elif len(rows) == 1: # single exact match
                     path = rows[0][0]
                     show_entry(path)
+                else:
+                    options = [f"[{row[0]}] {row[1]}" for row in rows]
         except Exception as ex:
             print("Error during database operation:", ex)
             traceback.print_exc()
@@ -160,7 +167,7 @@ def search_bible_locations(gui=None, q='', **_):
             with selection_container:
                 # We use a radio button for selection
                 radio = ui.radio(options).classes('w-full').props('color=primary')
-                ui.button('Show Verses', on_click=lambda: handle_selection(radio.value)) \
+                ui.button('Show Content', on_click=lambda: handle_selection(radio.value)) \
                     .classes('w-full mt-4 bg-blue-500 text-white shadow-md')    
             dialog.open()
 

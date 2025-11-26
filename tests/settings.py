@@ -28,7 +28,7 @@ def index_page():
         ui.link('Go to Settings', '/settings').classes('text-lg text-blue-600')
         
         # This label will update in real-time if you change the setting
-        ui.label().bind_text_from(app.storage.user, 'default_bible',
+        ui.label().bind_text_from(app.storage.user, 'favorite_bible',
                                   lambda v: f'Your current default Bible is: {v}') \
             .classes('mt-4 p-2 bg-gray-100 rounded')
 
@@ -86,19 +86,19 @@ def settings_page():
             with ui.grid(columns=2).classes('w-full p-4 gap-4'):
                 ui.select(label='Default Bible',
                           options=['NET', 'NIV', 'ESV', 'KJV']) \
-                    .bind_value(app.storage.user, 'default_bible')
+                    .bind_value(app.storage.user, 'favorite_bible')
 
                 ui.select(label='Default Commentary',
                           options=['Cambridge', 'CBC', 'Calvin']) \
-                    .bind_value(app.storage.user, 'default_commentary')
+                    .bind_value(app.storage.user, 'favorite_commentary')
 
                 ui.select(label='Default Encyclopedia',
                           options=['ISBE', 'Hasting', 'Kitto']) \
-                    .bind_value(app.storage.user, 'default_encyclopedia')
+                    .bind_value(app.storage.user, 'favorite_encyclopedia')
 
                 ui.select(label='Default Lexicon',
                           options=['Strong', 'HALOT', 'BDAG']) \
-                    .bind_value(app.storage.user, 'default_lexicon')
+                    .bind_value(app.storage.user, 'favorite_lexicon')
 
         # --- AI Backend Section ---
         with ui.expansion('AI Backend', icon='memory').classes('w-full rounded-lg'):

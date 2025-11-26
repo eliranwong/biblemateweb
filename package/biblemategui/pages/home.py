@@ -28,6 +28,9 @@ from biblemategui.pages.search.bible_topics import search_bible_topics
 from biblemategui.pages.search.bible_locations import search_bible_locations
 from biblemategui.pages.search.bible_characters import search_bible_characters
 from biblemategui.pages.search.bible_names import search_bible_names
+from biblemategui.pages.search.dictionaries import search_bible_dictionaries
+from biblemategui.pages.search.encyclopedias import search_bible_encyclopedias
+from biblemategui.pages.search.lexicons import search_bible_lexicons
 
 class BibleMateGUI:
     def __init__(self):
@@ -212,8 +215,9 @@ class BibleMateGUI:
 
     def swap_layout(self, layout=None):
         """Swap between three layout modes"""
-        
-        self.current_layout = layout if layout else (self.current_layout % 3) + 1
+        if not layout in (1, 2, 3, None):
+            layout = 2
+        app.storage.user['layout'] = self.current_layout = layout if layout else (self.current_layout % 3) + 1
         self.update_visibility()
 
     def update_visibility(self):
@@ -285,6 +289,10 @@ class BibleMateGUI:
                    return None
         self.add_tab_area2()
 
+    def is_tool(self, title):
+        tools = ("audio", "verses", "chronology", "xrefs", "promises", "parallels", "topics", "characters", "locations", "names", "dictionaries", "encyclopedias", "lexicons")
+        return True if title.lower() in tools else False
+
     def get_content(self, title):
         if title.lower() == "audio":
             return bibles_audio
@@ -302,6 +310,12 @@ class BibleMateGUI:
             return search_bible_locations
         elif title.lower() == "names":
             return search_bible_names
+        elif title.lower() == "dictionaries":
+            return search_bible_dictionaries
+        elif title.lower() == "encyclopedias":
+            return search_bible_encyclopedias
+        elif title.lower() == "lexicons":
+            return search_bible_lexicons
         elif title.lower() == "verses":
             return search_bible_verses
         elif title.lower() == "chronology":
@@ -320,8 +334,6 @@ class BibleMateGUI:
             return bible_translation
         elif title in config.bibles:
             return bible_translation
-        elif title in config.available_tools:
-            return None # TODO
         else:
             return None
 
@@ -374,10 +386,6 @@ class BibleMateGUI:
                     break
         except:
             print(traceback.format_exc())
-
-    def is_tool(self, title):
-        tools = ("audio", "verses", "chronology", "xrefs", "promises", "parallels", "topics", "characters", "locations", "names")
-        return True if title.lower() in tools else False
 
     def load_area_2_content(self, content=None, title="Tool", tab=None, args=None, keep=True, sync=True):
         """Load example content in the active tab of Area 2"""

@@ -61,7 +61,6 @@ def load_config():
 load_config()
 
 # bibles resources
-
 def getBibleInfo(db):
     abb = os.path.basename(db)[:-6]
     try:
@@ -93,6 +92,19 @@ if os.path.isdir(bibles_dir_custom):
 else:
     Path(bibles_dir_custom).mkdir(parents=True, exist_ok=True)
     config.bibles_custom = {}
+# lexicons resources
+lexicons_dir = os.path.join(BIBLEMATEGUI_DATA, "lexicons")
+if os.path.isdir(lexicons_dir):
+    config.lexicons = dict(sorted({os.path.basename(i)[:-8]: i for i in glob.glob(os.path.join(lexicons_dir, "*.lexicon"))}.items()))
+else:
+    Path(lexicons_dir).mkdir(parents=True, exist_ok=True)
+    config.lexicons = {}
+lexicons_dir_custom = os.path.join(BIBLEMATEGUI_DATA_CUSTOM, "lexicons")
+if os.path.isdir(lexicons_dir_custom):
+    config.lexicons_custom = dict(sorted({os.path.basename(i)[:-8]: i for i in glob.glob(os.path.join(lexicons_dir_custom, "*.lexicon"))}.items()))
+else:
+    Path(lexicons_dir_custom).mkdir(parents=True, exist_ok=True)
+    config.lexicons_custom = {}
 # audio resources
 app.add_media_files('/bhs5_audio', os.path.join(BIBLEMATEGUI_DATA, "audio", "bibles", "BHS5", "default"))
 app.add_media_files('/ognt_audio', os.path.join(BIBLEMATEGUI_DATA, "audio", "bibles", "OGNT", "default"))
@@ -109,7 +121,39 @@ else:
     Path(audio_dir_custom).mkdir(parents=True, exist_ok=True)
     config.audio_custom = {}
 
-config.available_tools = ["audio", "chronology"]
+config.topics = {
+    "HIT": "Hitchcock's New and Complete Analysis of the Bible",
+    "NAV": "Nave's Topical Bible",
+    "TCR": "Thompson Chain References",
+    "TNT": "Torrey's New Topical Textbook",
+    "TOP": "Topical Bible",
+    "EXLBT": "Search ALL Topical References",
+}
+config.dictionaries = {
+    "AMT": "American Tract Society Dictionary",
+    "BBD": "Bridgeway Bible Dictionary",
+    "BMC": "Freeman's Handbook of Bible Manners and Customs",
+    "BUC": "Buck's A Theological Dictionary",
+    "CBA": "Companion Bible Appendices",
+    "DRE": "Dictionary Of Religion And Ethics",
+    "EAS": "Easton's Illustrated Bible Dictionary",
+    "FAU": "Fausset's Bible Dictionary",
+    "FOS": "Bullinger's Figures of Speech",
+    "HBN": "Hitchcock's Bible Names Dictionary",
+    "MOR": "Morrish's Concise Bible Dictionary",
+    "PMD": "Poor Man's Dictionary",
+    "SBD": "Smith's Bible Dictionary",
+    "USS": "Annals of the World",
+    "VNT": "Vine's Expository Dictionary of New Testament Words",
+}
+config.encyclopedias = {
+    "DAC": "Hasting's Dictionary of the Apostolic Church",
+    "DCG": "Hasting's Dictionary Of Christ And The Gospels",
+    "HAS": "Hasting's Dictionary of the Bible",
+    "ISB": "International Standard Bible Encyclopedia",
+    "KIT": "Kitto's Cyclopedia of Biblical Literature",
+    "MSC": "McClintock & Strong's Cyclopedia of Biblical Literature",
+}
 
 # User Default Settings
 
@@ -120,10 +164,10 @@ USER_DEFAULT_SETTINGS = {
     'negative_color': '#ff384f',
     'avatar': '',
     'custom_token': '',
-    'default_bible': 'NET',
-    'default_commentary': 'CBSC',
-    'default_encyclopedia': 'ISBE',
-    'default_lexicon': 'Morphology',
+    'favorite_bible': 'NET',
+    'favorite_commentary': 'CBSC',
+    'favorite_encyclopedia': 'ISB',
+    'favorite_lexicon': 'Morphology',
     'ai_backend': 'googleai',
     'api_endpoint': '',
     'api_key': '',
