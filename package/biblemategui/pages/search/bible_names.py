@@ -25,7 +25,7 @@ def search_bible_names(gui=None, q='', **_):
                     continue
                 row.set_visibility(True)
 
-    def filter_names(e=None):
+    def filter_names(e=None, keep=True):
         """
         Filters visibility based on input.
         Iterates over default_slot.children to find rows.
@@ -39,6 +39,9 @@ def search_bible_names(gui=None, q='', **_):
             text = input_field.value 
 
         search_term = text
+        # update tab records
+        if keep:
+            gui.update_active_area2_tab_records(q=search_term)
 
         # similarity search
         if search_term:
@@ -111,13 +114,12 @@ def search_bible_names(gui=None, q='', **_):
     # ----------------------------------------------------------
     # Helper: Open Chapter
     # ----------------------------------------------------------
-    def open_chapter_next_area2_tab(bible, b, c, v):
-        gui.select_next_area2_tab()
-        gui.change_area_2_bible_chapter(bible, b, c, v, sync=False)
-
-    def open_chapter_empty_area2_tab(bible, b, c, v):
+    def search_tool(tool, query):
+        nonlocal gui
+        """Logic when 'Character' button is clicked"""
+        app.storage.user["tool_query"] = query
         gui.select_empty_area2_tab()
-        gui.change_area_2_bible_chapter(bible, b, c, v, sync=False)
+        gui.load_area_2_content(title=tool)
 
     # ----------------------------------------------------------
     # Core: Fetch and Display
@@ -126,7 +128,7 @@ def search_bible_names(gui=None, q='', **_):
         with names_container:
             for name, meaning in bible_names.items():
                 # Row setup
-                with ui.row().classes('w-full shadow-sm rounded-lg items-start no-wrap border border-gray-200 !gap-0') as row:
+                with ui.row().classes('w-full shadow-sm rounded-lg items-center no-wrap border border-gray-200 !gap-0') as row:
                     
                     row.name_data = name # Store data for filter function
 
@@ -138,11 +140,11 @@ def search_bible_names(gui=None, q='', **_):
                             icon='book',
                             #on_click=partial(ui.notify, f'Clicked {v['ref']}'),
                         ).classes('cursor-pointer font-bold shadow-sm') as chip:
-                            '''with ui.menu():
-                                ui.menu_item('Open in Bible Area', on_click=partial(gui.change_area_1_bible_chapter, v['bible'], v['b'], v['c'], v['v']))
-                                ui.menu_item('Open Here', on_click=partial(gui.change_area_2_bible_chapter, v['bible'], v['b'], v['c'], v['v'], sync=False))
-                                ui.menu_item('Open in Next Tab', on_click=partial(open_chapter_next_area2_tab, v['bible'], v['b'], v['c'], v['v']))
-                                ui.menu_item('Open in New Tab', on_click=partial(open_chapter_empty_area2_tab, v['bible'], v['b'], v['c'], v['v']))'''
+                            with ui.menu():
+                                ui.menu_item('Search Characters', on_click=partial(search_tool, "Characters", name))
+                                ui.menu_item('Search Locations', on_click=partial(search_tool, "Locations", name))
+                                ui.menu_item('Search Dictionaries', on_click=partial(search_tool, "Dictionaries", name))
+                                ui.menu_item('Search Encyclopedias', on_click=partial(search_tool, "Encyclopedias", name))
                         chip.on('remove', lambda _, r=row, name=name: remove_name_row(r, name))
 
                     # --- Content ---
@@ -158,7 +160,6 @@ def search_bible_names(gui=None, q='', **_):
     # ==============================================================================
     with ui.row().classes('w-full max-w-3xl mx-auto m-0 py-0 px-4 items-center'):
         input_field = ui.input(
-            value=q,
             autocomplete=list(bible_names.keys()),
             placeholder='Enter a name or meaning'
         ).classes('flex-grow text-lg') \
@@ -176,4 +177,5 @@ def search_bible_names(gui=None, q='', **_):
     show_names()
 
     if q:
-        filter_names(None)
+        input_field.value = q
+        filter_names(None, keep=False)

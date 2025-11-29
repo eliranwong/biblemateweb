@@ -1,8 +1,9 @@
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from biblemategui.fx.bible import get_bible_content
+from biblemategui import BIBLEMATEGUI_DATA, config
 from functools import partial
-from nicegui import ui, app
-import re
+from nicegui import ui
+import re, apsw, os
 
 
 def search_bible_verses(gui=None, q='', **_):
@@ -105,9 +106,13 @@ def search_bible_verses(gui=None, q='', **_):
     # ----------------------------------------------------------
     # Core: Fetch and Display
     # ----------------------------------------------------------
-    def handle_enter(e):
+    def handle_enter(e, keep=True):
         nonlocal SQL_QUERY
         query = input_field.value.strip()
+
+        # update tab record
+        if keep:
+            gui.update_active_area2_tab_records(q=query)
         
         # Clear existing rows first
         verses_container.clear()
@@ -116,7 +121,58 @@ def search_bible_verses(gui=None, q='', **_):
             ui.notify('Display cleared', type='positive', position='top')
             return
 
-        verses = get_bible_content(query, bible=gui.get_area_1_bible_text(), sql_query=SQL_QUERY)
+        if re.search("^BP[0-9]+?$", query): # bible characters entries
+            db_file = os.path.join(BIBLEMATEGUI_DATA, "data", "biblePeople.data")
+            with apsw.Connection(db_file) as connn:
+                cursor = connn.cursor()
+                cursor.execute("SELECT Book, Chapter, Verse FROM PEOPLE WHERE PersonID=? ORDER BY Book, Chapter, Verse", (int(query[2:]),))
+                fetch = cursor.fetchall()
+            if not fetch:
+                ui.notify('No verses found.', type='negative')
+                return
+            verses = get_bible_content(bible=gui.get_area_1_bible_text(), sql_query=SQL_QUERY, refs=fetch)
+        elif re.search("^BL[0-9]+?$", query): # bible locatios entries
+            db_file = os.path.join(BIBLEMATEGUI_DATA, "indexes2.sqlite")
+            with apsw.Connection(db_file) as connn:
+                cursor = connn.cursor()
+                cursor.execute('''SELECT Book, Chapter, Verse FROM exlbl WHERE Information LIKE ? ORDER BY Book, Chapter, Verse''', (f"%'{query}'%",))
+                fetch = cursor.fetchall()
+            if not fetch:
+                ui.notify('No verses found.', type='negative')
+                return
+            verses = get_bible_content(bible=gui.get_area_1_bible_text(), sql_query=SQL_QUERY, refs=fetch)
+        elif re.search(f"^({"|".join(list(config.topics.keys()))})[0-9]+?$", query): # bible topics entries
+            db_file = os.path.join(BIBLEMATEGUI_DATA, "indexes2.sqlite")
+            with apsw.Connection(db_file) as connn:
+                cursor = connn.cursor()
+                cursor.execute('''SELECT Book, Chapter, Verse FROM exlbt WHERE Information LIKE ? ORDER BY Book, Chapter, Verse''', (f"%'{query}'%",))
+                fetch = cursor.fetchall()
+            if not fetch:
+                ui.notify('No verses found.', type='negative')
+                return
+            verses = get_bible_content(bible=gui.get_area_1_bible_text(), sql_query=SQL_QUERY, refs=fetch)
+        elif re.search(f"^({"|".join(list(config.dictionaries.keys()))})[0-9]+?$", query): # bible dictionaries entries
+            db_file = os.path.join(BIBLEMATEGUI_DATA, "indexes2.sqlite")
+            with apsw.Connection(db_file) as connn:
+                cursor = connn.cursor()
+                cursor.execute('''SELECT Book, Chapter, Verse FROM dictionaries WHERE Information LIKE ? ORDER BY Book, Chapter, Verse''', (f"%'{query}'%",))
+                fetch = cursor.fetchall()
+            if not fetch:
+                ui.notify('No verses found.', type='negative')
+                return
+            verses = get_bible_content(bible=gui.get_area_1_bible_text(), sql_query=SQL_QUERY, refs=fetch)
+        elif re.search(f"^(ISBE|{"|".join(list(config.encyclopedias.keys()))})[0-9]+?$", query): # bible encyclopedia entries
+            db_file = os.path.join(BIBLEMATEGUI_DATA, "indexes2.sqlite")
+            with apsw.Connection(db_file) as connn:
+                cursor = connn.cursor()
+                cursor.execute('''SELECT Book, Chapter, Verse FROM encyclopedia WHERE Information LIKE ? ORDER BY Book, Chapter, Verse''', (f"%'{query}'%",))
+                fetch = cursor.fetchall()
+            if not fetch:
+                ui.notify('No verses found.', type='negative')
+                return
+            verses = get_bible_content(bible=gui.get_area_1_bible_text(), sql_query=SQL_QUERY, refs=fetch)
+        else:
+            verses = get_bible_content(query, bible=gui.get_area_1_bible_text(), sql_query=SQL_QUERY)
 
         if not verses:
             ui.notify('No verses found.', type='negative')
@@ -192,7 +248,6 @@ def search_bible_verses(gui=None, q='', **_):
     
     with ui.row().classes('w-full max-w-3xl mx-auto m-0 py-0 px-4 items-center'):
         input_field = ui.input(
-            value=q,
             autocomplete=BIBLE_BOOKS,
             placeholder='Enter search items or refs (e.g. Deut 6:4; John 3:16-18)'
         ).classes('flex-grow text-lg') \
@@ -340,4 +395,5 @@ def search_bible_verses(gui=None, q='', **_):
         verses_container = ui.column().classes('w-full transition-all !gap-1')
 
     if q:
-        handle_enter(None)
+        input_field.value = q
+        handle_enter(None, keep=False)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from nicegui import ui
-from biblemategui import config, BIBLEMATEGUI_DATA, BIBLEMATEGUI_APP_DIR, USER_DEFAULT_SETTINGS
+from biblemategui import config, BIBLEMATEGUI_DATA, BIBLEMATEGUI_APP_DIR, USER_DEFAULT_SETTINGS, getBibleVersionList, getLexiconList
 from biblemategui.pages.home import *
 from biblemategui.js.tooltip import TOOLTIP_JS
 from biblemategui.css.tooltip import get_tooltip_css
@@ -135,11 +135,11 @@ def page_home(
     if bq is not None:
         app.storage.user['bible_query'] = bq
     else:
-        bq = app.storage.user.setdefault('bible_query', '')    
+        app.storage.user['bible_query'] = bq = "" # reset bible query
     if tq is not None:
         app.storage.user['tool_query'] = tq
     else:
-        tq = app.storage.user.setdefault('tool_query', '')
+        app.storage.user['tool_query'] = tq = "" # reset tool query
 
     load_bible_at_start = False
     if bbt is not None:
@@ -251,7 +251,9 @@ def page_home(
 
 # Settings
 @ui.page('/settings')
-def page_Settings():
+def page_Settings(
+    t: str | None = None, # Token for using custom data: allow users to pass a custom token, which won't be stored, via a parameter when using public devices. For personal devices, enable persistent settings using `custom_token`.
+):
     """The main settings page for the BibleMate AI app."""
     def set_default_settings():
         """Sets the default settings in app.storage.user if they don't already exist."""
@@ -271,6 +273,12 @@ def page_Settings():
 
     # primary color
     ui.colors(primary=app.storage.user["primary_color"], secondary=app.storage.user["secondary_color"], negative=app.storage.user["negative_color"])
+
+    # manage custom resources
+    if not config.custom_token or (t and t == config.custom_token) or (app.storage.user.setdefault('custom_token', "") == config.custom_token):
+        app.storage.client["custom"] = True # short-term memory (single page visit)
+    else:
+        app.storage.client["custom"] = False
 
     # Bind app state to user storage
     ui.dark_mode().bind_value(app.storage.user, 'dark_mode')
@@ -332,24 +340,24 @@ def page_Settings():
                     .tooltip('Token for using custom data sources or personal APIs.')
 
         # --- Default Resources Section ---
-        with ui.expansion('Default Resources', icon='book', value=True).classes('w-full rounded-lg'):
+        with ui.expansion('Frequently Used Resources', icon='book', value=True).classes('w-full rounded-lg'):
             # Use a grid for a more compact layout
             with ui.grid(columns=2).classes('w-full p-4 gap-4'):
-                ui.select(label='Default Bible',
-                          options=['NET', 'NIV', 'ESV', 'KJV']) \
-                    .bind_value(app.storage.user, 'favorite_bible')
-
-                ui.select(label='Default Commentary',
-                          options=['CBSC', 'CBC', 'Calvin']) \
-                    .bind_value(app.storage.user, 'favorite_commentary')
-
-                ui.select(label='Default Encyclopedia',
-                          options=list(config.encyclopedias.keys())) \
-                    .bind_value(app.storage.user, 'favorite_encyclopedia')
-
-                ui.select(label='Default Lexicon',
-                          options=['Morphology', 'Strong', 'HALOT', 'BDAG']) \
-                    .bind_value(app.storage.user, 'favorite_lexicon')
+                ui.select(label='Primary Bible',
+                          options=getBibleVersionList()) \
+                    .bind_value(app.storage.user, 'primary_bible')
+            with ui.grid(columns=2).classes('w-full p-4 gap-4'):
+                ui.select(label='Secondary Bible',
+                          options=getBibleVersionList()) \
+                    .bind_value(app.storage.user, 'secondary_bible')
+            with ui.grid(columns=2).classes('w-full p-4 gap-4'):
+                ui.select(label='Hebrew Lexicon',
+                          options=getLexiconList()) \
+                    .bind_value(app.storage.user, 'hebrew_lexicon')
+            with ui.grid(columns=2).classes('w-full p-4 gap-4'):
+                ui.select(label='Greek Lexicon',
+                          options=getLexiconList()) \
+                    .bind_value(app.storage.user, 'greek_lexicon')
 
         # --- AI Backend Section ---
         with ui.expansion('AI Backend', icon='memory').classes('w-full rounded-lg'):

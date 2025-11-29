@@ -53,8 +53,12 @@ def search_bible_dictionaries(gui=None, q='', **_):
     # Core: Fetch and Display
     # ----------------------------------------------------------
 
-    def show_entry(path):
+    def show_entry(path, keep=True):
         nonlocal content_container, gui, dialog, input_field
+
+        # update tab records
+        if keep:
+            gui.update_active_area2_tab_records(q=path)
 
         db = os.path.join(BIBLEMATEGUI_DATA, "data", "dictionary.data")
         with apsw.Connection(db) as connn:
@@ -124,12 +128,21 @@ def search_bible_dictionaries(gui=None, q='', **_):
             # display
             ui.html(f'<div class="bible-text">{content}</div>', sanitize=False)
 
+            with ui.row().classes('w-full justify-center q-my-md'):
+                ui.button('Show All Verses', icon='auto_stories', on_click=lambda: gui.show_all_verses(path)) \
+                    .props('size=lg rounded color=primary')
+
         # Clear input so user can start typing to filter immediately
         input_field.value = ""
 
-    def handle_enter(e):
+    def handle_enter(e, keep=True):
         query = input_field.value.strip()
-        
+
+        modules = "|".join(list(config.dictionaries.keys()))
+        if re.search(f"^({modules})[0-9]+?$", query):
+            show_entry(query, keep=keep)
+            return
+
         db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "dictionary.db")
         sql_table = "Dictionary"
         embedding_model="paraphrase-multilingual"
@@ -158,7 +171,7 @@ def search_bible_dictionaries(gui=None, q='', **_):
                     options = [entries[i] for i in top_indices]
                 elif len(rows) == 1: # single exact match
                     path = rows[0][0]
-                    show_entry(path)
+                    show_entry(path, keep=keep)
                 else:
                     options = [f"[{row[0]}] {row[1]}" for row in rows]
         except Exception as ex:
@@ -174,7 +187,7 @@ def search_bible_dictionaries(gui=None, q='', **_):
                 if selected_option:
                     dialog.close()
                     path, _ = selected_option.split(" ", 1)
-                    show_entry(path[1:-1])
+                    show_entry(path[1:-1], keep=keep)
 
             selection_container.clear()
             with selection_container:
@@ -189,7 +202,6 @@ def search_bible_dictionaries(gui=None, q='', **_):
     # ==============================================================================
     with ui.row().classes('w-full max-w-3xl mx-auto m-0 py-0 px-4 items-center'):
         input_field = ui.input(
-            value=q,
             autocomplete=all_entries,
             placeholder='Enter keywords to search Bible dictionaries...'
         ).classes('flex-grow text-lg') \
@@ -203,4 +215,5 @@ def search_bible_dictionaries(gui=None, q='', **_):
         content_container = ui.column().classes('w-full transition-all !gap-1')
 
     if q:
-        handle_enter(None)
+        input_field.value = q
+        handle_enter(None, keep=False)

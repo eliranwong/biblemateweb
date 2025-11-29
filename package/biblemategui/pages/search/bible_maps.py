@@ -3,7 +3,8 @@ from biblemategui.fx.location_finder import LocationFinder
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from nicegui import ui, app
-import math, re
+from functools import partial
+import math, re, asyncio
 
 
 # --- Data: 66 Bible Books & ID Mapping ---
@@ -52,6 +53,7 @@ def search_bible_maps(gui=None, q='', **_):
         gui.load_area_2_content(title='Locations')
     ui.on('exlbl', exlbl)
 
+    jerusalem = (31.777, 35.235)
     parser = BibleVerseParser(False)
     finder = LocationFinder()
 
@@ -82,7 +84,19 @@ def search_bible_maps(gui=None, q='', **_):
                 name, lat, lon = BIBLE_LOCATIONS[uid]
                 # Add marker with popup
                 marker = bible_map.marker(latlng=(lat, lon))
-                marker.run_method('bindPopup', f'''<b>{name}</b><br>[<ref onclick="emitEvent('exlbl', ['{uid}']); return false;">{uid}</ref>]''')
+                # The following line does not work when tool_query parameter is loaded when the page is opened
+                #marker.run_method('bindPopup', f'''<b>{name}</b><br>[<ref onclick="emitEvent('exlbl', ['{uid}']); return false;">{uid}</ref>]''')
+                # Wait until marker is ready; wait 0.1 seconds to let the JS layer catch up
+                async def bind_marker(marker, name, uid):
+                    # 1. Non-blocking Wait: Checks every 0.1s, but lets other app events happen
+                    while marker.id is None:
+                        await asyncio.sleep(0.1)
+                    # 2. Add a tiny buffer for the JavaScript side to render the marker
+                    await asyncio.sleep(0.1)
+                    # 3. Bind
+                    marker.run_method('bindPopup', f'''<b>{name}</b><br>[<ref onclick="emitEvent('exlbl', ['{uid}']); return false;">{uid}</ref>]''')
+                # Fire the safe async function
+                ui.timer(0.1, partial(bind_marker, marker, name, uid), once=True)
                 
                 active_markers[uid] = marker
                 
@@ -92,6 +106,9 @@ def search_bible_maps(gui=None, q='', **_):
                 lat, lon = BIBLE_LOCATIONS[uid][1], BIBLE_LOCATIONS[uid][2]
                 bible_map.set_center((lat, lon))
                 bible_map.set_zoom(9)
+            else:
+                fit_all_markers()
+
 
         # ==========================================
         # CONTROLS
@@ -120,15 +137,17 @@ def search_bible_maps(gui=None, q='', **_):
                 # Text Input for quick search
                 search_input = ui.input(
                     label='Search',
-                    value=q,
                     autocomplete=list(LOCATION_OPTIONS.values())+BIBLE_BOOKS,
                     placeholder='Enter name(s) or verse reference(s)...',
                 ).classes('flex-grow')
                 
-                def on_search_enter():
+                def on_search_enter(keep=True):
                     """Finds a location by name and adds it to the multiselect (which triggers map update)"""
                     query = search_input.value.strip()
                     if not query: return
+
+                    if keep:
+                        gui.update_active_area2_tab_records(q=query)
 
                     current_vals = location_multiselect.value or []
 
@@ -251,8 +270,38 @@ def search_bible_maps(gui=None, q='', **_):
         # ==========================================
         # LEAFLET MAP
         # ==========================================
-        # center on Jerusalem approx
-        bible_map = ui.leaflet(center=(31.777, 35.235), zoom=9).classes('w-full flex-grow rounded-lg shadow-md')
+
+        # Fit bounds using JavaScript
+        def fit_all_markers():
+            if not location_multiselect.value:
+                bible_map.set_center(jerusalem) # Jerusalem
+                bible_map.set_zoom(9)
+                return
+            locations = [BIBLE_LOCATIONS[uid][1:] for uid in location_multiselect.value]
+            lats = [loc[0] for loc in locations]
+            lngs = [loc[1] for loc in locations]
+            #center = (sum(lats)/len(lats), sum(lngs)/len(lngs))
+            bounds = [[min(lats), min(lngs)], [max(lats), max(lngs)]]
+            ui.run_javascript(f'''
+                setTimeout(() => {{
+                    const element = getElement({bible_map.id});
+                    if (element && element.map) {{
+                        const bounds = L.latLngBounds({bounds});
+                        element.map.fitBounds(bounds, {{
+                            padding: [50, 50],
+                            maxZoom: 12
+                        }});
+                    }}
+                }}, 100);
+            ''')
+
+        with ui.element('div').style('position: relative; width: 100%; display: flex; flex-direction: column; height: 100%;'):
+            bible_map = ui.leaflet(center=jerusalem, zoom=9).classes('w-full flex-grow rounded-lg shadow-md') # default; center on Jerusalem approx
+            with ui.button(on_click=fit_all_markers).props('fab-mini color=primary icon=center_focus_strong').style(
+                'position: absolute; top: 20px; right: 20px; z-index: 1000;'
+            ):
+                ui.tooltip('Zoom to Fit')
 
         if q:
-            on_search_enter()
+            search_input.value = q
+            on_search_enter(keep=False)

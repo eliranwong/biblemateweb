@@ -1,5 +1,5 @@
-from nicegui import ui, app
-from biblemategui import config
+from nicegui import ui
+from biblemategui import config, getBibleVersionList
 from typing import List, Optional
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
@@ -11,15 +11,18 @@ def regexp(expr, item, case_sensitive=False):
     return reg.search(item) is not None
 
 
-def get_bible_content(user_input, bible="NET", sql_query=""):
+def get_bible_content(user_input="", bible="NET", sql_query="", refs=[]):
     db = getBiblePath(bible)
     parser = BibleVerseParser(False)
-    refs = []
     results = []
-    if re.search(" [0-9]+?:[0-9]", user_input):
+    if not refs and re.search(" [0-9]+?:[0-9]", user_input):
         refs = parser.extractAllReferences(user_input, tagged=(True if '<ref onclick="bcv(' in user_input else False))
     if refs:
-        refs = list(set(refs))
+        distinct_refs = []
+        for ref in refs:
+            if ref not in distinct_refs:
+                distinct_refs.append(ref)
+        refs = distinct_refs
         query = "SELECT Scripture FROM Verses WHERE Book=? AND Chapter=? AND Verse =?"
         with apsw.Connection(db) as connn:
             cursor = connn.cursor()
@@ -56,14 +59,6 @@ def get_bible_content(user_input, bible="NET", sql_query=""):
     return results
 
 # Bible Selection
-
-def getBibleVersionList() -> List[str]:
-    """Returns a list of available Bible versions"""
-    bibleVersionList = ["ORB", "OIB", "OPB", "ODB", "OLB"]+list(config.bibles.keys())
-    if app.storage.client["custom"]:
-        bibleVersionList += list(config.bibles_custom.keys())
-        bibleVersionList = list(set(bibleVersionList))
-    return sorted(bibleVersionList)
 
 def getBiblePath(bible) -> str:
     if bible in ["ORB", "OIB", "OPB", "ODB", "OLB", "BHS5", "OGNT"]:
@@ -165,7 +160,7 @@ class BibleSelector:
         self.chapter_options: List[int] = []
         self.verse_options: List[int] = []
         
-    def create_ui(self, bible, b, c, v, additional_items=None):
+    def create_ui(self, bible, b, c, v, additional_items=None, show_versions=True):
         self.selected_version = bible
         self.selected_book = b
         self.selected_chapter = c
@@ -185,13 +180,14 @@ class BibleSelector:
             self.chapter_options = getBibleChapterList(getBiblePath(self.selected_version), self.selected_book)
             self.verse_options = getBibleVerseList(getBiblePath(self.selected_version), self.selected_book, self.selected_chapter)
         with ui.row().classes('w-full justify-center'):
-            # Bible
-            self.version_select = ui.select(
-                options=self.version_options,
-                label='Bible',
-                value=bible,
-                on_change=self.on_version_change
-            )
+            # Versions
+            if show_versions:
+                self.version_select = ui.select(
+                    options=self.version_options,
+                    label='Bible',
+                    value=bible,
+                    on_change=self.on_version_change
+                )
             # Book
             self.book_select = ui.select(
                 options=self.book_options,

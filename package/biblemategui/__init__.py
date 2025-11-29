@@ -2,6 +2,7 @@ from pathlib import Path
 from agentmake import readTextFile, writeTextFile
 from biblemategui import config
 from nicegui import app
+from typing import List
 import os, glob, apsw, re
 
 BIBLEMATEGUI_APP_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -92,6 +93,15 @@ if os.path.isdir(bibles_dir_custom):
 else:
     Path(bibles_dir_custom).mkdir(parents=True, exist_ok=True)
     config.bibles_custom = {}
+
+def getBibleVersionList() -> List[str]:
+    """Returns a list of available Bible versions"""
+    bibleVersionList = ["ORB", "OIB", "OPB", "ODB", "OLB"]+list(config.bibles.keys())
+    if app.storage.client["custom"]:
+        bibleVersionList += list(config.bibles_custom.keys())
+        bibleVersionList = list(set(bibleVersionList))
+    return sorted(bibleVersionList)
+
 # lexicons resources
 lexicons_dir = os.path.join(BIBLEMATEGUI_DATA, "lexicons")
 if os.path.isdir(lexicons_dir):
@@ -105,6 +115,14 @@ if os.path.isdir(lexicons_dir_custom):
 else:
     Path(lexicons_dir_custom).mkdir(parents=True, exist_ok=True)
     config.lexicons_custom = {}
+
+def getLexiconList() -> List[str]:
+    """Returns a list of available Lexicons"""
+    client_lexicons = list(config.lexicons.keys())
+    if app.storage.client["custom"]:
+        client_lexicons += list(config.lexicons_custom.keys())
+    return sorted(list(set(client_lexicons)))
+
 # audio resources
 app.add_media_files('/bhs5_audio', os.path.join(BIBLEMATEGUI_DATA, "audio", "bibles", "BHS5", "default"))
 app.add_media_files('/ognt_audio', os.path.join(BIBLEMATEGUI_DATA, "audio", "bibles", "OGNT", "default"))
@@ -127,7 +145,6 @@ config.topics = {
     "TCR": "Thompson Chain References",
     "TNT": "Torrey's New Topical Textbook",
     "TOP": "Topical Bible",
-    "EXLBT": "Search ALL Topical References",
 }
 config.dictionaries = {
     "AMT": "American Tract Society Dictionary",
@@ -164,10 +181,13 @@ USER_DEFAULT_SETTINGS = {
     'negative_color': '#ff384f',
     'avatar': '',
     'custom_token': '',
-    'favorite_bible': 'NET',
+    'primary_bible': 'NET',
+    'secondary_bible': 'KJV',
     'favorite_commentary': 'CBSC',
     'favorite_encyclopedia': 'ISB',
     'favorite_lexicon': 'Morphology',
+    'hebrew_lexicon': 'Morphology',
+    'greek_lexicon': 'Morphology',
     'ai_backend': 'googleai',
     'api_endpoint': '',
     'api_key': '',

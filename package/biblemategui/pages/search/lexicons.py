@@ -1,4 +1,4 @@
-from biblemategui import config
+from biblemategui import config, getLexiconList
 from nicegui import ui, app
 import re, apsw
 from biblemategui.data.cr_books import cr_books
@@ -6,15 +6,22 @@ from biblemategui.fx.shared import get_image_data_uri
 
 def search_bible_lexicons(gui=None, q='', **_):
 
-    client_lexicons = list(config.lexicons.keys())
-    if app.storage.client["custom"]:
-        client_lexicons += list(config.lexicons_custom.keys())
-    client_lexicons = sorted(list(set(client_lexicons)))
+    client_lexicons = getLexiconList()
+
+    if q:
+        if q.startswith("E") and not app.storage.user['favorite_lexicon'] in ("Morphology", "ConcordanceMorphology", "ConcordanceBook"):
+            app.storage.user['favorite_lexicon'] = "Morphology"
+        elif q.startswith("BDB"):
+            app.storage.user['favorite_lexicon'] = "BDB"
+        elif q.startswith("H"):
+            app.storage.user['favorite_lexicon'] = app.storage.user.get('hebrew_lexicon', 'Morphology')
+        elif q.startswith("G"):
+            app.storage.user['favorite_lexicon'] = app.storage.user.get('greek_lexicon', 'Morphology')
 
     def get_lexicon_path(lexicon_name):
         nonlocal client_lexicons
         if not lexicon_name in client_lexicons:
-            return client_lexicons["Morphology"]
+            return client_lexicons[app.storage.user.get('favorite_lexicon', 'Morphology')]
         if lexicon_name in config.lexicons_custom:
             return config.lexicons_custom[lexicon_name]
         elif lexicon_name in config.lexicons:
@@ -84,13 +91,19 @@ def search_bible_lexicons(gui=None, q='', **_):
         if scope_select and scope_select.value != new_module:
             scope_select.value = new_module
 
-    def handle_enter(_):
+    def handle_enter(_, keep=True):
         nonlocal content_container, gui, input_field, lexicon_module
 
         topic = input_field.value.strip()
 
-        if (topic.startswith("E") and not lexicon_module in ("Morphology", "ConcordanceMorphology", "ConcordanceBook")) or (topic.startswith("G") and lexicon_module == "BDB"):
+        # update tab records
+        if keep:
+            gui.update_active_area2_tab_records(q=topic)
+
+        if (topic.startswith("E") and not lexicon_module in ("Morphology", "ConcordanceMorphology", "ConcordanceBook")):
             change_module("Morphology")
+        elif (topic.startswith("G") and lexicon_module == "BDB"):
+            change_module(app.storage.user.get('greek_lexicon', 'Morphology'))
         elif topic.startswith("BDB") or (topic.startswith("H") and lexicon_module in ("Morphology", "ConcordanceMorphology", "ConcordanceBook")):
             change_module("BDB")
 
@@ -205,7 +218,6 @@ def search_bible_lexicons(gui=None, q='', **_):
 
     with ui.row().classes('w-full max-w-3xl mx-auto m-0 py-0 px-4 items-center'):
         input_field = ui.input(
-            value=q,
             autocomplete=all_entries,
             placeholder=f'Enter keywords to search {lexicon_module}...'
         ).classes('flex-grow text-lg') \
@@ -236,4 +248,5 @@ def search_bible_lexicons(gui=None, q='', **_):
         content_container = ui.column().classes('w-full transition-all !gap-1')
 
     if q:
-        handle_enter(None)
+        input_field.value = q
+        handle_enter(None, keep=False)
