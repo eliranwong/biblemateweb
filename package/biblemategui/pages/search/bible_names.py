@@ -161,11 +161,11 @@ def search_bible_names(gui=None, q='', **_):
     with ui.row().classes('w-full max-w-3xl mx-auto m-0 py-0 px-4 items-center'):
         input_field = ui.input(
             autocomplete=list(bible_names.keys()),
-            placeholder='Enter a name or meaning'
+            placeholder='Search for a name or meaning'
         ).classes('flex-grow text-lg') \
-        .props('outlined dense clearable autofocus')
+        .props('outlined dense clearable autofocus enterkeyhint="search"')
 
-        input_field.on('keydown.enter', filter_names)
+        input_field.on('keydown.enter.prevent', filter_names)
         input_field.on('update:model-value', show_all_names)
 
 

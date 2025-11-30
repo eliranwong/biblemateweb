@@ -195,7 +195,7 @@ def bible_mate_map():
                     else:
                         ui.notify("Location not found", type='warning')
 
-                search_input.on('keydown.enter', on_search_enter)
+                search_input.on('keydown.enter.prevent', on_search_enter)
 
                 # Intercept selection to handle "All" and "None" logic
                 def handle_selection_change(e):

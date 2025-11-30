@@ -4,42 +4,9 @@ from biblemategui import config, BIBLEMATEGUI_DATA, BIBLEMATEGUI_APP_DIR, USER_D
 from biblemategui.pages.home import *
 from biblemategui.js.tooltip import TOOLTIP_JS
 from biblemategui.css.tooltip import get_tooltip_css
+from biblemategui.fx.tooltips import get_tooltip_data
 import os
 
-def get_tooltip_data(word):
-    """Fetch tooltip data from database"""
-    import apsw
-    result = None
-    db = os.path.join(BIBLEMATEGUI_DATA, "morphology.sqlite")
-    with apsw.Connection(db) as connn:
-        query = "SELECT * FROM morphology WHERE WordID=?" if word.startswith("wh") else "SELECT * FROM morphology WHERE WordID=? and Book > 39"
-        cursor = connn.cursor()
-        cursor.execute(query, (int(word[2:] if word.startswith("wh") else word[1:]),))
-        result = cursor.fetchone()    
-    if result:
-        wordID, clauseID, book, chapter, verse, word, lexicalEntry, morphologyCode, morphology, lexeme, transliteration, pronunciation, interlinear, translation, gloss = result
-        audio_path = '/bhs5_audio' if book < 40 else '/ognt_audio'
-        audio_module = 'BHS5' if book < 40 else 'OGNT'
-        audio_file = f'{audio_path}/{book}_{chapter}/{audio_module}_{book}_{chapter}_{verse}_{wordID}.mp3'
-        audio_file_lex = f'{audio_path}/{book}_{chapter}/lex_{audio_module}_{book}_{chapter}_{verse}_{wordID}.mp3'
-        lexicon_entry_1, lexicon_entry_2, *_ = lexicalEntry.split(',')
-        if not lexicon_entry_2:
-            lexicon_entry_2 = lexicon_entry_1
-        description = f'''<{'heb' if book < 40 else 'grk'} onclick="emitEvent('wd', ['{lexicon_entry_1}']); return false;">{word}</{'heb' if book < 40 else 'grk'}> | <wphono>{transliteration}</wphono> | <wphono>{pronunciation}</wphono><br>
-<audio controls style="margin-top: 4px;">
-  <source src="{audio_file}" type="audio/mpeg">
-  Your browser does not support the audio element.
-</audio>
-<{'heb' if book < 40 else 'grk'} onclick="emitEvent('wd', ['{lexicon_entry_2}']); return false;">{lexeme}</{'heb' if book < 40 else 'grk'}><br>
-<audio controls style="margin-top: 4px;">
-  <source src="{audio_file_lex}" type="audio/mpeg">
-  Your browser does not support the audio element.
-</audio>
-<clid>{morphology[:-1].replace(",", ", ")}</clid><br>
-<wgloss>{interlinear}</wgloss><br>
-<wtrans>{translation}</wtrans>'''
-        return {'description': description, 'links': ""}
-    return None
 
 # API endpoint for tooltip data
 @app.get('/api/tooltip/{word}')

@@ -145,9 +145,9 @@ def main_page():
             input_field = ui.input(
                 placeholder='Enter refs (e.g. John 3:16; Deut 6:4)'
             ).classes('w-full text-lg') \
-             .props('outlined dense clearable autofocus')
+             .props('outlined dense clearable autofocus enterkeyhint="search"')
 
-            input_field.on('keydown.enter', handle_enter)
+            input_field.on('keydown.enter.prevent', handle_enter)
             input_field.on('update:model-value', filter_verses)
 
     # --- Main Content Area ---

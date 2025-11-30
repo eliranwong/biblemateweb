@@ -234,11 +234,11 @@ def search_bible_locations(gui=None, q='', **_):
     with ui.row().classes('w-full max-w-3xl mx-auto m-0 py-0 px-4 items-center'):
         input_field = ui.input(
             autocomplete=all_locations,
-            placeholder='Enter a bible location name to search...'
+            placeholder='Search for a bible location ...'
         ).classes('flex-grow text-lg') \
-        .props('outlined dense clearable autofocus')
+        .props('outlined dense clearable autofocus enterkeyhint="search"')
 
-        input_field.on('keydown.enter', handle_enter)
+        input_field.on('keydown.enter.prevent', handle_enter)
         #input_field.on('update:model-value', filter_verses)
 
     # --- Main Content Area ---

@@ -69,7 +69,7 @@ def main_page():
         with ui.row().classes('w-full max-w-3xl items-center gap-2'):
             search_input = ui.input(
                 placeholder='Ex: Deut 6:4; John 3:16; Rom 5:8'
-            ).classes('w-full text-lg').on('keydown.enter', perform_search)
+            ).classes('w-full text-lg').on('keydown.enter.prevent', perform_search)
             
             # Enter Button
             ui.button(icon='subdirectory_arrow_left', on_click=perform_search)\

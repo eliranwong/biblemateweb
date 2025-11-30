@@ -1,59 +1,78 @@
-# Bible Search Modes
+# **Advanced Bible Search Guide**
 
-## Search Verse References
+This guide explains the powerful search modes and settings available in the application.
 
-Enter verse references to open specific verses.
+## **1. Search Modes**
 
-## Search Words
+The app supports three distinct modes for searching content, plus a dedicated mode for finding verse references.
 
-Three different modes are supported for word searches:
+### **A. Search Verse References (Navigation)**
 
-1. Literal search for plain text
+To quickly navigate to a specific passage, simply enter the Bible reference.
 
-e.g. Enter plain text, like:
+**Example:**
 
-> In the beginning
+John 3:16; Gen 1:1-5; Ps 23:1-6
 
-2. Search for a regular expression pattern
+### **B. Literal Search (Plain Text)**
 
-e.g. To search for verses that contain either `love`, `hope`, or `faith`
+This is the default mode for finding exact matches of a word or phrase. The search engine looks for the specific sequence of characters you enter.
 
-> love|hope|faith
+**Example:**
 
-e.g. To search for verses that contain all words: `love`, `hope`, and `faith`
+In the beginning  
+The Lord is my shepherd
 
-> ^(?=.*\blove\b)(?=.*\bhope\b)(?=.*\bfaith\b).*
+### **C. Regular Expression (Regex) Search**
 
-e.g. To search for words in specific word
+**Regular Expressions (Regex)** are sequences of characters that define a search pattern. This advanced mode allows you to find complex patterns, word variations, or combinations of words within a single verse.
 
-> Naomi.*?Ruth
+*For detailed guidance on Regex syntax, we recommend external resources like [regexone.com](https://regexone.com) or [regular-expressions.info](https://regular-expressions.info).*
 
-3. Semantic search for meaning
+Use this advanced mode to find complex patterns, word variations, or combinations of words within a single verse.
 
-e.g. To search for an idea or similar words
+| Pattern | Description | Example |
+| :---- | :---- | :---- |
+| **OR Search** | Finds verses containing any of the listed words. | `love|hope|faith` |
+| **AND Search** | Finds verses containing all of the specified words, regardless of order. | `^(?=.\blove\b)(?=.\bhope\b)(?=.\bfaith\b).` |
+| **Proximity Search** | Finds words appearing in a specific order, potentially with words in between. | Naomi.\*?Ruth |
 
-> David fled
+### **D. Semantic Search (Meaning)**
 
-Adjust the `Similar Verses` number in preferences, to set the maximum number of similar verses to be displayed.
+Use this mode to search for the *similar words* or *meaning* or *concept* behind a phrase, rather than the exact words. This is useful for finding verses that convey a similar idea.
 
-## Filter Verses
+**Example:**
 
-After a search, you filter verses as you type words in the input field.
+* David fled
+* wisdom
+* new creation
 
-## Case-sentivitiy
+**Note on Similarity:** The maximum number of similar verses displayed is controlled by the **Similar Verses** number setting, which can be adjusted in your application's preferences.
 
-There is a checkbox to toggle support of case-sensitive searches.  This option applies to `literal` and `regex` modes only.
+## **2. Search Scope and Settings**
 
-## Search Scope
+These options allow you to refine where and how your search is executed.
 
-Select particular books from the book dropdown list, to limit the search scope for a search.
+### **Search Scope**
 
-## Search Multiple Bibles
+| Setting | Description | Default Behavior |
+| :---- | :---- | :---- |
+| **Books Filter** | Select specific books from the dropdown list to limit the search to only those books (e.g., only the Gospels). | All books are included. |
+| **Multiple Bibles** | Select one or more Bibles from the Bible dropdown list to perform searches across multiple translations simultaneously. | If no Bible is explicitly selected, the search runs only against the Bible currently open in the active area tab. |
 
-Select multiple bibles from the bible dropdown list to perform searches in multiples bibles.
+### **Case-Sensitivity Toggle**
 
-If no bible is slected, the app searches the opened bible in the active bible area tab.
+This feature allows you to control whether the search distinguishes between uppercase and lowercase letters.
 
-## Open a Full Chapter
+* **Applies to:** Literal Search and Regular Expression (Regex) Search modes only.  
+* **Location:** Use the dedicated checkbox to toggle support for case-sensitive matches.
 
-Click a verse reference button from the search result list, to open a full chapter either on Bible are or Tool area.
+## **3. Post-Search Actions**
+
+### **Filter Search Results**
+
+After a search is completed, you can refine the resulting list by typing additional words into the input field. This acts as a real-time filter on the already found verses.
+
+### **Open a Full Chapter**
+
+To view the complete context of a verse, click the verse reference button (e.g., Jn 3:16) in the search result list. This will open the full chapter either in the main Bible area or in the Tool area, based on your selection.

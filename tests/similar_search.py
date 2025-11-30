@@ -128,7 +128,7 @@ def search_page():
             search_input = ui.input(placeholder='e.g., Anxiety, Peace, Healing...') \
                 .classes('w-full text-lg bg-white rounded-full shadow-md px-6 py-2') \
                 .props('outlined rounded item-aligned input-class="ml-2"') \
-                .on('keydown.enter', perform_search)
+                .on('keydown.enter.prevent', perform_search)
             
             # Search icon inside the bar
             with search_input.add_slot('append'):

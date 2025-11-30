@@ -33,6 +33,8 @@ def get_bible_content(user_input="", bible="NET", sql_query="", refs=[]) -> list
         query = sql_query if sql_query else "PRAGMA case_sensitive_like = false; SELECT Book, Chapter, Verse, Scripture FROM Verses WHERE (Scripture REGEXP ?) ORDER BY Book, Chapter, Verse"
         if books := re.search("Book IN (.*?) AND ", query):
             book=books.group(1)
+        elif books := re.search("Book=([0-9]+?) AND ", query):
+            book=f"({books.group(1)})"
         else:
             book=0
         refs = [(b, c, v) for b, c, v, _ in vector_db.search_meaning(user_input, top_k=app.storage.user["top_similar_verses"], book=book)]

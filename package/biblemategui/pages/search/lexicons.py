@@ -87,7 +87,7 @@ def search_bible_lexicons(gui=None, q='', **_):
         lexicon_module = new_module
         app.storage.user['favorite_lexicon'] = new_module
         input_field.autocomplete = get_all_entries(new_module)
-        input_field.props(f'placeholder="Enter keywords to search {new_module}..."')
+        input_field.props(f'placeholder="Search {new_module} ..."')
         if scope_select and scope_select.value != new_module:
             scope_select.value = new_module
 
@@ -219,18 +219,17 @@ def search_bible_lexicons(gui=None, q='', **_):
     with ui.row().classes('w-full max-w-3xl mx-auto m-0 py-0 px-4 items-center'):
         input_field = ui.input(
             autocomplete=all_entries,
-            placeholder=f'Enter keywords to search {lexicon_module}...'
+            placeholder=f'Search {lexicon_module} ...'
         ).classes('flex-grow text-lg') \
-        .props('outlined dense clearable autofocus')
+        .props('outlined dense clearable autofocus enterkeyhint="search"')
 
-        input_field.on('keydown.enter', handle_enter)
+        input_field.on('keydown.enter.prevent', handle_enter)
 
         scope_select = ui.select(
             options=client_lexicons,
-            label='Search',
             value=app.storage.user.get('favorite_lexicon', 'Morphology'),
             with_input=True
-        ).classes('w-22')
+        ).classes('w-22').props('dense')
 
         if initial_module:
             change_module(initial_module)

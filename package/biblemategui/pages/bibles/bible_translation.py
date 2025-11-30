@@ -3,6 +3,7 @@ from biblemategui.css.original import get_original_css
 from biblemategui.fx.bible import *
 from biblemategui.fx.original import *
 from biblemategui.js.sync_scrolling import *
+from biblemategui.data.cr_books import cr_books
 import re, os
 
 
@@ -27,8 +28,27 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
             ui.menu_item('Cross-references', on_click=lambda: ...))
         menu.open()"""
 
+    def cr(event):
+        nonlocal gui
+        b, c, v, *_ = event.args
+        b = cr_books.get(b, b)
+        if app.storage.user["sync"]:
+            gui.change_area_1_bible_chapter(None, b, c, v) if area == 1 else gui.change_area_2_bible_chapter(None, b, c, v)
+        else:
+            gui.change_area_2_bible_chapter(None, b, c, v) if area == 1 else gui.change_area_1_bible_chapter(None, b, c, v)
+
+    def bcv(event):
+        nonlocal gui, area
+        b, c, v, *_ = event.args
+        if app.storage.user["sync"]:
+            gui.change_area_1_bible_chapter(None, b, c, v) if area == 1 else gui.change_area_2_bible_chapter(None, b, c, v)
+        else:
+            gui.change_area_2_bible_chapter(None, b, c, v) if area == 1 else gui.change_area_1_bible_chapter(None, b, c, v)
+
     ui.on('luV', luV)
     ui.on('wd', wd)
+    ui.on('bcv', bcv)
+    ui.on('cr', cr)
 
     db = getBiblePath(title)
     if not os.path.isfile(db):
@@ -44,13 +64,17 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
         content = re.sub('(<heb id=")(.*?)"', r'\1\2" data-word="\2" class="tooltip-word"', content)
     elif "</grk>" in content:
         content = re.sub('(<grk id=")(.*?)"', r'\1\2" data-word="\2" class="tooltip-word"', content)
+    elif "<ref onclick='bn(" in content:
+        content = re.sub(f'''<ref onclick='bn\(([0-9]+?),[ ]*?([0-9]+?),[ ]*?([0-9]+?),[ ]*?"(.*?)"\)'>''', rf'<ref data-word="bn,{title},\1,\2,\3,\4" class="tooltip-word">', content)
+    elif '<ref onclick="bn(' in content:
+        content = re.sub(f'''<ref onclick="bn\(([0-9]+?),[ ]*?([0-9]+?),[ ]*?([0-9]+?),[ ]*?'(.*?)'\)">''', rf'<ref data-word="bn,{title},\1,\2,\3,\4" class="tooltip-word">', content)
 
     # convert verse link, like '<vid id="v19.117.1" onclick="luV(1)">'
     content = re.sub(r'<vid id="v([0-9]+?)\.([0-9]+?)\.([0-9]+?)" onclick="luV\(([0-9]+?)\)">', r'<vid id="v\1.\2.\3" onclick="luV(\1, \2, \3)">', content)
     
     # Convert onclick and ondblclick links
-    content = re.sub(r'''(onclick|ondblclick)="(luV|luW|lex|bdbid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
-    content = re.sub(r"""(onclick|ondblclick)='(luV|luW|lex|bdbid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
+    content = re.sub(r'''(onclick|ondblclick)="(cr|bcv|luV|luW|lex|bdbid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
+    content = re.sub(r"""(onclick|ondblclick)='(cr|bcv|luV|luW|lex|bdbid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
 
     # Inject CSS to handle the custom tags and layout
     if "</heb>" in content:

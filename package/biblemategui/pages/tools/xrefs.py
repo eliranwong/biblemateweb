@@ -155,9 +155,9 @@ def xrefs(gui=None, q='', **_):
             autocomplete=BIBLE_BOOKS,
             placeholder='Enter a bible verse reference (e.g. John 3:16)'
         ).classes('flex-grow text-lg') \
-        .props('outlined dense clearable autofocus')
+        .props('outlined dense clearable autofocus enterkeyhint="search"')
 
-        input_field.on('keydown.enter', handle_enter)
+        input_field.on('keydown.enter.prevent', handle_enter)
         input_field.on('update:model-value', filter_verses)
 
 

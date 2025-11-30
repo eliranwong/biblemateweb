@@ -116,7 +116,7 @@ def search_bible_maps(gui=None, q='', **_):
         with ui.card().classes('w-full'):
             #ui.label('📍 Map Explorer').classes('text-sm font-bold text-gray-500')
             
-            with ui.row().classes('w-full items-center gap-4'):
+            with ui.row().classes('w-full items-center gap-4 !p-0'):
                 
                 # Prepare options for multiselect with "All" and "None"
                 # Using special keys that we can intercept
@@ -129,17 +129,17 @@ def search_bible_maps(gui=None, q='', **_):
                 # Multi-select dropdown
                 location_multiselect = ui.select(
                     multi_options, 
-                    label='Select', 
+                    label='Locations', 
                     multiple=True,
                     with_input=True
-                ).classes('w-30') # min-w-[40px]
+                ).classes('w-30').props('dense clearable')  # min-w-[40px]
 
                 # Text Input for quick search
                 search_input = ui.input(
-                    label='Search',
+                    #label='Search',
                     autocomplete=list(LOCATION_OPTIONS.values())+BIBLE_BOOKS,
-                    placeholder='Enter name(s) or verse reference(s)...',
-                ).classes('flex-grow')
+                    placeholder='Search for location(s) or verse reference(s) ...',
+                ).classes('flex-grow text-lg').props('outlined clearable autofocus enterkeyhint="search"')
                 
                 def on_search_enter(keep=True):
                     """Finds a location by name and adds it to the multiselect (which triggers map update)"""
@@ -194,7 +194,7 @@ def search_bible_maps(gui=None, q='', **_):
                     else:
                         ui.notify("Location not found", type='warning')
 
-                search_input.on('keydown.enter', on_search_enter)
+                search_input.on('keydown.enter.prevent', on_search_enter)
 
                 # Intercept selection to handle "All" and "None" logic
                 def handle_selection_change(e):
@@ -225,16 +225,16 @@ def search_bible_maps(gui=None, q='', **_):
         with ui.card().classes('w-full'):
             #ui.label('📏 Bible Location Distance Calculator').classes('text-lg font-bold text-gray-700 mb-2')
             
-            with ui.row().classes('w-full items-center gap-4'):
+            with ui.row().classes('w-full items-center gap-4 p-0'):
                 # Location Selectors
-                loc1_select = ui.select(LOCATION_OPTIONS, label='From', with_input=True).classes('w-35')
-                loc2_select = ui.select(LOCATION_OPTIONS, label='To', with_input=True).classes('w-35')
+                loc1_select = ui.select(LOCATION_OPTIONS, label='From', with_input=True).classes('w-35').props('dense')
+                loc2_select = ui.select(LOCATION_OPTIONS, label='To', with_input=True).classes('w-35').props('dense')
                 
                 # Unit Toggle
-                unit_radio = ui.radio(['km', 'miles'], value='km').props('inline')
+                unit_radio = ui.radio(['km', 'miles'], value='km').props('dense inline')
                 
                 # Result Label
-                result_label = ui.label('Distance').classes('text-lg font-medium text-secondary ml-auto mr-4')
+                result_label = ui.label('Distance').classes('dense text-lg font-medium text-secondary ml-auto mr-4')
 
                 # Calculation Logic
                 def calculate():
@@ -243,7 +243,7 @@ def search_bible_maps(gui=None, q='', **_):
                         location_multiselect.value = location_multiselect.value + [loc1_select.value]
                     if loc2_select.value and not loc2_select.value in location_multiselect.value:
                         location_multiselect.value = location_multiselect.value + [loc2_select.value]
-                    if not loc1_select.value or not loc2_select.value:
+                    if (loc1_select.value and not loc2_select.value) or (not loc1_select.value and loc2_select.value):
                         result_label.text = "Select one more"
                         return
                     

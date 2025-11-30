@@ -171,7 +171,7 @@ class VerseDisplay:
                 self.input_field = ui.input(
                     label='Enter verse references',
                     placeholder='e.g., Deut 6:4; John 3:16-18; Rom 5:8'
-                ).classes('flex-grow').on('keydown.enter', self.display_verses)
+                ).classes('flex-grow').on('keydown.enter.prevent', self.display_verses)
                 
                 ui.button(
                     'Display',

@@ -203,11 +203,11 @@ def search_bible_dictionaries(gui=None, q='', **_):
     with ui.row().classes('w-full max-w-3xl mx-auto m-0 py-0 px-4 items-center'):
         input_field = ui.input(
             autocomplete=all_entries,
-            placeholder='Enter keywords to search Bible dictionaries...'
+            placeholder='Search Bible dictionaries ...'
         ).classes('flex-grow text-lg') \
-        .props('outlined dense clearable autofocus')
+        .props('outlined dense clearable autofocus enterkeyhint="search"')
 
-        input_field.on('keydown.enter', handle_enter)
+        input_field.on('keydown.enter.prevent', handle_enter)
 
     # --- Main Content Area ---
     with ui.column().classes('w-full items-center'):

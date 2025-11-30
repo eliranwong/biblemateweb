@@ -8,7 +8,7 @@ import re, apsw, os
 
 def search_bible_verses(gui=None, q='', **_):
 
-    default_placeholder = 'Enter search items or refs (e.g. Deut 6:4; John 3:16-18)'
+    default_placeholder = 'Search for words or refs (e.g. Deut 6:4; John 3:16-18)'
     multiple_bibles = None
 
     def get_bibles():
@@ -268,9 +268,9 @@ def search_bible_verses(gui=None, q='', **_):
             autocomplete=BIBLE_BOOKS,
             placeholder=default_placeholder
         ).classes('flex-grow text-lg') \
-        .props('outlined dense clearable autofocus')
+        .props('outlined clearable autofocus enterkeyhint="search"')
 
-        input_field.on('keydown.enter', handle_enter)
+        input_field.on('keydown.enter.prevent', handle_enter)
         input_field.on('update:model-value', filter_verses)
 
         # 2. Scope Dropdown
@@ -282,7 +282,7 @@ def search_bible_verses(gui=None, q='', **_):
             #label='Search',
             multiple=True,
             with_input=True
-        ).classes('w-22')
+        ).classes('w-22').props('dense clearable')
 
         def update_sql_query(selected_values):
             """Generates the SQLite query based on selection."""
@@ -405,7 +405,7 @@ def search_bible_verses(gui=None, q='', **_):
             'Case-sensitive'
         ).bind_value(
             app.storage.user, 'search_case_sensitivity'
-        )
+        ).props('dense')
             
         # Radio Buttons
         # options: dictionary maps the stored value (keys) to the display label (values)
@@ -414,7 +414,7 @@ def search_bible_verses(gui=None, q='', **_):
             options={1: 'Literal', 2: 'Regex', 3: 'Semantic'},
         ).bind_value(
             app.storage.user, 'search_mode'
-        ).props('inline color=primary')
+        ).props('dense inline color=primary')
         #modes.tooltip = ui.tooltip('Search Modes:\n1. Literal search for plain text\n2. Search for regular expression\n3. Semantic search for meaning')
 
         # Multi-select dropdown
