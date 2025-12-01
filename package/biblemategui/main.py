@@ -293,6 +293,30 @@ def page_Settings(
                     ui.space()
                     ui.switch().bind_value(app.storage.user, 'fullscreen').tooltip('Toggle fullscreen mode for the app.')
 
+        # --- tab management ---
+        with ui.expansion('Tabs Management', icon='tab').classes('w-full rounded-lg'):
+            with ui.column().classes('w-full p-4'):
+                # Bible Tabs
+                with ui.row().classes('w-full items-center'):
+                    ui.label("Bible Tabs").classes('flex items-center font-bold mr-4')
+                    # We display the current % value next to the label for clarity
+                    ui.label().bind_text_from(app.storage.user, 'default_number_of_tabs1', backward=lambda v: str(v)).classes('text-sm text-gray-500')
+                ui.slider(min=1, max=10, step=1, value=app.storage.user['default_number_of_tabs1']) \
+                    .bind_value(app.storage.user, 'default_number_of_tabs1') \
+                    .props('label-always color=primary') \
+                    .classes('w-full mb-4') \
+                    .tooltip('Adjust the number of bible tabs to be opened by default (3 to 10)')
+                # Tools Tabs
+                with ui.row().classes('w-full items-center'):
+                    ui.label("Tool Tabs").classes('flex items-center font-bold mr-4')
+                    # We display the current % value next to the label for clarity
+                    ui.label().bind_text_from(app.storage.user, 'default_number_of_tabs2', backward=lambda v: str(v)).classes('text-sm text-gray-500')
+                ui.slider(min=1, max=10, step=1, value=app.storage.user['default_number_of_tabs2']) \
+                    .bind_value(app.storage.user, 'default_number_of_tabs2') \
+                    .props('label-always color=primary') \
+                    .classes('w-full mb-4') \
+                    .tooltip('Adjust the number of tool tabs to be opened by default (3 to 10)')
+
         # --- User & Custom Data Section ---
         with ui.expansion('User & Custom Data', icon='person').classes('w-full rounded-lg'):
             with ui.column().classes('w-full p-4 gap-4'):
@@ -323,7 +347,7 @@ def page_Settings(
                           options=getLexiconList()) \
                     .bind_value(app.storage.user, 'greek_lexicon')
 
-        # --- Appearance Section ---
+        # --- Semantic Searches ---
         with ui.expansion('Semantic Searches', icon='search').classes('w-full rounded-lg'):
             with ui.column().classes('w-full p-4'):
                 # Similar Entries
@@ -369,8 +393,8 @@ def page_Settings(
         with ui.expansion('Language', icon='language').classes('w-full rounded-lg'):
             with ui.column().classes('w-full p-4'):
                 ui.select(label='Language',
-                          options=['English', 'Traditional Chinese', 'Simplified Chinese']) \
-                    .bind_value(app.storage.user, 'language')
+                          options={'eng': 'English', 'tc': 'Traditional Chinese', 'sc': 'Simplified Chinese'}) \
+                    .bind_value(app.storage.user, 'ui_language')
 
         # --- Save Feedback ---
         ui.button('Home', on_click=lambda: ui.navigate.to('/')) \

@@ -107,16 +107,40 @@ class BibleMateGUI:
         ui.on('resize', self.check_breakpoint)
         
         # Inject JS
+        ui.add_head_html('''
+        <style>
+            /* Make tab content area horizontal so close button is inline with label */
+            .closable-tab .q-tab__content {
+                flex-direction: row !important;
+                align-items: center !important;
+                gap: 2px;
+            }
+            /* Reduce tab padding for compactness */
+            .closable-tab {
+                padding-right: 6px !important;
+            }
+            /* Smaller close button */
+            .closable-tab .close-btn {
+                min-height: 18px !important;
+                min-width: 18px !important;
+                padding: 0 !important;
+                margin-right: -4px !important;
+            }
+            .closable-tab .close-btn .q-icon {
+                font-size: 12px !important;
+            }
+        </style>
+        ''')
         ui.add_head_html(BIBLE_JS) # for active verse scrolling
         ui.add_head_html(get_original_js(app.storage.user['dark_mode'])) # for interactive highlighting
 
         # Create self.splitter
         self.splitter = ui.splitter(value=100, horizontal=self.is_portrait).classes('w-full').style('height: 100vh')
-        
+
         # Area 1
         with self.splitter.before:
             previous_tabs1 = sorted([i for i in app.storage.user.keys() if i.startswith("tab1_")])
-            default_number_of_tabs1 = 3
+            default_number_of_tabs1 = app.storage.user.get("default_number_of_tabs1", 3)
 
             self.area1_wrapper = ui.column().classes('w-full h-full !gap-0')
             with self.area1_wrapper:
@@ -125,13 +149,23 @@ class BibleMateGUI:
                     if previous_tabs1:
                         for i in range(1, len(previous_tabs1)+1):
                             tab_id = f'tab1_{i}'
-                            ui.tab(f'tab1_{i}', label=app.storage.user.get(previous_tabs1[i-1]).get("label", f'Bible {i}')).classes('text-secondary')
+                            with ui.tab(f'tab1_{i}', label=app.storage.user.get(previous_tabs1[i-1]).get("label", f'Bible {i}')).classes('text-secondary closable-tab') as tab:
+                                close_btn = ui.button(
+                                    icon='close',
+                                    on_click=partial(self.remove_tab_area1_any, tab_id),
+                                ).props('flat dense round size=xs').classes('close-btn opacity-50 hover:opacity-100')
+                                close_btn.on('click', js_handler='(e) => e.stopPropagation()')
                             self.area1_tab_counter += 1
                         self.area1_tab_loaded = self.area1_tab_counter
                     if len(previous_tabs1) < default_number_of_tabs1:
                         for i in range(len(previous_tabs1)+1, default_number_of_tabs1+1):
                             tab_id = f'tab1_{i}'
-                            ui.tab(tab_id, label=f'Bible {i}').classes('text-secondary')
+                            with ui.tab(tab_id, label=f'Bible {i}').classes('text-secondary closable-tab') as tab:
+                                close_btn = ui.button(
+                                    icon='close',
+                                    on_click=partial(self.remove_tab_area1_any, tab_id),
+                                ).props('flat dense round size=xs').classes('close-btn opacity-50 hover:opacity-100')
+                                close_btn.on('click', js_handler='(e) => e.stopPropagation()')
                             self.area1_tab_counter += 1
                 
                 self.area1_tab_panels_container = ui.tab_panels(self.area1_tabs, value='tab1_1').classes('w-full h-full')
@@ -166,7 +200,7 @@ class BibleMateGUI:
         # Area 2
         with self.splitter.after:
             previous_tabs2 = sorted([i for i in app.storage.user.keys() if i.startswith("tab2_")])
-            default_number_of_tabs2 = 5
+            default_number_of_tabs2 = app.storage.user.get("default_number_of_tabs2", 3)
 
             self.area2_wrapper = ui.column().classes('w-full h-full !gap-0')
             with self.area2_wrapper:
@@ -175,13 +209,23 @@ class BibleMateGUI:
                     if previous_tabs2:
                         for i in range(1, len(previous_tabs2)+1):
                             tab_id = f'tab2_{i}'
-                            ui.tab(f'tab2_{i}', label=app.storage.user.get(previous_tabs2[i-1]).get("label", f'Tool {i}')).classes('text-secondary')
+                            with ui.tab(f'tab2_{i}', label=app.storage.user.get(previous_tabs2[i-1]).get("label", f'Tool {i}')).classes('text-secondary closable-tab') as tab:
+                                close_btn = ui.button(
+                                    icon='close',
+                                    on_click=partial(self.remove_tab_area2_any, tab_id),
+                                ).props('flat dense round size=xs').classes('close-btn opacity-50 hover:opacity-100')
+                                close_btn.on('click', js_handler='(e) => e.stopPropagation()')
                             self.area2_tab_counter += 1
                         self.area2_tab_loaded = self.area2_tab_counter
                     if len(previous_tabs2) < default_number_of_tabs2:
                         for i in range(len(previous_tabs2)+1, default_number_of_tabs2+1):
                             tab_id = f'tab2_{i}'
-                            ui.tab(tab_id, label=f'Tool {i}').classes('text-secondary')
+                            with ui.tab(tab_id, label=f'Tool {i}').classes('text-secondary closable-tab') as tab:
+                                close_btn = ui.button(
+                                    icon='close',
+                                    on_click=partial(self.remove_tab_area2_any, tab_id),
+                                ).props('flat dense round size=xs').classes('close-btn opacity-50 hover:opacity-100')
+                                close_btn.on('click', js_handler='(e) => e.stopPropagation()')
                             self.area2_tab_counter += 1
                 
                 self.area2_tab_panels_container = ui.tab_panels(self.area2_tabs, value='tab2_1').classes('w-full h-full')
@@ -212,6 +256,36 @@ class BibleMateGUI:
                                 with self.area2_tab_panels[tab_id]:
                                     ui.label(f'Tool Area - Tab {i}').classes('text-2xl font-bold mb-4')
                                     #ui.label('[Content will be displayed here.]').classes('text-gray-600')
+
+        # A Draggable Container
+        # - 'draggable="true"': Enables the native browser drag behavior.
+        # - 'cursor: grab': Shows the user it is movable.
+        # - 'dragend': Triggered when you release the mouse. We explicitly ask for X/Y coordinates.
+        # Logic to Handle Drag Drop (Snap to position)
+        def drag_layout_button(e):
+            # Get the drop coordinates from the event arguments
+            x = e.args['clientX']
+            y = e.args['clientY']
+            
+            # Update the container style to fix it at the new coordinates.
+            # We subtract 20px to center the button on the mouse pointer (approx half size).
+            # We must set bottom/right to 'auto' to let top/left take precedence.
+            self.fab_container.style(f'top: {y - 20}px; left: {x - 20}px; bottom: auto; right: auto')
+
+        with ui.column().classes('fixed bottom-6 right-6 z-50 touch-none') \
+                .props('draggable="true"') \
+                .style('cursor: grab') as self.fab_container:
+            
+            self.fab_container.bind_visibility_from(app.storage.user, 'layout_swap_button')
+            
+            # We request 'clientX' and 'clientY' to know where the mouse was released
+            self.fab_container.on('dragend', drag_layout_button, ['clientX', 'clientY'])
+
+            # 5. The Button (Smaller Size)
+            # - 'fab-mini': Quasar's specific prop for a smaller floating action button.
+            ui.button(icon='swap_horiz', on_click=self.swap_layout) \
+                .props('fab-mini color=primary') \
+                .tooltip('Swap Layout')
 
         # Set initial visibility
         self.update_visibility()
@@ -593,7 +667,12 @@ class BibleMateGUI:
         new_tab_name = f'tab1_{self.area1_tab_counter}'
         # Add new tab
         with self.area1_tabs:
-            ui.tab(new_tab_name, label=f'Bible {self.area1_tab_counter}').classes('text-secondary')
+            with ui.tab(new_tab_name, label=f'Bible {self.area1_tab_counter}').classes('text-secondary') as tab:
+                close_btn = ui.button(
+                    icon='close',
+                    on_click=partial(self.remove_tab_area1_any, new_tab_name),
+                ).props('flat dense round size=xs').classes('close-btn opacity-50 hover:opacity-100')
+                close_btn.on('click', js_handler='(e) => e.stopPropagation()')
         # Add new tab panel
         with self.area1_tab_panels_container:
             with ui.tab_panel(new_tab_name).classes('w-full h-full !p-0 !b-0 !m-0 !gap-0'):
@@ -602,6 +681,15 @@ class BibleMateGUI:
                     ui.label(f'Bible Area - Tab {self.area1_tab_counter}').classes('text-2xl font-bold mb-4')
                     ui.label('[Content will be displayed here.]').classes('text-gray-600')
         self.area1_tabs.set_value(new_tab_name)
+
+    def remove_tab_area1_any(self, id):
+        """Remove any tabs from Area 1, even they are not active"""
+        active_tab = self.area1_tab_panels_container.value
+        if not active_tab == id:
+            self.area1_tab_panels_container.value = id
+        self.remove_tab_area1()
+        if not active_tab == id and not self.area1_tab_panels_container.value == active_tab:
+            self.area1_tab_panels_container.value = active_tab
 
     def remove_tab_area1(self):
         """Remove the currently active tab from Area 1"""
@@ -631,14 +719,18 @@ class BibleMateGUI:
                 del app.storage.user[active_tab]
         #self.area1_tab_counter = len(self.area1_tab_panels) # do not update, otherwise new tab records may override the existing ones
 
-
     def add_tab_area2(self):
         """Dynamically add a new tab to Area 2"""
         self.area2_tab_counter += 1
         new_tab_name = f'tab2_{self.area2_tab_counter}'
         # Add new tab
         with self.area2_tabs:
-            ui.tab(new_tab_name, label=f'Tool {self.area2_tab_counter}').classes('text-secondary')
+            with ui.tab(new_tab_name, label=f'Tool {self.area2_tab_counter}').classes('text-secondary') as tab:
+                close_btn = ui.button(
+                    icon='close',
+                    on_click=partial(self.remove_tab_area2_any, new_tab_name),
+                ).props('flat dense round size=xs').classes('close-btn opacity-50 hover:opacity-100')
+                close_btn.on('click', js_handler='(e) => e.stopPropagation()')
         # Add new tab panel
         with self.area2_tab_panels_container:
             with ui.tab_panel(new_tab_name).classes('w-full h-full !p-0 !b-0 !m-0 !gap-0'):
@@ -647,6 +739,15 @@ class BibleMateGUI:
                     ui.label(f'Tool Area - Tab {self.area2_tab_counter}').classes('text-2xl font-bold mb-4')
                     ui.label('[Content will be displayed here.]').classes('text-gray-600')
         self.area2_tabs.set_value(new_tab_name)
+
+    def remove_tab_area2_any(self, id):
+        """Remove any tabs from Area 2, even they are not active"""
+        active_tab = self.area2_tab_panels_container.value
+        if not active_tab == id:
+            self.area2_tab_panels_container.value = id
+        self.remove_tab_area2()
+        if not active_tab == id and not self.area2_tab_panels_container.value == active_tab:
+            self.area2_tab_panels_container.value = active_tab
 
     def remove_tab_area2(self):
         """Remove the currently active tab from Area 2"""
@@ -817,9 +918,16 @@ class BibleMateGUI:
 
                     with ui.button(icon='settings').props('flat color=white round').tooltip('Settings'):
                         with ui.menu():
+                            # swap layout
                             ui.menu_item('Bible Only', on_click=lambda: self.swap_layout(1))
                             ui.menu_item('Tool Only', on_click=lambda: self.swap_layout(3))
                             ui.menu_item('Bible & Tool', on_click=lambda: self.swap_layout(2))
+                            def toggleSwapButton():
+                                app.storage.user["layout_swap_button"] = not app.storage.user["layout_swap_button"]
+                            with ui.row().tooltip('Toggle Display of Swap Layout Button'):
+                                ui.menu_item('Swap', on_click=toggleSwapButton)
+                                ui.space()
+                                ui.switch().bind_value(app.storage.user, 'layout_swap_button')
                             # sync
                             def toggleSync():
                                 app.storage.user["sync"] = not app.storage.user["sync"]
@@ -832,7 +940,7 @@ class BibleMateGUI:
                             def toggleFullscreen(): # ui.fullscreen().toggle does not work in this case
                                 app.storage.user["fullscreen"] = not app.storage.user["fullscreen"]
                             with ui.row().tooltip('Toggle Fullscreen'):
-                                ui.menu_item('Fullscreen', on_click=toggleFullscreen)
+                                ui.menu_item('Screen', on_click=toggleFullscreen)
                                 ui.space()
                                 ui.switch().bind_value(app.storage.user, 'fullscreen')
                             # dark mode
@@ -865,6 +973,7 @@ class BibleMateGUI:
                     # This is just a label now; the parent button handles the click
                     ui.label('BibleMate AI').classes('text-lg ml-2')
 
+            ui.switch('Swap').bind_value(app.storage.user, 'layout_swap_button')
             ui.switch('Sync').bind_value(app.storage.user, 'sync')
             ui.switch('Fullscreen').bind_value(app.storage.user, 'fullscreen')
             ui.switch('Dark Mode').bind_value(app.storage.user, 'dark_mode').on_value_change(lambda: ui.run_javascript('location.reload()'))

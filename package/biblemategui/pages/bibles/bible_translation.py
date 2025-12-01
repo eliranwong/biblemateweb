@@ -5,6 +5,7 @@ from biblemategui.fx.original import *
 from biblemategui.js.sync_scrolling import *
 from biblemategui.data.cr_books import cr_books
 from biblemategui.data.lexical_data import lexical_data
+from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 import re, os
 
 
@@ -94,10 +95,27 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
 
     # convert verse link, like '<vid id="v19.117.1" onclick="luV(1)">'
     content = re.sub(r'<vid id="v([0-9]+?)\.([0-9]+?)\.([0-9]+?)" onclick="luV\(([0-9]+?)\)">', r'<vid id="v\1.\2.\3" onclick="luV(\1, \2, \3)">', content)
-    
+
+    # convert UBA bible link
+    if '''<ref onclick='document.title="BIBLE:::''' in content:
+        def convert_uba_bible_link(match):
+            parser = BibleVerseParser(False, language=app.storage.user['ui_language'])
+            refs = parser.extractAllReferences(match.group(1))
+            ref = parser.bcvToVerseReference(*refs[0])
+            if refs:
+                return f'''<ref onclick="bcv{refs[0]}">{ref}'''
+            return match.group(0)
+
+        content = re.sub(r'''<ref onclick='document.title="BIBLE:::([^<>]+?)"'>\1''', convert_uba_bible_link, content)
+
     # Convert onclick and ondblclick links
     content = re.sub(r'''(onclick|ondblclick)="(cr|bcv|luV|luW|lex|bdbid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
     content = re.sub(r"""(onclick|ondblclick)='(cr|bcv|luV|luW|lex|bdbid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
+
+    # adjust spacing
+    content = content.replace("<br><br>", "<hr>")
+    content = content.replace("<br>", "")
+    content = content.replace("<hr>", "<br>")
 
     # Inject CSS to handle the custom tags and layout
     if "</heb>" in content:
