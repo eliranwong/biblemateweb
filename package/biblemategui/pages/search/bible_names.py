@@ -1,4 +1,4 @@
-from biblemategui import BIBLEMATEGUI_DATA, config
+from biblemategui import BIBLEMATEGUI_DATA
 from biblemategui.data.bible_names import bible_names
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 import numpy as np
@@ -148,6 +148,7 @@ def search_bible_names(gui=None, q='', **_):
                         chip.on('remove', lambda _, r=row, name=name: remove_name_row(r, name))
 
                     # --- Content ---
+                    meaning = re.sub("^<b>.*?</b> - ", "", meaning)
                     ui.html(meaning, sanitize=False).classes('grow min-w-0 leading-relaxed pl-2 text-base break-words')
 
         # Clear input so user can start typing to filter immediately

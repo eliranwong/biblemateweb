@@ -44,7 +44,8 @@ class BibleAudioPlayer:
                         if found := re.search("^.*?_([0-9]+?)_", i):
                             num_str = found.group(1)
                             verse_num = int(num_str[1:]) if len(num_str) > 1 and num_str.startswith("0") else int(num_str)
-                            verse_text = i[:-4].replace("_", " ")
+                            verse_text = re.sub("^.*?_([0-9]+?)_", "", i)
+                            verse_text = verse_text[:-4].replace("_", " ")
                         else:
                             continue
                         with ui.item().classes(f'w-full hover:bg-gray-{500 if app.storage.user["dark_mode"] else 50}'):
@@ -55,9 +56,7 @@ class BibleAudioPlayer:
                                 btn.classes('flat round color=primary')
                                 self.verse_buttons[verse_num] = btn
                             with ui.item_section():
-                                verse_text = f"<vid>{verse_num}</vid> {verse_text}"
-                                if "</heb>" in verse_text:
-                                    verse_text = f"<div style='display: inline-block; direction: rtl;'>{verse_text}</div>"
+                                verse_text = f"<vid>{self.title} {verse_num}</vid> {verse_text}" if verse_num else f"<vid>{self.title}</vid> {verse_text}"
                                 ui.html(verse_text, sanitize=False).classes('text-base')
     
     def set_loop(self):

@@ -26,6 +26,7 @@ from biblemategui.pages.tools.audio import bibles_audio
 from biblemategui.pages.tools.podcast import bibles_podcast
 from biblemategui.pages.tools.commentary import bible_commentary
 from biblemategui.pages.tools.chronology import bible_chronology
+from biblemategui.pages.tools.timelines import bible_timelines
 
 from biblemategui.pages.search.bible_verses import search_bible_verses
 from biblemategui.pages.search.bible_promises import search_bible_promises
@@ -413,6 +414,7 @@ class BibleMateGUI:
             "treasury",
             "commentary",
             "chronology",
+            "timelines",
             "xrefs",
             "promises",
             "parallels",
@@ -465,6 +467,8 @@ class BibleMateGUI:
             return search_bible_verses
         elif title.lower() == "chronology":
             return bible_chronology
+        elif title.lower() == "timelines":
+            return bible_timelines
         elif title == "ORB":
             return original_reader
         elif title == "OIB":
@@ -928,7 +932,7 @@ class BibleMateGUI:
                             #ui.menu_item('Discourse Analysis', on_click=lambda: self.load_area_2_content(self.work_in_progress))
                             #ui.menu_item('Morphological Data', on_click=lambda: self.load_area_2_content(self.work_in_progress))
                             #ui.menu_item('Translation Spectrum', on_click=lambda: self.load_area_2_content(self.work_in_progress))
-                            ui.menu_item('Bible Timelines', on_click=lambda: self.load_area_2_content(self.work_in_progress))
+                            ui.menu_item('Bible Timelines', on_click=lambda: self.load_area_2_content(title='Timelines', sync=True))
                             ui.menu_item('Bible Chronology', on_click=lambda: self.load_area_2_content(title='Chronology'))
                     
                     with ui.button(icon='search').props('flat color=white round').tooltip('Search'):
@@ -1139,7 +1143,7 @@ class BibleMateGUI:
                 #    app.storage.user.update(left_drawer_open=False)
                 #)).props('clickable')
                 ui.item('Bible Timelines', on_click=lambda: (
-                    self.load_area_2_content(self.work_in_progress),
+                    self.load_area_2_content(title='Timelines', sync=True),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.item('Bible Chronology', on_click=lambda: (
