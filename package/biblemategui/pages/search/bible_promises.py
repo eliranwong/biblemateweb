@@ -1,5 +1,4 @@
-from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
-from biblemategui import BIBLEMATEGUI_DATA, config
+from biblemategui import BIBLEMATEGUI_DATA, loading
 from biblemategui.fx.bible import get_bible_content
 from functools import partial
 from nicegui import ui, app
@@ -8,10 +7,66 @@ import numpy as np
 import re, apsw, os, json
 
 
-def search_bible_promises(gui=None, q='', **_):
+def fetch_promises_topic(path):
+    db = os.path.join(BIBLEMATEGUI_DATA, "collections3.sqlite")
+    with apsw.Connection(db) as connn:
+        cursor = connn.cursor()
+        if re.search(r"^[0-9]+?\.[0-9]+?$", path):
+            sql_query = "SELECT Topic, Passages FROM PROMISES WHERE Tool=? AND Number=? limit 1"
+            tool, number = path.split(".")
+            cursor.execute(sql_query, (int(tool), int(number)))
+            if query := cursor.fetchone():
+                topic, query = query
+        else:
+            topic = path
+            sql_query = "SELECT Passages FROM PROMISES WHERE Topic=?"
+            cursor.execute(sql_query, (path,))
+            query = "; ".join([i[0] for i in cursor.fetchall()])
+            if not query:
+                sql_query = "SELECT Passages FROM PROMISES WHERE Topic LIKE ?"
+                cursor.execute(sql_query, (f"%{path}%",))
+                query = "; ".join([i[0] for i in cursor.fetchall()])
+    return topic, query
 
-    # all entries
-    all_entries = []
+def fetch_topic_matches(query):
+    db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "collection.db")
+    sql_table = "PROMISES"
+    embedding_model="paraphrase-multilingual"
+    path=""
+    options=[]
+    try:
+        with apsw.Connection(db_file) as connection:
+            # search for exact match first
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT * FROM {sql_table} WHERE entry = ?;", (query,))
+            rows = cursor.fetchall()
+            if not rows: # perform similarity search if no an exact match
+                # convert query to vector
+                query_vector = get_embeddings([query], embedding_model)[0]
+                # fetch all entries
+                cursor.execute(f"SELECT entry, entry_vector FROM {sql_table}")
+                all_rows = cursor.fetchall()
+                if not all_rows:
+                    return []
+                # build a matrix
+                entries, entry_vectors = zip(*[(row[0], np.array(json.loads(row[1]))) for row in all_rows if row[0] and row[1]])
+                document_matrix = np.vstack(entry_vectors)
+                # perform a similarity search
+                similarities = cosine_similarity_matrix(query_vector, document_matrix)
+                top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
+                # return top matches
+                options = [entries[i] for i in top_indices]
+            elif len(rows) == 1: # single exact match
+                path = rows[0][0]
+            else:
+                options = [row[0] for row in rows]
+    except Exception as ex:
+        print("Error during database operation:", ex)
+        ui.notify('Error during database operation!', type='negative')
+        return
+    return path, options
+
+def fetch_all_promises_topics():
     db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "collection.db")
     with apsw.Connection(db_file) as connn:
         cursor = connn.cursor()
@@ -19,11 +74,12 @@ def search_bible_promises(gui=None, q='', **_):
         cursor.execute(sql_query)
         all_entries = [i[0] for i in cursor.fetchall()]
     all_entries = list(set([i for i in all_entries if i]))
+    return all_entries
+
+
+def search_bible_promises(gui=None, q='', **_):
 
     SQL_QUERY = "PRAGMA case_sensitive_like = false; SELECT Book, Chapter, Verse, Scripture FROM Verses WHERE (Scripture REGEXP ?) ORDER BY Book, Chapter, Verse"
-
-    # --- Data: 66 Bible Books & ID Mapping ---
-    BIBLE_BOOKS = [BibleBooks.abbrev["eng"][str(i)][0] for i in range(1,67)]
 
     # --- Fuzzy Match Dialog ---
     with ui.dialog() as dialog, ui.card().classes('w-full max-w-md'):
@@ -101,31 +157,15 @@ def search_bible_promises(gui=None, q='', **_):
     # Core: Fetch and Display
     # ----------------------------------------------------------
 
-    def show_verses(path, keep=True):
+    async def show_verses(path, keep=True):
         nonlocal SQL_QUERY, verses_container, gui, dialog, input_field, topic_label
 
+        topic, query = await loading(fetch_promises_topic, path)
+
         # update tab records
-        if keep:
+        if query and keep:
             gui.update_active_area2_tab_records(q=path)
 
-        db = os.path.join(BIBLEMATEGUI_DATA, "collections3.sqlite")
-        with apsw.Connection(db) as connn:
-            cursor = connn.cursor()
-            if re.search(r"^[0-9]+?\.[0-9]+?$", path):
-                sql_query = "SELECT Topic, Passages FROM PROMISES WHERE Tool=? AND Number=? limit 1"
-                tool, number = path.split(".")
-                cursor.execute(sql_query, (int(tool), int(number)))
-                if query := cursor.fetchone():
-                    topic, query = query
-            else:
-                topic = path
-                sql_query = "SELECT Passages FROM PROMISES WHERE Topic=?"
-                cursor.execute(sql_query, (path,))
-                query = "; ".join([i[0] for i in cursor.fetchall()])
-                if not query:
-                    sql_query = "SELECT Passages FROM PROMISES WHERE Topic LIKE ?"
-                    cursor.execute(sql_query, (f"%{path}%",))
-                    query = "; ".join([i[0] for i in cursor.fetchall()])
         # 2. Update the existing label's text
         topic_label.text = topic
         topic_label.classes(remove='hidden')
@@ -140,7 +180,7 @@ def search_bible_promises(gui=None, q='', **_):
             ui.notify('Display cleared', type='positive', position='top')
             return
 
-        verses = get_bible_content(query, bible=gui.get_area_1_bible_text(), sql_query=SQL_QUERY)
+        verses = await loading(get_bible_content, query, bible=gui.get_area_1_bible_text(), sql_query=SQL_QUERY)
 
         if not verses:
             ui.notify('No verses found!', type='negative')
@@ -176,48 +216,29 @@ def search_bible_promises(gui=None, q='', **_):
         input_field.props(f'placeholder="Type to filter {len(verses)} results..."')
         ui.notify(f"{len(verses)} {'result' if not verses or len(verses) == 1 else 'results'} found!")
 
-    def handle_enter(e, keep=True):
+    async def handle_enter(e, keep=True):
         query = input_field.value.strip()
-
-        if re.search(r"^[0-9]+?\.[0-9]+?$", query):
-            show_verses(query, keep=keep)
+        if not query:
+            return
+        elif re.search(r"^[0-9]+?\.[0-9]+?$", query):
+            await show_verses(query, keep=keep)
             return
 
-        db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "collection.db")
-        sql_table = "PROMISES"
-        embedding_model="paraphrase-multilingual"
-        options = []
+        input_field.disable()
+
         try:
-            with apsw.Connection(db_file) as connection:
-                # search for exact match first
-                cursor = connection.cursor()
-                cursor.execute(f"SELECT * FROM {sql_table} WHERE entry = ?;", (query,))
-                rows = cursor.fetchall()
-                if not rows: # perform similarity search if no an exact match
-                    # convert query to vector
-                    query_vector = get_embeddings([query], embedding_model)[0]
-                    # fetch all entries
-                    cursor.execute(f"SELECT entry, entry_vector FROM {sql_table}")
-                    all_rows = cursor.fetchall()
-                    if not all_rows:
-                        return []
-                    # build a matrix
-                    entries, entry_vectors = zip(*[(row[0], np.array(json.loads(row[1]))) for row in all_rows if row[0] and row[1]])
-                    document_matrix = np.vstack(entry_vectors)
-                    # perform a similarity search
-                    similarities = cosine_similarity_matrix(query_vector, document_matrix)
-                    top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
-                    # return top matches
-                    options = [entries[i] for i in top_indices]
-                elif len(rows) == 1: # single exact match
-                    path = rows[0][0]
-                    show_verses(path, keep=keep)
-                else:
-                    options = [row[0] for row in rows]
-        except Exception as ex:
-            print("Error during database operation:", ex)
-            ui.notify('Error during database operation!', type='negative')
-            return
+
+            path, options = await loading(fetch_topic_matches, query)
+
+        except Exception as e:
+            # Handle errors (e.g., network failure)
+            ui.notify(f'Error: {e}', type='negative')
+
+        finally:
+            # ALWAYS re-enable the input, even if an error occurred above
+            input_field.enable()
+            # Optional: Refocus the cursor so the user can type the next query immediately
+            input_field.run_method('focus')
 
         if options:
             options = list(set(options))
@@ -229,7 +250,7 @@ def search_bible_promises(gui=None, q='', **_):
                         path, _ = selected_option.split("+", 1)
                     else:
                         path = selected_option
-                    show_verses(path, keep=keep)
+                    ui.timer(0, lambda: show_verses(path, keep=keep), once=True)
 
             selection_container.clear()
             with selection_container:
@@ -238,19 +259,26 @@ def search_bible_promises(gui=None, q='', **_):
                 ui.button('Show Verses', on_click=lambda: handle_selection(radio.value)) \
                     .classes('w-full mt-4 bg-blue-500 text-white shadow-md')    
             dialog.open()
+        else:
+            await show_verses(path, keep=keep)
 
     # ==============================================================================
     # 3. UI LAYOUT
     # ==============================================================================
     with ui.row().classes('w-full max-w-3xl mx-auto m-0 py-0 px-4 items-center'):
         input_field = ui.input(
-            autocomplete=all_entries,
+            autocomplete=[],
             placeholder='Search for bible promises ...'
         ).classes('flex-grow text-lg') \
         .props('outlined dense clearable autofocus enterkeyhint="search"')
 
         input_field.on('keydown.enter.prevent', handle_enter)
         input_field.on('update:model-value', filter_verses)
+
+        async def get_all_promises_topics():
+            all_topics = await loading(fetch_all_promises_topics)
+            input_field.set_autocomplete(all_topics)
+        ui.timer(0, get_all_promises_topics, once=True)
 
     topic_label = ui.label().classes('text-2xl font-serif hidden')
 
@@ -261,4 +289,6 @@ def search_bible_promises(gui=None, q='', **_):
 
     if q:
         input_field.value = q
-        handle_enter(None, keep=False)
+        ui.timer(0, lambda: handle_enter(None, keep=False), once=True)
+    else:
+        input_field.run_method('focus')

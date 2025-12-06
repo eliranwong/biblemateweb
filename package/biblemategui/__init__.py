@@ -62,16 +62,16 @@ load_config()
 
 # frequently used functions
 
-async def loading(func, **kwargs):
+async def loading(func, *args, **kwargs):
     n = ui.notification(timeout=None)
     try:
-        awaitable = asyncio.to_thread(func, **kwargs)
+        awaitable = asyncio.to_thread(func, *args, **kwargs)
         task = asyncio.create_task(awaitable)
         while not task.done():
             n.message = f'Loading ...'
             n.spinner = True
             await asyncio.sleep(0.2)
-        n.message = 'Done!'
+        #n.message = 'Done!'
         n.spinner = False
         await asyncio.sleep(1)
         #n.dismiss()

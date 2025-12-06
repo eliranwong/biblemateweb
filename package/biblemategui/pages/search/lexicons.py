@@ -1,8 +1,35 @@
-from biblemategui import config, getLexiconList
+from biblemategui import config, getLexiconList, loading
 from nicegui import ui, app
 import re, apsw
 from biblemategui.data.cr_books import cr_books
 from biblemategui.fx.shared import get_image_data_uri
+
+def fetch_bible_lexicons_entry(client_lexicons, lexicon, topic):
+    db = get_lexicon_path(client_lexicons, lexicon)
+    with apsw.Connection(db) as connn:
+        cursor = connn.cursor()
+        sql_query = f"SELECT Definition FROM Lexicon WHERE Topic=? limit 1"
+        cursor.execute(sql_query, (topic,))
+        fetch = cursor.fetchone()
+        content = fetch[0] if fetch else ""
+    return content
+
+def get_lexicon_path(client_lexicons, lexicon_name):
+    if not lexicon_name in client_lexicons:
+        return client_lexicons[app.storage.user.get('favorite_lexicon', 'Morphology')]
+    if lexicon_name in config.lexicons_custom:
+        return config.lexicons_custom[lexicon_name]
+    elif lexicon_name in config.lexicons:
+        return config.lexicons[lexicon_name]
+
+def fetch_all_lexicons(client_lexicons, lexicon):
+    db = get_lexicon_path(client_lexicons, lexicon)
+    with apsw.Connection(db) as connn:
+        cursor = connn.cursor()
+        sql_query = f"SELECT Topic FROM Lexicon"
+        cursor.execute(sql_query)
+        all_entries = [i[0] for i in cursor.fetchall()]
+    return list(set([i for i in all_entries if i]))
 
 def search_bible_lexicons(gui=None, q='', **_):
 
@@ -17,15 +44,6 @@ def search_bible_lexicons(gui=None, q='', **_):
             app.storage.user['favorite_lexicon'] = app.storage.user.get('hebrew_lexicon', 'Morphology')
         elif q.startswith("G"):
             app.storage.user['favorite_lexicon'] = app.storage.user.get('greek_lexicon', 'Morphology')
-
-    def get_lexicon_path(lexicon_name):
-        nonlocal client_lexicons
-        if not lexicon_name in client_lexicons:
-            return client_lexicons[app.storage.user.get('favorite_lexicon', 'Morphology')]
-        if lexicon_name in config.lexicons_custom:
-            return config.lexicons_custom[lexicon_name]
-        elif lexicon_name in config.lexicons:
-            return config.lexicons[lexicon_name]
 
     scope_select = None
 
@@ -44,17 +62,17 @@ def search_bible_lexicons(gui=None, q='', **_):
         url, *_ = event.args
         ui.navigate.to(url, new_tab=True)
 
-    def bdbid(event):
-        nonlocal input_field
-        id, *_ = event.args
-        input_field.value = bdbid
-        handle_enter(None)
-
-    def lex(event):
+    async def bdbid(event):
         nonlocal input_field
         id, *_ = event.args
         input_field.value = id
-        handle_enter(None)
+        await handle_enter(None)
+
+    async def lex(event):
+        nonlocal input_field
+        id, *_ = event.args
+        input_field.value = id
+        await handle_enter(None)
 
     ui.on('bcv', bcv)
     ui.on('cr', cr)
@@ -62,58 +80,58 @@ def search_bible_lexicons(gui=None, q='', **_):
     ui.on('bdbid', bdbid)
     ui.on('lex', lex)
 
-    # all entries
-    def get_all_entries(lexicon):
-        all_entries = []
-        db = get_lexicon_path(lexicon)
-        with apsw.Connection(db) as connn:
-            cursor = connn.cursor()
-            sql_query = f"SELECT Topic FROM Lexicon"
-            cursor.execute(sql_query)
-            all_entries = [i[0] for i in cursor.fetchall()]
-        return list(set([i for i in all_entries if i]))
     lexicon_module = app.storage.user.get('favorite_lexicon', 'Morphology')
     if lexicon_module not in client_lexicons:
         lexicon_module = 'Morphology'
         app.storage.user['favorite_lexicon'] = lexicon_module
-    all_entries = get_all_entries(lexicon_module)
 
     # ----------------------------------------------------------
     # Core: Fetch and Display
     # ----------------------------------------------------------
 
-    def change_module(new_module):
+    async def change_module(new_module):
         nonlocal input_field, lexicon_module
         lexicon_module = new_module
         app.storage.user['favorite_lexicon'] = new_module
-        input_field.autocomplete = get_all_entries(new_module)
+        all_entries = await loading(fetch_all_lexicons, client_lexicons, new_module)
+        input_field.set_autocomplete(all_entries)
         input_field.props(f'placeholder="Search {new_module} ..."')
         if scope_select and scope_select.value != new_module:
             scope_select.value = new_module
 
-    def handle_enter(_, keep=True):
+    async def handle_enter(_, keep=True):
         nonlocal content_container, gui, input_field, lexicon_module
 
         topic = input_field.value.strip()
+        if not topic:
+            return
 
-        # update tab records
-        if keep:
-            gui.update_active_area2_tab_records(q=topic)
+        input_field.disable()
 
-        if (topic.startswith("E") and not lexicon_module in ("Morphology", "ConcordanceMorphology", "ConcordanceBook")):
-            change_module("Morphology")
-        elif (topic.startswith("G") and lexicon_module == "BDB"):
-            change_module(app.storage.user.get('greek_lexicon', 'Morphology'))
-        elif topic.startswith("BDB") or (topic.startswith("H") and lexicon_module in ("Morphology", "ConcordanceMorphology", "ConcordanceBook")):
-            change_module("BDB")
+        try:
 
-        db = get_lexicon_path(lexicon_module)
-        with apsw.Connection(db) as connn:
-            cursor = connn.cursor()
-            sql_query = f"SELECT Definition FROM Lexicon WHERE Topic=? limit 1"
-            cursor.execute(sql_query, (topic,))
-            fetch = cursor.fetchone()
-            content = fetch[0] if fetch else ""
+            # update tab records
+            if keep:
+                gui.update_active_area2_tab_records(q=topic)
+
+            if (topic.startswith("E") and not lexicon_module in ("Morphology", "ConcordanceMorphology", "ConcordanceBook")):
+                await change_module("Morphology")
+            elif (topic.startswith("G") and lexicon_module == "BDB"):
+                await change_module(app.storage.user.get('greek_lexicon', 'Morphology'))
+            elif topic.startswith("BDB") or (topic.startswith("H") and lexicon_module in ("Morphology", "ConcordanceMorphology", "ConcordanceBook")):
+                await change_module("BDB")
+
+            content = await loading(fetch_bible_lexicons_entry, client_lexicons, lexicon_module, topic)
+
+        except Exception as e:
+            # Handle errors (e.g., network failure)
+            ui.notify(f'Error: {e}', type='negative')
+
+        finally:
+            # ALWAYS re-enable the input, even if an error occurred above
+            input_field.enable()
+            # Optional: Refocus the cursor so the user can type the next query immediately
+            input_field.run_method('focus')
 
         # Clear existing rows first
         content_container.clear()
@@ -218,12 +236,17 @@ def search_bible_lexicons(gui=None, q='', **_):
 
     with ui.row().classes('w-full max-w-3xl mx-auto m-0 py-0 px-4 items-center'):
         input_field = ui.input(
-            autocomplete=all_entries,
+            autocomplete=[],
             placeholder=f'Search {lexicon_module} ...'
         ).classes('flex-grow text-lg') \
         .props('outlined dense clearable autofocus enterkeyhint="search"')
 
         input_field.on('keydown.enter.prevent', handle_enter)
+
+        async def get_all_entries(lexicon):
+            all_entries = await loading(fetch_all_lexicons, client_lexicons, lexicon)
+            input_field.set_autocomplete(all_entries)
+        ui.timer(0, get_all_entries, once=True)
 
         scope_select = ui.select(
             options=client_lexicons,
@@ -232,13 +255,13 @@ def search_bible_lexicons(gui=None, q='', **_):
         ).classes('w-22').props('dense')
 
         if initial_module:
-            change_module(initial_module)
+            ui.timer(0, lambda: change_module(initial_module), once=True)
 
-        def handle_scope_change(e):
+        async def handle_scope_change(e):
             nonlocal lexicon_module
             new_module = e.value
-            change_module(new_module)
-            handle_enter(None)
+            await change_module(new_module)
+            await handle_enter(None)
         scope_select.on_value_change(handle_scope_change)
 
     # --- Main Content Area ---
@@ -248,4 +271,6 @@ def search_bible_lexicons(gui=None, q='', **_):
 
     if q:
         input_field.value = q
-        handle_enter(None, keep=False)
+        ui.timer(0, lambda: handle_enter(None, keep=False), once=True)
+    else:
+        input_field.run_method('focus')

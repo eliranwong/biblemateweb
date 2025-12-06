@@ -11,7 +11,9 @@ def regexp(expr, item):
     reg = re.compile(expr, flags=0 if app.storage.user['search_case_sensitivity'] else re.IGNORECASE)
     return reg.search(item) is not None
 
-def get_bible_content(user_input="", bible="NET", sql_query="", refs=[]) -> list:
+def get_bible_content(user_input="", bible=None, sql_query="", refs=[]) -> list:
+    if bible is None:
+        bible = app.storage.user["primary_bible"]
     dbs = []
     if isinstance(bible, str):
         if bible_path := getBiblePath(bible):

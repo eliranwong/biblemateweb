@@ -523,7 +523,7 @@ class BibleMateGUI:
             args = args if args else {
                 "title": title,
                 "label": tab_label,
-                "bt": app.storage.user.get('bible_book_text', "NET"),
+                "bt": app.storage.user.get('bible_book_text', app.storage.user["primary_bible"]),
                 "b": app.storage.user.get('bible_book_number', 1),
                 "c": app.storage.user.get('bible_chapter_number', 1),
                 "v": app.storage.user.get('bible_verse_number', 1),
@@ -627,6 +627,7 @@ class BibleMateGUI:
             if q is not None:
                 args["q"] = q
             app.storage.user[active_area1_tab] = args
+        app.storage.user["bible_query"] = ""
 
     def update_active_area2_tab_records(self, title=None, label=None, bt=None, b=None, c=None, v=None, q=None):
         active_area2_tab = self.get_active_area2_tab()
@@ -647,14 +648,15 @@ class BibleMateGUI:
             if q is not None:
                 args["q"] = q
             app.storage.user[active_area2_tab] = args
+        app.storage.user["tool_query"] = ""
 
     def get_area_1_bible_text(self):
         active_bible_tab = self.get_active_area1_tab()
-        return app.storage.user[active_bible_tab]["bt"] if active_bible_tab in app.storage.user else app.storage.user['bible_book_text'] if 'bible_book_text' in app.storage.user else "NET"
+        return app.storage.user[active_bible_tab]["bt"] if active_bible_tab in app.storage.user else app.storage.user['bible_book_text'] if 'bible_book_text' in app.storage.user else app.storage.user["primary_bible"]
 
     def get_area_2_bible_text(self):
         active_bible_tab = self.get_active_area2_tab()
-        return app.storage.user[active_bible_tab]["bt"] if active_bible_tab in app.storage.user else app.storage.user['tool_book_text'] if 'tool_book_text' in app.storage.user else "NET"
+        return app.storage.user[active_bible_tab]["bt"] if active_bible_tab in app.storage.user else app.storage.user['tool_book_text'] if 'tool_book_text' in app.storage.user else app.storage.user["primary_bible"]
 
     def show_all_verses(self, entry):
         #ui.notify('Loading all verses...')
@@ -963,7 +965,7 @@ class BibleMateGUI:
                             #ui.menu_item('Remove Search Tab', on_click=self.remove_tab_area2)
                             #ui.menu_item('Close Others', on_click=self.close_other_area2_tabs)
                             #ui.separator()
-                            ui.menu_item('Verses', on_click=lambda: self.load_area_2_content(title='Verses'))
+                            ui.menu_item('Bibles', on_click=lambda: self.load_area_2_content(title='Verses'))
                             ui.menu_item('Parallels', on_click=lambda: self.load_area_2_content(title='Parallels'))
                             ui.menu_item('Promises', on_click=lambda: self.load_area_2_content(title='Promises'))
                             ui.menu_item('Topics', on_click=lambda: self.load_area_2_content(title='Topics'))
@@ -1139,7 +1141,7 @@ class BibleMateGUI:
                     self.load_area_2_content(title='Audio', sync=True),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-
+                ui.separator()
                 ui.item('Bible Commentaries', on_click=lambda: (
                     self.load_area_2_content(title='Commentary', sync=True),
                     app.storage.user.update(left_drawer_open=False)
@@ -1152,6 +1154,7 @@ class BibleMateGUI:
                     self.load_area_2_content(title='Treasury', sync=True),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
+                ui.separator()
                 #ui.item('Discourse Analysis', on_click=lambda: (
                 #    self.load_area_2_content(self.work_in_progress),
                 #    app.storage.user.update(left_drawer_open=False)
@@ -1172,6 +1175,7 @@ class BibleMateGUI:
                     self.load_area_2_content(title='Parallels_'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
+                ui.separator()
                 ui.item('Bible Timelines', on_click=lambda: (
                     self.load_area_2_content(title='Timelines', sync=True),
                     app.storage.user.update(left_drawer_open=False)
@@ -1180,10 +1184,12 @@ class BibleMateGUI:
                     self.load_area_2_content(title='Chronology'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
+                ui.separator()
                 ui.item('Morphology', on_click=lambda: (
                     self.load_area_2_content(title='Morphology', sync=True),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
+                ui.separator()
                 ui.item('Indexes', on_click=lambda: (
                     self.load_area_2_content(title='Indexes', sync=True),
                     app.storage.user.update(left_drawer_open=False)

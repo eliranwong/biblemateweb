@@ -1,11 +1,19 @@
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
-from biblemategui import BIBLEMATEGUI_DATA
+from biblemategui import BIBLEMATEGUI_DATA, loading
 from biblemategui.fx.bible import get_bible_content
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from functools import partial
 from nicegui import ui, app
 import re, apsw, os
 
+def fetch_xrefs(b, c, v):
+    db = os.path.join(BIBLEMATEGUI_DATA, "cross-reference.sqlite")
+    with apsw.Connection(db) as connn:
+        sql_query = "SELECT Information FROM ScrollMapper WHERE Book=? AND Chapter=? AND Verse=? limit 1"
+        cursor = connn.cursor()
+        cursor.execute(sql_query, (b, c, v))
+        query = cursor.fetchone()
+        return query
 
 def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
 
@@ -52,7 +60,8 @@ def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
             row.set_visibility(is_match)
             if is_match:
                 total_matches += 1
-        ui.notify(f"{total_matches} {'match' if not total_matches or total_matches == 1 else 'matches'} found!")
+        if total_matches:
+            ui.notify(f"{total_matches} {'match' if total_matches == 1 else 'matches'} found!")
 
     # ----------------------------------------------------------
     # Helper: Remove Verse
@@ -78,9 +87,11 @@ def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
     # ----------------------------------------------------------
     # Core: Fetch and Display
     # ----------------------------------------------------------
-    def handle_enter(e, keep=True):
+    async def handle_enter(e, keep=True):
         nonlocal SQL_QUERY
         query = input_field.value.strip()
+        if not query:
+            return
         parser = BibleVerseParser(False)
         refs = parser.extractAllReferences(query)
         if not refs:
@@ -91,67 +102,77 @@ def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
             gui.update_active_area2_tab_records(q=query)
         # Clear existing rows first
         verses_container.clear()
-        for ref in refs:
-            for ref2 in parser.extractExhaustiveReferences([ref]):
-                b, c, v = ref2
-                query = ""
-                db = os.path.join(BIBLEMATEGUI_DATA, "cross-reference.sqlite")
-                with apsw.Connection(db) as connn:
-                    sql_query = "SELECT Information FROM ScrollMapper WHERE Book=? AND Chapter=? AND Verse=? limit 1"
-                    cursor = connn.cursor()
-                    cursor.execute(sql_query, (b, c, v))
-                    query = cursor.fetchone()
-                if query:
-                    query = query[0]
-                else:
-                    #ui.notify('No verses found!', type='negative')
-                    continue
-                
-                # Prepend the original verse reference to the query for context
-                query = parser.bcvToVerseReference(b, c, v) + "; " + query
-                
-                if not query:
-                    #ui.notify('Display cleared', type='positive', position='top')
-                    continue
 
-                verses = get_bible_content(query, bible=gui.get_area_1_bible_text(), sql_query=SQL_QUERY)
+        input_field.disable()
 
-                if not verses:
-                    #ui.notify('No verses found!', type='negative')
-                    continue
+        try:
 
-                with verses_container:
+            for ref in refs:
+                for ref2 in parser.extractExhaustiveReferences([ref]):
+                    b, c, v = ref2
+                    query = ""
+                    query = await loading(fetch_xrefs, b, c, v)
+                    if query:
+                        query = query[0]
+                    else:
+                        #ui.notify('No verses found!', type='negative')
+                        continue
                     
-                    ui.label("Cross-References - " + verses[0]['ref']).classes('text-2xl font-serif text-secondary')
+                    # Prepend the original verse reference to the query for context
+                    query = parser.bcvToVerseReference(b, c, v) + "; " + query
                     
-                    for v in verses:
-                        # Row setup
-                        with ui.column().classes('w-full shadow-sm rounded-lg items-start no-wrap border border-gray-200 !gap-0') as row:
-                            
-                            row.verse_data = v # Store data for filter function
+                    if not query:
+                        #ui.notify('Display cleared', type='positive', position='top')
+                        continue
 
-                            # --- Chip (Clickable & Removable) ---
-                            with ui.element('div').classes('flex-none pt-1'): 
-                                with ui.chip(
-                                    v['ref'], 
-                                    removable=True, 
-                                    icon='book',
-                                    #on_click=partial(ui.notify, f'Clicked {v['ref']}'),
-                                ).classes('cursor-pointer font-bold shadow-sm') as chip:
-                                    with ui.menu():
-                                        ui.menu_item('Open in Bible Area', on_click=partial(gui.change_area_1_bible_chapter, v['bible'], v['b'], v['c'], v['v']))
-                                        ui.menu_item('Open Here', on_click=partial(gui.change_area_2_bible_chapter, v['bible'], v['b'], v['c'], v['v'], sync=False))
-                                        ui.menu_item('Open in Next Tab', on_click=partial(open_chapter_next_area2_tab, v['bible'], v['b'], v['c'], v['v']))
-                                        ui.menu_item('Open in New Tab', on_click=partial(open_chapter_empty_area2_tab, v['bible'], v['b'], v['c'], v['v']))
-                                chip.on('remove', lambda _, r=row, ref=v['ref']: remove_verse_row(r, ref))
+                    verses = get_bible_content(query, bible=gui.get_area_1_bible_text(), sql_query=SQL_QUERY)
 
-                            # --- Content ---
-                            ui.html(v['content'], sanitize=False).classes('grow min-w-0 leading-relaxed pl-2 text-base break-words')
+                    if not verses:
+                        #ui.notify('No verses found!', type='negative')
+                        continue
 
-                # Clear input so user can start typing to filter immediately
-                input_field.value = ""
-                input_field.props(f'placeholder="Type to filter {len(verses)} results..."')
-                ui.notify(f"{len(verses)} {'result' if not verses or len(verses) == 1 else 'results'} found!")
+                    with verses_container:
+                        
+                        ui.label("Cross-References - " + verses[0]['ref']).classes('text-2xl font-serif text-secondary')
+                        
+                        for v in verses:
+                            # Row setup
+                            with ui.column().classes('w-full shadow-sm rounded-lg items-start no-wrap border border-gray-200 !gap-0') as row:
+                                
+                                row.verse_data = v # Store data for filter function
+
+                                # --- Chip (Clickable & Removable) ---
+                                with ui.element('div').classes('flex-none pt-1'): 
+                                    with ui.chip(
+                                        v['ref'], 
+                                        removable=True, 
+                                        icon='book',
+                                        #on_click=partial(ui.notify, f'Clicked {v['ref']}'),
+                                    ).classes('cursor-pointer font-bold shadow-sm') as chip:
+                                        with ui.menu():
+                                            ui.menu_item('Open in Bible Area', on_click=partial(gui.change_area_1_bible_chapter, v['bible'], v['b'], v['c'], v['v']))
+                                            ui.menu_item('Open Here', on_click=partial(gui.change_area_2_bible_chapter, v['bible'], v['b'], v['c'], v['v'], sync=False))
+                                            ui.menu_item('Open in Next Tab', on_click=partial(open_chapter_next_area2_tab, v['bible'], v['b'], v['c'], v['v']))
+                                            ui.menu_item('Open in New Tab', on_click=partial(open_chapter_empty_area2_tab, v['bible'], v['b'], v['c'], v['v']))
+                                    chip.on('remove', lambda _, r=row, ref=v['ref']: remove_verse_row(r, ref))
+
+                                # --- Content ---
+                                ui.html(v['content'], sanitize=False).classes('grow min-w-0 leading-relaxed pl-2 text-base break-words')
+
+                    # Clear input so user can start typing to filter immediately
+                    input_field.value = ""
+                    input_field.props(f'placeholder="Type to filter {len(verses)} results..."')
+                    ui.notify(f"{len(verses)} {'result' if not verses or len(verses) == 1 else 'results'} found!")
+
+        except Exception as e:
+            # Handle errors (e.g., network failure)
+            ui.notify(f'Error: {e}', type='negative')
+
+        finally:
+            # ALWAYS re-enable the input, even if an error occurred above
+            input_field.enable()
+            # Optional: Refocus the cursor so the user can type the next query immediately
+            input_field.run_method('focus')
 
     # ==============================================================================
     # 3. UI LAYOUT
@@ -177,4 +198,5 @@ def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
     else:
         parser = BibleVerseParser(False, language=app.storage.user['ui_language'])
         input_field.value = parser.bcvToVerseReference(b,c,v)
-    handle_enter(None, keep=False)
+    ui.timer(0, lambda: handle_enter(None, keep=False), once=True)
+    input_field.run_method('focus')

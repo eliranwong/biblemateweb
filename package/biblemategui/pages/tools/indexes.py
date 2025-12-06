@@ -128,15 +128,12 @@ def resource_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
         results_container.clear()
         
         with results_container:
-            spinner = ui.spinner('dots', size='lg').classes('self-center')
             
             # Run IO-bound DB operations
             results = {}
             for title, config in TABLE_CONFIG.items():
                 data = fetch_data(config['table'], book_id, chapter, verse)
                 results[title] = data
-
-            spinner.delete()
             
             #parser = BibleVerseParser(False, language=app.storage.user['ui_language'])
             #ui.label(f"Resources for {parser.bcvToVerseReference(book_id, chapter, verse)}") \

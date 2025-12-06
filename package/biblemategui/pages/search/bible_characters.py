@@ -1,10 +1,68 @@
-from biblemategui import BIBLEMATEGUI_DATA, config
-from functools import partial
+from biblemategui import BIBLEMATEGUI_DATA, loading
 from nicegui import ui, app
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 import numpy as np
 import re, apsw, os, json, traceback
 from biblemategui.data.cr_books import cr_books
+
+def fetch_bible_characters_entry(path):
+    db = os.path.join(BIBLEMATEGUI_DATA, "data", "exlb3.data")
+    with apsw.Connection(db) as connn:
+        cursor = connn.cursor()
+        sql_query = "SELECT content FROM exlbp WHERE path=? limit 1"
+        cursor.execute(sql_query, (path,))
+        fetch = cursor.fetchone()
+        content = fetch[0] if fetch else ""
+    return content
+
+def fetch_bible_characters_matches(query):
+        db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "exlb.db")
+        sql_table = "exlbp"
+        embedding_model="paraphrase-multilingual"
+        path=""
+        options=[]
+        try:
+            with apsw.Connection(db_file) as connection:
+                # search for exact match first
+                cursor = connection.cursor()
+                cursor.execute(f"SELECT * FROM {sql_table} WHERE entry = ?;", (query,))
+                rows = cursor.fetchall()
+                if not rows: # perform similarity search if no an exact match
+                    # convert query to vector
+                    query_vector = get_embeddings([query], embedding_model)[0]
+                    # fetch all entries
+                    cursor.execute(f"SELECT path, entry, entry_vector FROM {sql_table}")
+                    all_rows = [(f"[{path}] {entry}", entry_vector) for path, entry, entry_vector in cursor.fetchall()]
+                    if not all_rows:
+                        return []
+                    # build a matrix
+                    entries, entry_vectors = zip(*[(row[0], np.array(json.loads(row[1]))) for row in all_rows if row[0] and row[1]])
+                    document_matrix = np.vstack(entry_vectors)
+                    # perform a similarity search
+                    similarities = cosine_similarity_matrix(query_vector, document_matrix)
+                    top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
+                    # return top matches
+                    options = [entries[i] for i in top_indices]
+                elif len(rows) == 1: # single exact match
+                    path = rows[0][0]
+                else:
+                    options = [f"[{row[0]}] {row[1]}" for row in rows]
+        except Exception as ex:
+            print("Error during database operation:", ex)
+            traceback.print_exc()
+            ui.notify('Error during database operation!', type='negative')
+            return
+        return path, options
+
+def fetch_all_characters():
+    db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "exlb.db")
+    with apsw.Connection(db_file) as connn:
+        cursor = connn.cursor()
+        sql_query = "SELECT entry FROM exlbp"
+        cursor.execute(sql_query)
+        all_characters = [i[0] for i in cursor.fetchall()]
+    all_characters = list(set([i for i in all_characters if i]))
+    return all_characters
 
 def search_bible_characters(gui=None, q='', **_):
 
@@ -19,18 +77,14 @@ def search_bible_characters(gui=None, q='', **_):
         b, c, v, *_ = event.args
         gui.change_area_1_bible_chapter(None, b, c, v)
 
+    def exlbp(event):
+        nonlocal gui
+        app.storage.user["tool_query"], *_ = event.args
+        gui.load_area_2_content(title='Characters')
+
     ui.on('bcv', bcv)
     ui.on('cr', cr)
-
-    # all characters
-    all_characters = []
-    db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "exlb.db")
-    with apsw.Connection(db_file) as connn:
-        cursor = connn.cursor()
-        sql_query = "SELECT entry FROM exlbp"
-        cursor.execute(sql_query)
-        all_characters = [i[0] for i in cursor.fetchall()]
-    all_characters = list(set([i for i in all_characters if i]))
+    ui.on('exlbp', exlbp)
 
     # --- Fuzzy Match Dialog ---
     with ui.dialog() as dialog, ui.card().classes('w-full max-w-md'):
@@ -47,17 +101,10 @@ def search_bible_characters(gui=None, q='', **_):
     # Core: Fetch and Display
     # ----------------------------------------------------------
 
-    def show_entry(path, keep=True):
+    async def show_entry(path, keep=True):
         nonlocal content_container, gui, dialog, input_field
 
-        db = os.path.join(BIBLEMATEGUI_DATA, "data", "exlb3.data")
-        with apsw.Connection(db) as connn:
-            cursor = connn.cursor()
-            topic = path
-            sql_query = "SELECT content FROM exlbp WHERE path=? limit 1"
-            cursor.execute(sql_query, (path,))
-            fetch = cursor.fetchone()
-            content = fetch[0] if fetch else ""
+        content = await loading(fetch_bible_characters_entry, path)
 
         # Clear existing rows first
         content_container.clear()
@@ -86,9 +133,11 @@ def search_bible_characters(gui=None, q='', **_):
                 }}
             </style>
             """)
+            # remove a link
+            content = content.replace('''<div align="center"><font color="navy">Click for more details</font></div>''', "")
             # convert links, e.g. <ref onclick="bcv(3,19,26)">
-            content = re.sub(r'''(onclick|ondblclick)="(cr|bcv)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
-            content = re.sub(r"""(onclick|ondblclick)='(cr|bcv)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
+            content = re.sub(r'''(onclick|ondblclick)="(cr|bcv|exlbp)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
+            content = re.sub(r"""(onclick|ondblclick)='(cr|bcv|exlbp)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
             # convert colors for dark mode, e.g. <font color="brown">
             if app.storage.user['dark_mode']:
                 content = content.replace('color="brown">', 'color="pink">')
@@ -120,47 +169,25 @@ def search_bible_characters(gui=None, q='', **_):
         if keep:
             gui.update_active_area2_tab_records(q=path)
 
-    def handle_enter(e, keep=True):
+    async def handle_enter(e, keep=True):
         query = input_field.value.strip()
-        if re.search("BP[0-9]+?$", query):
-            show_entry(query, keep=keep)
+        if not query:
             return
-        db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "exlb.db")
-        sql_table = "exlbp"
-        embedding_model="paraphrase-multilingual"
-        options = []
+        elif re.search("BP[0-9]+?$", query):
+            await show_entry(query, keep=keep)
+            return
+        
+        input_field.disable()
         try:
-            with apsw.Connection(db_file) as connection:
-                # search for exact match first
-                cursor = connection.cursor()
-                cursor.execute(f"SELECT * FROM {sql_table} WHERE entry = ?;", (query,))
-                rows = cursor.fetchall()
-                if not rows: # perform similarity search if no an exact match
-                    # convert query to vector
-                    query_vector = get_embeddings([query], embedding_model)[0]
-                    # fetch all entries
-                    cursor.execute(f"SELECT path, entry, entry_vector FROM {sql_table}")
-                    all_rows = [(f"[{path}] {entry}", entry_vector) for path, entry, entry_vector in cursor.fetchall()]
-                    if not all_rows:
-                        return []
-                    # build a matrix
-                    entries, entry_vectors = zip(*[(row[0], np.array(json.loads(row[1]))) for row in all_rows if row[0] and row[1]])
-                    document_matrix = np.vstack(entry_vectors)
-                    # perform a similarity search
-                    similarities = cosine_similarity_matrix(query_vector, document_matrix)
-                    top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
-                    # return top matches
-                    options = [entries[i] for i in top_indices]
-                elif len(rows) == 1: # single exact match
-                    path = rows[0][0]
-                    show_entry(path, keep=keep)
-                else:
-                    options = [f"[{row[0]}] {row[1]}" for row in rows]
-        except Exception as ex:
-            print("Error during database operation:", ex)
-            traceback.print_exc()
-            ui.notify('Error during database operation!', type='negative')
-            return
+            path, options = await loading(fetch_bible_characters_matches, query)
+        except Exception as e:
+            # Handle errors (e.g., network failure)
+            ui.notify(f'Error: {e}', type='negative')
+        finally:
+            # ALWAYS re-enable the input, even if an error occurred above
+            input_field.enable()
+            # Optional: Refocus the cursor so the user can type the next query immediately
+            input_field.run_method('focus')
 
         if options:
             options = list(set(options))
@@ -169,7 +196,8 @@ def search_bible_characters(gui=None, q='', **_):
                 if selected_option:
                     dialog.close()
                     path, _ = selected_option.split(" ", 1)
-                    show_entry(path[1:-1], keep=keep)
+                    #show_entry(path[1:-1], keep=keep)
+                    ui.timer(0, lambda: show_entry(path[1:-1], keep=keep), once=True)
 
             selection_container.clear()
             with selection_container:
@@ -178,19 +206,27 @@ def search_bible_characters(gui=None, q='', **_):
                 ui.button('Show Content', on_click=lambda: handle_selection(radio.value)) \
                     .classes('w-full mt-4 bg-blue-500 text-white shadow-md')    
             dialog.open()
+        else:
+            await show_entry(path, keep=keep)
 
     # ==============================================================================
     # 3. UI LAYOUT
     # ==============================================================================
     with ui.row().classes('w-full max-w-3xl mx-auto m-0 py-0 px-4 items-center'):
         input_field = ui.input(
-            autocomplete=all_characters,
+            autocomplete=[],
             placeholder='Search for a bible character ...'
         ).classes('flex-grow text-lg') \
         .props('outlined dense clearable autofocus enterkeyhint="search"')
 
         input_field.on('keydown.enter.prevent', handle_enter)
         #input_field.on('update:model-value', filter_verses)
+
+        # update autocomplete
+        async def get_all_characters():
+            all_locations = await loading(fetch_all_characters)
+            input_field.set_autocomplete(all_locations)
+        ui.timer(0, get_all_characters, once=True)
 
     # --- Main Content Area ---
     with ui.column().classes('w-full items-center'):
@@ -199,4 +235,6 @@ def search_bible_characters(gui=None, q='', **_):
 
     if q:
         input_field.value = q
-        handle_enter(None, keep=False)
+        ui.timer(0, lambda: handle_enter(None, keep=False), once=True)
+    else:
+        input_field.run_method('focus')

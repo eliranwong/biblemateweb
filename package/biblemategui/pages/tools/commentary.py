@@ -92,11 +92,28 @@ def bible_commentary(gui=None, b=1, c=1, v=1, q='', **_):
         nonlocal content_container, gui, input_field
 
         references = input_field.value.strip()
-        content = get_commentary_content(references)
+        if not references:
+            return
 
-        # update tab records
-        if content and keep:
-            gui.update_active_area2_tab_records(q=references)
+        input_field.disable()
+
+        try:
+
+            content = get_commentary_content(references)
+
+            # update tab records
+            if content and keep:
+                gui.update_active_area2_tab_records(q=references)
+
+        except Exception as e:
+            # Handle errors (e.g., network failure)
+            ui.notify(f'Error: {e}', type='negative')
+
+        finally:
+            # ALWAYS re-enable the input, even if an error occurred above
+            input_field.enable()
+            # Optional: Refocus the cursor so the user can type the next query immediately
+            input_field.run_method('focus')
 
         # Clear existing rows first
         content_container.clear()
@@ -214,3 +231,4 @@ def bible_commentary(gui=None, b=1, c=1, v=1, q='', **_):
         parser = BibleVerseParser(False, language=app.storage.user['ui_language'])
         input_field.value = parser.bcvToVerseReference(b,c,v)
     handle_enter(None, keep=False)
+    input_field.run_method('focus')

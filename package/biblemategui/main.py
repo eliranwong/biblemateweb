@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from nicegui import ui
+from nicegui import ui, app
 from biblemategui import config, BIBLEMATEGUI_APP_DIR, USER_DEFAULT_SETTINGS, getBibleVersionList, getLexiconList
 from biblemategui.pages.home import *
 from biblemategui.js.tooltip import TOOLTIP_JS
@@ -159,7 +159,7 @@ def page_home(
         gui.select_empty_area1_tab()
         gui.load_area_1_content(title=bbt, keep=k)
     elif not gui.area1_tab_loaded: # when nothing is loaded
-        gui.load_area_1_content(title="NET")
+        gui.load_area_1_content(title=app.storage.user["primary_bible"])
     
     # load tool content at start
     if tool:
@@ -173,7 +173,7 @@ def page_home(
         active_area1_tab = gui.get_active_area1_tab()
         if active_area1_tab in app.storage.user:
             args = app.storage.user[active_area1_tab]
-            app.storage.user['bible_book_text'] = args.get('bt', "NET")
+            app.storage.user['bible_book_text'] = args.get('bt', app.storage.user["primary_bible"])
             app.storage.user['bible_book_number'] = args.get('b', 1)
             app.storage.user['bible_chapter_number'] = args.get('c', 1)
             app.storage.user['bible_verse_number'] = args.get('v', 1)
@@ -182,7 +182,7 @@ def page_home(
         active_area2_tab = gui.get_active_area2_tab()
         if active_area2_tab in app.storage.user:
             args = app.storage.user[active_area2_tab]
-            app.storage.user['tool_book_text'] = args.get('bt', "NET")
+            app.storage.user['tool_book_text'] = args.get('bt', app.storage.user["primary_bible"])
             app.storage.user['tool_book_number'] = args.get('b', 1)
             app.storage.user['tool_chapter_number'] = args.get('c', 1)
             app.storage.user['tool_verse_number'] = args.get('v', 1)

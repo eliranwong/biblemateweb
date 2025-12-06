@@ -27,6 +27,8 @@ def treasury(gui=None, b=1, c=1, v=1, q='', **_):
     def handle_enter(e, keep=True):
         nonlocal gui, SQL_QUERY
         query = input_field.value.strip()
+        if not query:
+            return
         parser = BibleVerseParser(False)
         refs = parser.extractAllReferences(query)
         if not refs:
@@ -37,26 +39,41 @@ def treasury(gui=None, b=1, c=1, v=1, q='', **_):
             gui.update_active_area2_tab_records(q=query)
         # Clear existing rows first
         content_container.clear()
-        results = []
-        for ref in refs:
-            results.append(f"<h2>{parser.bcvToVerseReference(*ref)}</h2>")
-            for ref2 in parser.extractExhaustiveReferences([ref]):
-                b, c, v = ref2
-                query = ""
-                db = os.path.join(BIBLEMATEGUI_DATA, "cross-reference.sqlite")
-                with apsw.Connection(db) as connn:
-                    sql_query = "SELECT Information FROM TSKe WHERE Book=? AND Chapter=? AND Verse=? limit 1"
-                    cursor = connn.cursor()
-                    cursor.execute(sql_query, (b, c, v))
-                    fetch = cursor.fetchone()
-                if not fetch: continue
-                content = fetch[0]
-                if content:
-                    results.append(content)
-                else:
-                    continue
-        content = "<hr>".join(results) if results else ""
-        if not content: return None
+
+        input_field.disable()
+
+        try:
+
+            results = []
+            for ref in refs:
+                results.append(f"<h2>{parser.bcvToVerseReference(*ref)}</h2>")
+                for ref2 in parser.extractExhaustiveReferences([ref]):
+                    b, c, v = ref2
+                    query = ""
+                    db = os.path.join(BIBLEMATEGUI_DATA, "cross-reference.sqlite")
+                    with apsw.Connection(db) as connn:
+                        sql_query = "SELECT Information FROM TSKe WHERE Book=? AND Chapter=? AND Verse=? limit 1"
+                        cursor = connn.cursor()
+                        cursor.execute(sql_query, (b, c, v))
+                        fetch = cursor.fetchone()
+                    if not fetch: continue
+                    content = fetch[0]
+                    if content:
+                        results.append(content)
+                    else:
+                        continue
+            content = "<hr>".join(results) if results else ""
+            if not content: return None
+
+        except Exception as e:
+            # Handle errors (e.g., network failure)
+            ui.notify(f'Error: {e}', type='negative')
+
+        finally:
+            # ALWAYS re-enable the input, even if an error occurred above
+            input_field.enable()
+            # Optional: Refocus the cursor so the user can type the next query immediately
+            input_field.run_method('focus')
 
         with content_container:
             # html style
@@ -116,3 +133,4 @@ def treasury(gui=None, b=1, c=1, v=1, q='', **_):
         parser = BibleVerseParser(False, language=app.storage.user['ui_language'])
         input_field.value = parser.bcvToVerseReference(b,c,v)
     handle_enter(None, keep=False)
+    input_field.run_method('focus')

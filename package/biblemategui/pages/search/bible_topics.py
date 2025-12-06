@@ -1,6 +1,4 @@
-from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
-from biblemategui import BIBLEMATEGUI_DATA, config
-from biblemategui.fx.bible import get_bible_content
+from biblemategui import BIBLEMATEGUI_DATA, config, loading
 from functools import partial
 from nicegui import ui, app
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
@@ -8,6 +6,64 @@ import numpy as np
 import re, apsw, os, json, traceback
 from biblemategui.data.cr_books import cr_books
 
+def fetch_bible_topics_entry(path):
+    db = os.path.join(BIBLEMATEGUI_DATA, "data", "exlb3.data")
+    with apsw.Connection(db) as connn:
+        cursor = connn.cursor()
+        sql_query = "SELECT content FROM exlbt WHERE path=? limit 1"
+        cursor.execute(sql_query, (path,))
+        fetch = cursor.fetchone()
+        content = fetch[0] if fetch else ""
+    return content
+
+def fetch_bible_topics_matches(query):
+    db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "exlb.db")
+    sql_table = "exlbt"
+    embedding_model="paraphrase-multilingual"
+    path = ""
+    options = []
+    try:
+        with apsw.Connection(db_file) as connection:
+            # search for exact match first
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT * FROM {sql_table} WHERE entry = ?;", (query,))
+            rows = cursor.fetchall()
+            if not rows: # perform similarity search if no an exact match
+                # convert query to vector
+                query_vector = get_embeddings([query], embedding_model)[0]
+                # fetch all entries
+                cursor.execute(f"SELECT path, entry, entry_vector FROM {sql_table}")
+                all_rows = [(f"[{path}] {entry}", entry_vector) for path, entry, entry_vector in cursor.fetchall()]
+                if not all_rows:
+                    return []
+                # build a matrix
+                entries, entry_vectors = zip(*[(row[0], np.array(json.loads(row[1]))) for row in all_rows if row[0] and row[1]])
+                document_matrix = np.vstack(entry_vectors)
+                # perform a similarity search
+                similarities = cosine_similarity_matrix(query_vector, document_matrix)
+                top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
+                # return top matches
+                options = [entries[i] for i in top_indices]
+            elif len(rows) == 1: # single exact match
+                path = rows[0][0]
+            else:
+                options = [f"[{row[0]}] {row[1]}" for row in rows]
+    except Exception as ex:
+        print("Error during database operation:", ex)
+        traceback.print_exc()
+        ui.notify('Error during database operation!', type='negative')
+        return
+    return path, options
+
+def fetch_all_topics():
+    db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "exlb.db")
+    with apsw.Connection(db_file) as connn:
+        cursor = connn.cursor()
+        sql_query = "SELECT entry FROM exlbt"
+        cursor.execute(sql_query)
+        all_entries = [i[0] for i in cursor.fetchall()]
+    all_entries = list(set([i for i in all_entries if i]))
+    return all_entries
 
 def search_bible_topics(gui=None, q='', **_):
 
@@ -25,15 +81,6 @@ def search_bible_topics(gui=None, q='', **_):
     ui.on('bcv', bcv)
     ui.on('cr', cr)
 
-    # all entries
-    all_entries = []
-    db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "exlb.db")
-    with apsw.Connection(db_file) as connn:
-        cursor = connn.cursor()
-        sql_query = "SELECT entry FROM exlbt"
-        cursor.execute(sql_query)
-        all_entries = [i[0] for i in cursor.fetchall()]
-    all_entries = list(set([i for i in all_entries if i]))
 
     # --- Fuzzy Match Dialog ---
     with ui.dialog() as dialog, ui.card().classes('w-full max-w-md'):
@@ -50,21 +97,14 @@ def search_bible_topics(gui=None, q='', **_):
     # Core: Fetch and Display
     # ----------------------------------------------------------
 
-    def show_entry(path, keep=True):
+    async def show_entry(path, keep=True):
         nonlocal content_container, gui, dialog, input_field
 
-        # update tab records
-        if keep:
-            gui.update_active_area2_tab_records(q=path)
+        content = await loading(fetch_bible_topics_entry, path)
 
-        db = os.path.join(BIBLEMATEGUI_DATA, "data", "exlb3.data")
-        with apsw.Connection(db) as connn:
-            cursor = connn.cursor()
-            topic = path
-            sql_query = "SELECT content FROM exlbt WHERE path=? limit 1"
-            cursor.execute(sql_query, (path,))
-            fetch = cursor.fetchone()
-            content = fetch[0] if fetch else ""
+        # update tab records
+        if content and keep:
+            gui.update_active_area2_tab_records(q=path)
 
         # Clear existing rows first
         content_container.clear()
@@ -109,50 +149,31 @@ def search_bible_topics(gui=None, q='', **_):
         # Clear input so user can start typing to filter immediately
         input_field.value = ""
 
-    def handle_enter(e, keep=True):
+    async def handle_enter(e, keep=True):
         query = input_field.value.strip()
 
         modules = "|".join(list(config.topics.keys()))
-        if re.search(f"^({modules})[0-9]+?$", query):
-            show_entry(query, keep=keep)
+        if not query:
+            return
+        elif re.search(f"^({modules})[0-9]+?$", query):
+            await show_entry(query, keep=keep)
             return
 
-        db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "exlb.db")
-        sql_table = "exlbt"
-        embedding_model="paraphrase-multilingual"
-        options = []
+        input_field.disable()
+
         try:
-            with apsw.Connection(db_file) as connection:
-                # search for exact match first
-                cursor = connection.cursor()
-                cursor.execute(f"SELECT * FROM {sql_table} WHERE entry = ?;", (query,))
-                rows = cursor.fetchall()
-                if not rows: # perform similarity search if no an exact match
-                    # convert query to vector
-                    query_vector = get_embeddings([query], embedding_model)[0]
-                    # fetch all entries
-                    cursor.execute(f"SELECT path, entry, entry_vector FROM {sql_table}")
-                    all_rows = [(f"[{path}] {entry}", entry_vector) for path, entry, entry_vector in cursor.fetchall()]
-                    if not all_rows:
-                        return []
-                    # build a matrix
-                    entries, entry_vectors = zip(*[(row[0], np.array(json.loads(row[1]))) for row in all_rows if row[0] and row[1]])
-                    document_matrix = np.vstack(entry_vectors)
-                    # perform a similarity search
-                    similarities = cosine_similarity_matrix(query_vector, document_matrix)
-                    top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
-                    # return top matches
-                    options = [entries[i] for i in top_indices]
-                elif len(rows) == 1: # single exact match
-                    path = rows[0][0]
-                    show_entry(path, keep=keep)
-                else:
-                    options = [f"[{row[0]}] {row[1]}" for row in rows]
-        except Exception as ex:
-            print("Error during database operation:", ex)
-            traceback.print_exc()
-            ui.notify('Error during database operation!', type='negative')
-            return
+
+            path, options = await loading(fetch_bible_topics_matches, query)
+
+        except Exception as e:
+            # Handle errors (e.g., network failure)
+            ui.notify(f'Error: {e}', type='negative')
+
+        finally:
+            # ALWAYS re-enable the input, even if an error occurred above
+            input_field.enable()
+            # Optional: Refocus the cursor so the user can type the next query immediately
+            input_field.run_method('focus')
 
         if options:
             options = list(set(options))
@@ -161,7 +182,7 @@ def search_bible_topics(gui=None, q='', **_):
                 if selected_option:
                     dialog.close()
                     path, _ = selected_option.split(" ", 1)
-                    show_entry(path[1:-1], keep=keep)
+                    ui.timer(0, lambda: show_entry(path[1:-1], keep=keep), once=True)
 
             selection_container.clear()
             with selection_container:
@@ -170,19 +191,26 @@ def search_bible_topics(gui=None, q='', **_):
                 ui.button('Show Content', on_click=lambda: handle_selection(radio.value)) \
                     .classes('w-full mt-4 bg-blue-500 text-white shadow-md')    
             dialog.open()
+        else:
+            await show_entry(path, keep=keep)
 
     # ==============================================================================
     # 3. UI LAYOUT
     # ==============================================================================
     with ui.row().classes('w-full max-w-3xl mx-auto m-0 py-0 px-4 items-center'):
         input_field = ui.input(
-            autocomplete=all_entries,
+            autocomplete=[],
             placeholder='Search for a bible topic ...'
         ).classes('flex-grow text-lg') \
         .props('outlined dense clearable autofocus enterkeyhint="search"')
 
         input_field.on('keydown.enter.prevent', handle_enter)
         #input_field.on('update:model-value', filter_verses)
+
+        async def get_all_topics():
+            all_topics = await loading(fetch_all_topics)
+            input_field.set_autocomplete(all_topics)
+        ui.timer(0, get_all_topics, once=True)
 
     # --- Main Content Area ---
     with ui.column().classes('w-full items-center'):
@@ -191,4 +219,6 @@ def search_bible_topics(gui=None, q='', **_):
 
     if q:
         input_field.value = q
-        handle_enter(None, keep=False)
+        ui.timer(0, lambda: handle_enter(None, keep=False), once=True)
+    else:
+        input_field.run_method('focus')

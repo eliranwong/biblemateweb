@@ -134,16 +134,33 @@ def search_bible_verses(gui=None, q='', **_):
         # Clear existing rows first
         verses_container.clear()
 
+        if not query:
+            ui.notify('Display cleared', type='positive', position='top')
+            input_field.props(f'placeholder="{default_placeholder}"')
+            return
+
         input_field.disable()
 
         try:
 
-            if not query:
-                ui.notify('Display cleared', type='positive', position='top')
-                input_field.props(f'placeholder="{default_placeholder}"')
-                return
-
-            if re.search("^BP[0-9]+?$", query): # bible characters entries
+            if search_morphology := re.search(r"^([EG][0-9]+?)\|", query): # search morphology
+                multiple_bibles.value = [app.storage.user["tool_book_text"]]
+                lexical_entry = search_morphology.group(1) + ",%"
+                suffix = ""
+                for i in query.split("|")[1:]:
+                    suffix += f"AND Morphology LIKE '{i}' "
+                db = os.path.join(BIBLEMATEGUI_DATA, "morphology.sqlite")
+                with apsw.Connection(db) as connn:
+                    query = f"SELECT Book, Chapter, Verse FROM morphology WHERE LexicalEntry LIKE ? {suffix}ORDER BY Book, Chapter, Verse"
+                    print(query)
+                    cursor = connn.cursor()
+                    cursor.execute(query, (lexical_entry,))
+                    fetch = cursor.fetchall()
+                if not fetch:
+                    ui.notify('No verses found.', type='negative')
+                    return
+                verses = await loading(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
+            elif re.search("^BP[0-9]+?$", query): # bible characters entries
                 db_file = os.path.join(BIBLEMATEGUI_DATA, "data", "biblePeople.data")
                 with apsw.Connection(db_file) as connn:
                     cursor = connn.cursor()
@@ -456,3 +473,5 @@ def search_bible_verses(gui=None, q='', **_):
         input_field.value = q
         #handle_enter(None, keep=False) # RuntimeWarning: coroutine 'search_bible_verses.<locals>.handle_enter' was never awaited
         ui.timer(0, lambda: handle_enter(None, keep=False), once=True)
+    else:
+        input_field.run_method('focus')
