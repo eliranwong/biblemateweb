@@ -5,6 +5,8 @@ from functools import partial
 from biblemategui import config, BIBLEMATEGUI_APP_DIR, getBibleVersionList
 
 from biblemategui.pages.ai.chat import ai_chat
+from biblemategui.pages.ai.partner import ai_partner
+from biblemategui.pages.ai.agent import ai_agent
 
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
@@ -80,6 +82,8 @@ class BibleMateGUI:
             "parousia": parousia,
             "parousia_zh": parousia_zh,
             "chat": ai_chat,
+            "partner": ai_partner,
+            "agent": ai_agent,
             "morphology": word_morphology,
             "indexes": resource_indexes,
             "podcast": bibles_podcast,
@@ -1054,8 +1058,8 @@ class BibleMateGUI:
                             ))
                             #ui.menu_item('AI Q&A', on_click=lambda: self.load_area_2_content(self.work_in_progress))
                             ui.menu_item('AI Chat', on_click=lambda: self.load_area_2_content(title='Chat'))
-                            ui.menu_item('Partner Mode', on_click=lambda: self.load_area_2_content(self.work_in_progress))
-                            ui.menu_item('Agent Mode', on_click=lambda: self.load_area_2_content(self.work_in_progress))
+                            ui.menu_item('Partner Mode', on_click=lambda: self.load_area_2_content(title='Partner'))
+                            ui.menu_item('Agent Mode', on_click=lambda: self.load_area_2_content(title='Agent'))
 
                     with ui.button(icon='settings').props('flat color=white round').tooltip('Settings'):
                         with ui.menu():
@@ -1338,11 +1342,11 @@ class BibleMateGUI:
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.item('Partner Mode', on_click=lambda: (
-                    self.load_area_2_content(self.work_in_progress),
+                    self.load_area_2_content(title='Partner'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.item('Agent Mode', on_click=lambda: (
-                    self.load_area_2_content(self.work_in_progress),
+                    self.load_area_2_content(title='Agent'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
 
