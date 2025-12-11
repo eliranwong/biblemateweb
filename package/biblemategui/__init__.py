@@ -118,10 +118,10 @@ else:
     Path(bibles_dir_custom).mkdir(parents=True, exist_ok=True)
     config.bibles_custom = {}
 
-def getBibleVersionList() -> List[str]:
+def getBibleVersionList(custom: bool = False) -> List[str]:
     """Returns a list of available Bible versions"""
     bibleVersionList = ["ORB", "OIB", "OPB", "ODB", "OLB"]+list(config.bibles.keys())
-    if app.storage.client["custom"]:
+    if custom: # app.storage.client["custom"]
         bibleVersionList += list(config.bibles_custom.keys())
         bibleVersionList = list(set(bibleVersionList))
     return sorted(bibleVersionList)
@@ -188,10 +188,10 @@ else:
     Path(commentaries_dir_custom).mkdir(parents=True, exist_ok=True)
     config.commentaries_custom = {}
 
-def getCommentaryVersionList() -> List[str]:
+def getCommentaryVersionList(custom: bool = False) -> List[str]:
     """Returns a list of available Commentary versions"""
     commentaryVersionList = list(config.commentaries.keys())
-    if app.storage.client["custom"]:
+    if custom: # app.storage.client["custom"]
         commentaryVersionList += list(config.commentaries_custom.keys())
         commentaryVersionList = list(set(commentaryVersionList))
     return sorted(commentaryVersionList)
@@ -210,10 +210,10 @@ else:
     Path(lexicons_dir_custom).mkdir(parents=True, exist_ok=True)
     config.lexicons_custom = {}
 
-def getLexiconList() -> List[str]:
+def getLexiconList(custom: bool = False) -> List[str]:
     """Returns a list of available Lexicons"""
     client_lexicons = list(config.lexicons.keys())
-    if app.storage.client["custom"]:
+    if custom: # app.storage.client["custom"]
         client_lexicons += list(config.lexicons_custom.keys())
     return sorted(list(set(client_lexicons)))
 

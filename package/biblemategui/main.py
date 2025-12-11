@@ -6,8 +6,25 @@ from biblemategui.js.tooltip import TOOLTIP_JS
 from biblemategui.css.original import get_original_css
 from biblemategui.css.tooltip import get_tooltip_css
 from biblemategui.fx.tooltips import get_tooltip_data
+from biblemategui.api.api import get_api_content
+from typing import Optional
 import os
 
+
+@app.get('/api/data')
+def api_data(query: str, language: str = 'eng', token: Optional[str] = None):
+    """
+    Endpoint for BibleMate AI.
+    - query: Required (automatically required because no default value is provided)
+    - token: Optional (defaults to None)
+    """
+    custom = True if token == config.custom_token else False
+    result = {
+        "query": query,
+        "custom": custom,
+        "content": get_api_content(query, language, custom)
+    }
+    return result
 
 # API endpoint for tooltip data
 @app.get('/api/tooltip/{word}')
@@ -456,16 +473,16 @@ def page_Settings(
             # Use a grid for a more compact layout
             with ui.grid(columns=2).classes('w-full p-4 gap-4'):
                 ui.select(label='Primary Bible',
-                          options=getBibleVersionList()) \
+                          options=getBibleVersionList(app.storage.client["custom"])) \
                     .bind_value(app.storage.user, 'primary_bible')
                 ui.select(label='Secondary Bible',
-                          options=getBibleVersionList()) \
+                          options=getBibleVersionList(app.storage.client["custom"])) \
                     .bind_value(app.storage.user, 'secondary_bible')
                 ui.select(label='Hebrew Lexicon',
-                          options=getLexiconList()) \
+                          options=getLexiconList(app.storage.client["custom"])) \
                     .bind_value(app.storage.user, 'hebrew_lexicon')
                 ui.select(label='Greek Lexicon',
-                          options=getLexiconList()) \
+                          options=getLexiconList(app.storage.client["custom"])) \
                     .bind_value(app.storage.user, 'greek_lexicon')
 
         # --- Semantic Searches ---

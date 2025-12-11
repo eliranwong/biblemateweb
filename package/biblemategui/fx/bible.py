@@ -110,8 +110,10 @@ def get_bible_content(user_input="", bible=None, sql_query="", refs=[]) -> list:
 # Bible Selection
 
 def getBiblePath(bible) -> str:
-    if bible in ["ORB", "OIB", "OPB", "ODB", "OLB", "BHS5", "OGNT"]:
+    if bible in ["ORB", "OPB", "ODB", "OLB", "BHS5", "OGNT"]:
         bible = "OHGB"
+    elif bible == "OIB":
+        bible = "OHGBi"
     return config.bibles_custom[bible][-1] if bible in config.bibles_custom else config.bibles[bible][-1] if bible in config.bibles else ""
 
 def getBibleChapter(db, b, c) -> str: # html output
@@ -218,7 +220,7 @@ class BibleSelector:
         self.show_verses = show_verses
 
         if not self.version_options:
-            self.version_options = getBibleVersionList()
+            self.version_options = getBibleVersionList(app.storage.client["custom"])
         bible_book_list = getBibleBookList(getBiblePath(self.selected_version))
         self.book_options = [BibleBooks.abbrev["eng"][str(i)][0] for i in bible_book_list if str(i) in BibleBooks.abbrev["eng"]]
         self.chapter_options = getBibleChapterList(getBiblePath(self.selected_version), self.selected_book)

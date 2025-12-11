@@ -34,7 +34,7 @@ def fetch_all_lexicons(client_lexicons, lexicon):
 def search_bible_lexicons(gui=None, q='', **_):
 
     last_entry = ""
-    client_lexicons = getLexiconList()
+    client_lexicons = getLexiconList(app.storage.client["custom"])
 
     if q:
         if q.startswith("E") and not app.storage.user['favorite_lexicon'] in ("Morphology", "ConcordanceMorphology", "ConcordanceBook"):

@@ -31,7 +31,7 @@ def search_bible_verses(gui=None, q='', **_):
     BOOK_MAP = {book: i + 1 for i, book in enumerate(BIBLE_BOOKS)}
 
     # Initialize with full selection state
-    all_bibles = getBibleVersionList()
+    all_bibles = getBibleVersionList(app.storage.client["custom"])
     initial_bibles = gui.get_area_1_bible_text()
     initial_books = ['All', 'OT', 'NT'] + BIBLE_BOOKS
     if q and ":::" in q:

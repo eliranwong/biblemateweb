@@ -77,7 +77,7 @@ def bible_commentary(gui=None, b=1, c=1, v=1, q='', **_):
 
     last_entry = ""
     BIBLE_BOOKS = [BibleBooks.abbrev["eng"][str(i)][0] for i in range(1,67)]
-    client_commentaries = getCommentaryVersionList()
+    client_commentaries = getCommentaryVersionList(app.storage.client["custom"])
     scope_select = None
 
     def cr(event):

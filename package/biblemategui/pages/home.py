@@ -2,7 +2,7 @@ import os, traceback, re, apsw
 from nicegui import app, ui
 from functools import partial
 
-from biblemategui import config, BIBLEMATEGUI_APP_DIR
+from biblemategui import config, BIBLEMATEGUI_APP_DIR, getBibleVersionList
 
 from biblemategui.pages.ai.chat import ai_chat
 
@@ -878,14 +878,30 @@ class BibleMateGUI:
         def perform_quick_search(quick_search):
             app.storage.user.update(left_drawer_open=False)
             if search_item := quick_search.value.strip():
-                if ":::" in search_item and search_item.split(":::", 1)[0] in self.tools:
+                bibles = getBibleVersionList(app.storage.client["custom"])
+                refs = parser.extractAllReferences(search_item)
+                if search_item.lower().startswith("bible:::") and refs:
+                    search_item = search_item[8:]
+                    b,c,v = refs[0]
+                    if ":::" in search_item and search_item.split(":::", 1)[0].strip() in bibles:
+                        version, search_item = search_item.split(":::", 1)
+                        version = version.strip()
+                    else:
+                        version = None
+                    self.change_area_2_bible_chapter(version=version, book=b, chapter=c, verse=v)
+                elif ":::" in search_item and search_item.split(":::", 1)[0].strip().lower() in self.tools:
                     tool, app.storage.user["tool_query"] = search_item.split(":::", 1)
+                    tool = tool.strip()
                     self.load_area_2_content(title=tool, sync=app.storage.user["sync"])
                 else:
-                    refs = parser.extractAllReferences(search_item)
                     if len(refs) == 1:
                         b,c,v = refs[0]
-                        self.change_area_1_bible_chapter(book=b, chapter=c, verse=v)
+                        if ":::" in search_item and search_item.split(":::", 1)[0].strip() in bibles:
+                            version, search_item = search_item.split(":::", 1)
+                            version = version.strip()
+                        else:
+                            version = None
+                        self.change_area_1_bible_chapter(version=version,book=b, chapter=c, verse=v)
                     else:
                         app.storage.user["tool_query"] = search_item
                         self.load_area_2_content(title='Verses', sync=app.storage.user["sync"])
