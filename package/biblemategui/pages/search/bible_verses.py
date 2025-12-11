@@ -229,8 +229,8 @@ def search_bible_verses(gui=None, q='', **_):
                     ui.notify('No verses found.', type='negative')
                     return
                 verses = await loading(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
-            else:
-                verses = await loading(get_bible_content, user_input=query, bible=get_bibles(), sql_query=SQL_QUERY)
+            else: # regular search
+                verses = await loading(get_bible_content, user_input=query, bible=get_bibles(), sql_query=SQL_QUERY, search_mode=app.storage.user['search_mode'], top_similar_verses=app.storage.user['top_similar_verses'], search_case_sensitivity=app.storage.user['search_case_sensitivity'])
                 highlights = True
 
             if not verses:

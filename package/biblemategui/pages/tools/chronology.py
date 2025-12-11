@@ -6,7 +6,7 @@ def bible_chronology(gui=None, **_):
     #ui.page_title('Bible Chronology')
 
     # Function to be triggered when the link is clicked
-    def show_verse_details(reference: str):
+    def open_verse_reference(reference: str):
         """Updates the output label with information about the clicked reference."""
         nonlocal gui
         app.storage.user['tool_query'] = reference
@@ -22,7 +22,7 @@ def bible_chronology(gui=None, **_):
         ).classes('text-secondary hover:text-primary underline')
         # 2. Attach the Python function to the 'click' event
         # We use a lambda to pass the specific 'reference' string argument to the function
-        link_component.on('click', lambda: show_verse_details(reference))
+        link_component.on('click', lambda: open_verse_reference(reference))
         
         return link_component
 

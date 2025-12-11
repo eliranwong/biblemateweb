@@ -46,6 +46,8 @@ from biblemategui.pages.search.lexicons import search_bible_lexicons
 from biblemategui.pages.search.bible_maps import search_bible_maps
 from biblemategui.pages.search.bible_relationships import search_bible_relationships
 
+from biblemategui.pages.teachings.parousia import parousia
+from biblemategui.pages.teachings.parousia_zh import parousia_zh
 
 class BibleMateGUI:
     def __init__(self):
@@ -75,6 +77,8 @@ class BibleMateGUI:
 
         # tools
         self.tools = {
+            "parousia": parousia,
+            "parousia_zh": parousia_zh,
             "chat": ai_chat,
             "morphology": word_morphology,
             "indexes": resource_indexes,

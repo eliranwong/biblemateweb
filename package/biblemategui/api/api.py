@@ -1,11 +1,30 @@
 from biblemategui import getBibleVersionList
-from biblemategui.fx.bible import getBiblePath, getBibleChapterVerses
+from biblemategui.fx.bible import getBiblePath, getBibleChapterVerses, get_bible_content
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from agentmake.utils.handle_text import htmlToMarkdown
 import re
 
-def get_verses_content(query: str, language: str = 'eng', custom: bool = False):
-    return ""
+def get_verses_content(query, custom, parser):
+    verses = get_bible_content(user_input=query, parser=parser)
+    verses = [f"[{i['ref']}] {i['content']}" for i in verses]
+    return "* "+"\n* ".join(verses)
+
+def get_literal_content(query, custom, parser):
+    sql_query = "PRAGMA case_sensitive_like = false; SELECT Book, Chapter, Verse, Scripture FROM Verses WHERE (Scripture LIKE ?) ORDER BY Book, Chapter, Verse"
+    verses = get_bible_content(user_input=query, sql_query=sql_query, search_mode=1, api=True, parser=parser)
+    verses = [f"[{i['ref']}] {i['content']}" for i in verses]
+    return "* "+"\n* ".join(verses)
+
+def get_regex_content(query, custom, parser):
+    sql_query = "PRAGMA case_sensitive_like = false; SELECT Book, Chapter, Verse, Scripture FROM Verses WHERE (Scripture REGEXP ?) ORDER BY Book, Chapter, Verse"
+    verses = get_bible_content(user_input=query, sql_query=sql_query, search_mode=2, api=True, parser=parser)
+    verses = [f"[{i['ref']}] {i['content']}" for i in verses]
+    return "* "+"\n* ".join(verses)
+
+def get_semantic_content(query, custom, parser):
+    verses = get_bible_content(user_input=query, search_mode=3, parser=parser)
+    verses = [f"[{i['ref']}] {i['content']}" for i in verses]
+    return "* "+"\n* ".join(verses)
 
 API_TOOLS = {
     #"chat": ai_chat,
@@ -14,6 +33,9 @@ API_TOOLS = {
     #"podcast": bibles_podcast,
     #"audio": bibles_audio,
     "verses": get_verses_content, # API with additional options
+    "literal": get_literal_content, # API with additional options
+    "regex": get_regex_content, # API with additional options
+    "semantic": get_semantic_content, # API with additional options
     #"treasury": treasury,
     #"commentary": bible_commentary, # API with additional options
     #"chronology": bible_chronology,
@@ -34,8 +56,8 @@ API_TOOLS = {
     #"relationships": search_bible_relationships,
 }
 
-def get_tool_content(tool: str, query: str, custom: bool = False):
-    return f"{tool} {query}"
+def get_tool_content(tool, query, custom, parser):
+    return API_TOOLS[tool](query, custom=custom, parser=parser)
 
 def get_api_content(query: str, language: str = 'eng', custom: bool = False):
     bibles = getBibleVersionList(custom)
@@ -56,8 +78,8 @@ def get_api_content(query: str, language: str = 'eng', custom: bool = False):
             verses = [f"[{v}] {re.sub("<[^<>]*?>", "", verse_text).strip()}" for *_, v, verse_text in verses]
             chapter += "* "+"\n* ".join(verses)
         return chapter
-    elif ":::" in query and query.split(":::", 1)[0].strip().lower() in ["audio", "verses", "commentary"]:
+    elif ":::" in query and query.split(":::", 1)[0].strip().lower() in API_TOOLS:
         tool, query = query.split(":::", 1)
         tool = tool.strip()
-        return get_tool_content(tool, query, custom)
+        return get_tool_content(tool, query, custom, parser)
     return ""

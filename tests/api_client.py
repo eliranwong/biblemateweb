@@ -5,7 +5,7 @@ url = "http://localhost:33355/api/data"
 
 # 2. Define your parameters
 payload = {
-    "query": "bible:::CUV:::John 3",  # Required
+    "query": "regex:::Jesus.*?love",  # Required
     "token": "my-secret-key-123"                  # Optional
 }
 

@@ -11,10 +11,12 @@ def regexp(expr, item):
     reg = re.compile(expr, flags=0 if app.storage.user['search_case_sensitivity'] else re.IGNORECASE)
     return reg.search(item) is not None
 
-def get_bible_content(user_input="", bible=None, sql_query="", refs=[]) -> list:
+def regexp_api(expr, item):
+    reg = re.compile(expr, flags=re.IGNORECASE)
+    return reg.search(item) is not None
+
+def get_bible_content(user_input="", bible="NET", sql_query="", refs=[], search_mode=1, top_similar_verses=20, search_case_sensitivity=False, api=False, parser=None) -> list:
     verses_limit_reached = False
-    if bible is None:
-        bible = app.storage.user["primary_bible"]
     dbs = []
     if isinstance(bible, str):
         if bible_path := getBiblePath(bible):
@@ -27,11 +29,12 @@ def get_bible_content(user_input="", bible=None, sql_query="", refs=[]) -> list:
                     dbs.append(i_path)
     if not dbs:
         return []
-    parser = BibleVerseParser(False)
+    if parser is None:
+        parser = BibleVerseParser(False)
     results = []
     if not refs and re.search(" [0-9]+?[:：][0-9]", user_input):
         refs = parser.extractAllReferences(user_input, tagged=(True if '<ref onclick="bcv(' in user_input else False))
-    if not refs and app.storage.user['search_mode'] == 3: # semantic search
+    if not refs and search_mode == 3: # semantic search
         vector_db = BibleVectorDatabase(os.path.join(BIBLEMATEGUI_DATA, "vectors", "bible.db"))
         query = sql_query if sql_query else "PRAGMA case_sensitive_like = false; SELECT Book, Chapter, Verse, Scripture FROM Verses WHERE (Scripture REGEXP ?) ORDER BY Book, Chapter, Verse"
         if books := re.search("Book IN (.*?) AND ", query):
@@ -40,7 +43,7 @@ def get_bible_content(user_input="", bible=None, sql_query="", refs=[]) -> list:
             book=f"({books.group(1)})"
         else:
             book=0
-        refs = [(b, c, v) for b, c, v, _ in vector_db.search_meaning(user_input, top_k=app.storage.user["top_similar_verses"], book=book)]
+        refs = [(b, c, v) for b, c, v, _ in vector_db.search_meaning(user_input, top_k=top_similar_verses, book=book)]
     if refs:
         distinct_refs = []
         for ref in refs:
@@ -83,15 +86,15 @@ def get_bible_content(user_input="", bible=None, sql_query="", refs=[]) -> list:
     else:
         # search the bible with regular expression
         query = sql_query if sql_query else "PRAGMA case_sensitive_like = false; SELECT Book, Chapter, Verse, Scripture FROM Verses WHERE (Scripture REGEXP ?) ORDER BY Book, Chapter, Verse"
-        if app.storage.user['search_case_sensitivity']:
+        if search_case_sensitivity:
             query = query.replace("case_sensitive_like = false;", "case_sensitive_like = true;")
-        if app.storage.user['search_mode'] == 1:
+        if search_mode == 1:
             query = query.replace("Scripture REGEXP", "Scripture LIKE")
             user_input = "%"+user_input+"%"
         for db in dbs:
             this_bible = os.path.basename(db)[:-6]
             with apsw.Connection(db) as connn:
-                connn.createscalarfunction("REGEXP", regexp)
+                connn.createscalarfunction("REGEXP", regexp_api if api else regexp)
                 cursor = connn.cursor()
                 cursor.execute(query, (user_input,))
                 fetches = cursor.fetchall()
