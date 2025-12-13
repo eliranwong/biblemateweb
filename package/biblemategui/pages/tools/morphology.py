@@ -88,63 +88,63 @@ def word_morphology(gui=None, b=1, c=1, v=1, area=2, **_):
                                 #)
                                 if not element == "unknown":
                                     morphology_data[wordID][index] = {"element": element, "selected": True}
-                                    ui.chip(element, selectable=True, selected=True, color='orange', on_selection_change=partial(update_morphology_data, wordID, index)).classes('cursor-pointer font-bold shadow-sm')
+                                    ui.chip(element, selectable=True, selected=True, color='orange', on_selection_change=partial(update_morphology_data, wordID, index)).props('text-color=white').classes('cursor-pointer font-bold shadow-sm')
                         with ui.row().classes('w-full gap-0'):
                             ui.chip(
                                 "OHGB",
                                 icon='search',
-                                color='secondary',
+                                color='primary',
                                 on_click=partial(search_morphology, wordID, lexicalEntries[0], "OHGB"),
-                            ).classes('cursor-pointer font-bold shadow-sm')
+                            ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm')
                             ui.chip(
                                 "OHGBi",
                                 icon='search',
-                                color='secondary',
+                                color='primary',
                                 on_click=partial(search_morphology, wordID, lexicalEntries[0], "OHGBi"),
-                            ).classes('cursor-pointer font-bold shadow-sm')
+                            ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm')
                             active_bible_text = gui.get_area_1_bible_text()
                             ui.chip(
                                 active_bible_text,
                                 icon='search',
-                                color='secondary',
+                                color='primary',
                                 on_click=partial(search_morphology, wordID, lexicalEntries[0], active_bible_text),
-                            ).classes('cursor-pointer font-bold shadow-sm')
+                            ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm')
                             if not active_bible_text == app.storage.user['primary_bible']:
                                 ui.chip(
                                     app.storage.user['primary_bible'],
                                     icon='search',
-                                    color='secondary',
+                                    color='primary',
                                     on_click=partial(search_morphology, wordID, lexicalEntries[0], app.storage.user['primary_bible']),
-                                ).classes('cursor-pointer font-bold shadow-sm')
+                                ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm')
                             if not active_bible_text == app.storage.user['secondary_bible'] and not app.storage.user['primary_bible'] == app.storage.user['secondary_bible']:
                                 ui.chip(
                                     app.storage.user['secondary_bible'],
                                     icon='search',
-                                    color='secondary',
+                                    color='primary',
                                     on_click=partial(search_morphology, wordID, lexicalEntries[0], app.storage.user['secondary_bible']),
-                                ).classes('cursor-pointer font-bold shadow-sm')
+                                ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm')
                         with ui.row().classes('w-full gap-0'):
                             ui.chip(
                                 "Forms",
                                 icon='book',
-                                color='secondary',
+                                color='primary',
                                 on_click=partial(open_lexicon, "Morphology", lexicalEntries[0]),
-                            ).classes('cursor-pointer font-bold shadow-sm')
+                            ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm')
                             ui.chip(
                                 "Concordance [Forms]",
                                 icon='book',
-                                color='secondary',
+                                color='primary',
                                 on_click=partial(open_lexicon, "ConcordanceMorphology", lexicalEntries[0]),
-                            ).classes('cursor-pointer font-bold shadow-sm')
+                            ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm')
                             ui.chip(
                                 "Concordance [Books]",
                                 icon='book',
-                                color='secondary',
+                                color='primary',
                                 on_click=partial(open_lexicon, "ConcordanceBook", lexicalEntries[0]),
-                            ).classes('cursor-pointer font-bold shadow-sm')
+                            ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm')
                             ui.chip(
                                 "Lexicon",
                                 icon='book',
-                                color='secondary',
+                                color='primary',
                                 on_click=partial(open_lexicon, app.storage.user['hebrew_lexicon'] if b < 40 else app.storage.user['greek_lexicon'], lexicalEntries[-1]),
-                            ).classes('cursor-pointer font-bold shadow-sm')
+                            ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm')

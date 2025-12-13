@@ -47,6 +47,7 @@ def page_home(
     k: bool | None = True, # keep valid specified parameters in history
     m: bool | None = True, # display menu
     l: int | None = None, # layout; either: 1 (bible area only) or 2 (bible & tool areas) or 3 (tool area only)
+    lang: str | None = None, # language
     bbt: str | None = None, # bible bible text
     bb: int | None = None, # bible book
     bc: int | None = None, # bible chapter
@@ -73,6 +74,10 @@ def page_home(
 
     # spacing
     ui.query('.nicegui-content').classes('w-full h-full !p-0 !b-0 !m-0 !gap-0')
+
+    # language
+    if lang and lang in ('eng', 'tc', 'sc'):
+        app.storage.user["ui_language"] = lang
 
     # font-size
     if fs:

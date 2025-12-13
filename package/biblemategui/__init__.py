@@ -1,6 +1,9 @@
 from pathlib import Path
 from agentmake import readTextFile, writeTextFile
 from biblemategui import config
+from biblemategui.translations.eng import translation_eng
+from biblemategui.translations.tc import translation_tc
+from biblemategui.translations.sc import translation_sc
 from nicegui import app, ui
 from typing import List
 import os, glob, apsw, re, asyncio
@@ -63,6 +66,13 @@ def load_config():
 load_config()
 
 # frequently used functions
+
+def get_translation(text: str):
+    if app.storage.user["ui_language"] == "tc":
+        return translation_tc.get(text, text)
+    elif app.storage.user["ui_language"] == "sc":
+        return translation_sc.get(text, text)
+    return translation_eng.get(text, text)
 
 async def loading(func, *args, **kwargs):
     n = ui.notification(timeout=None)
@@ -276,8 +286,8 @@ config.encyclopedias = {
 
 USER_DEFAULT_SETTINGS = {
     'font_size': 100,
-    'primary_color': '#12a189', # #3e5400
-    'secondary_color': '#12a189', # #4e8700
+    'primary_color': '#827e67', # #827e67
+    'secondary_color': '#c7c279', # #c7c279
     'negative_color': '#ff384f',
     'avatar': '',
     'custom_token': '',

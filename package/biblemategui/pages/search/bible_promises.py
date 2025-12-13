@@ -201,7 +201,7 @@ def search_bible_promises(gui=None, q='', **_):
                             removable=True, 
                             icon='book',
                             #on_click=partial(ui.notify, f'Clicked {v['ref']}'),
-                        ).classes('cursor-pointer font-bold shadow-sm') as chip:
+                        ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm') as chip:
                             with ui.menu():
                                 ui.menu_item('Open in Bible Area', on_click=partial(gui.change_area_1_bible_chapter, v['bible'], v['b'], v['c'], v['v']))
                                 ui.menu_item('Open Here', on_click=partial(gui.change_area_2_bible_chapter, v['bible'], v['b'], v['c'], v['v'], sync=False))

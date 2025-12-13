@@ -2,7 +2,7 @@ import os, traceback, re, apsw
 from nicegui import app, ui
 from functools import partial
 
-from biblemategui import config, BIBLEMATEGUI_APP_DIR, getBibleVersionList
+from biblemategui import config, BIBLEMATEGUI_APP_DIR, getBibleVersionList, get_translation
 
 from biblemategui.pages.ai.chat import ai_chat
 from biblemategui.pages.ai.partner import ai_partner
@@ -331,7 +331,7 @@ class BibleMateGUI:
             # - 'fab-mini': Quasar's specific prop for a smaller floating action button.
             ui.button(icon='swap_horiz', on_click=self.swap_layout) \
                 .props('fab-mini color=primary') \
-                .tooltip('Swap Layout')
+                .tooltip(get_translation("Swap Layout"))
 
         BOOK_NAMES = {i: BibleBooks.abbrev[app.storage.user['ui_language']][str(i)][0] for i in range(1,67)}
         VERSES = BibleBooks.verses
@@ -346,7 +346,7 @@ class BibleMateGUI:
             # - 'fab-mini': Quasar's specific prop for a smaller floating action button.
             ui.button(icon='menu_book', on_click=bible_selection_dialog.open) \
                 .props('fab-mini color=primary') \
-                .tooltip('Select Bible Verse')
+                .tooltip(get_translation("Select Bible Verse"))
 
         # Set initial visibility
         self.update_visibility()
@@ -511,24 +511,24 @@ class BibleMateGUI:
             nonlocal self
             self.ask_biblemate(f"# Scripture\n\n{get_verse_content()}\n\n# Query\n\n")
         with ui.context_menu() as menu:
-            ui.menu_item('📋 Copy', on_click=lambda: self.copy_text(get_verse_content()))
+            ui.menu_item(f'📋 {get_translation("Copy")}', on_click=lambda: self.copy_text(get_verse_content()))
             ui.separator()
-            ui.menu_item('🔊 Bible Audio', on_click=lambda: open_tool("Audio"))
+            ui.menu_item(f'🔊 {get_translation("Bible Audio")}', on_click=lambda: open_tool("Audio"))
             ui.separator()
-            ui.menu_item('🔗 Cross-references', on_click=lambda: open_tool("Xrefs"))
-            ui.menu_item('🏦 Treasury', on_click=lambda: open_tool("Treasury"))
-            ui.menu_item('🧠 AI Commentary', on_click=lambda: (
+            ui.menu_item(f'🔗 {get_translation("Cross-references")}', on_click=lambda: open_tool("Xrefs"))
+            ui.menu_item(f'🏦 {get_translation("Treasury")}', on_click=lambda: open_tool("Treasury"))
+            ui.menu_item(f'🧠 {get_translation("AI Commentary")}', on_click=lambda: (
                 app.storage.user.update(favorite_commentary="AIC"),
                 open_tool("Commentary")
             ))
-            ui.menu_item('📚 Commentaries', on_click=lambda: open_tool("Commentary"))
+            ui.menu_item(f'📚 {get_translation("Commentaries")}', on_click=lambda: open_tool("Commentary"))
             ui.separator()
-            ui.menu_item('🧬 Morphology', on_click=lambda: open_tool("Morphology"))
+            ui.menu_item(f'🧬 {get_translation("Morphology")}', on_click=lambda: open_tool("Morphology"))
             ui.separator()
-            ui.menu_item('👀 Comparison', on_click=compare_verse)
-            ui.menu_item('📑 Indexes', on_click=lambda: open_tool("Indexes"))
+            ui.menu_item(f'👀 {get_translation("Comparison")}', on_click=compare_verse)
+            ui.menu_item(f'📑 {get_translation("Indexes")}', on_click=lambda: open_tool("Indexes"))
             ui.separator()
-            ui.menu_item('💬 Ask BibleMate', on_click=ask_biblemate)
+            ui.menu_item(f'💬 {get_translation("Ask BibleMate")}', on_click=ask_biblemate)
         menu.open()
 
     def load_area_1_content(self, content=None, title="Bible", tab=None, args=None, keep=True):
@@ -942,7 +942,7 @@ class BibleMateGUI:
                             # This is just a label now; the parent button handles the click
                             ui.label('BibleMate AI').classes('text-lg ml-2') # Added margin-left for spacing
 
-                quick_search1 = ui.input(placeholder='🔍 Quick search ...', autocomplete=auto_suggestions) \
+                quick_search1 = ui.input(placeholder=f'🔍 {get_translation("Quick search")} ...', autocomplete=auto_suggestions) \
                         .props('clearable outlined rounded dense autofocus enterkeyhint="search"') \
                         .classes('gt-xs flex-grow')
                 quick_search1.on('keydown.enter.prevent', lambda: perform_quick_search(quick_search1))
@@ -955,20 +955,20 @@ class BibleMateGUI:
                     
                     #with ui.row().classes('gt-xs items-center overflow-x-auto overflow-y-hidden no-wrap'):                            
                     # Bibles
-                    with ui.button(icon='local_library').props('flat color=white round').tooltip('Bibles'):
+                    with ui.button(icon='local_library').props('flat color=white round').tooltip(get_translation("Bibles")):
                         with ui.menu():
-                            ui.menu_item('Add Bible Tab', on_click=self.add_tab_area1)
-                            ui.menu_item('Close Bible Tab', on_click=self.remove_tab_area1)
-                            ui.menu_item('Close Others', on_click=self.close_other_area1_tabs)
+                            ui.menu_item(get_translation("Add Bible Tab"), on_click=self.add_tab_area1)
+                            ui.menu_item(get_translation("Close Bible Tab"), on_click=self.remove_tab_area1)
+                            ui.menu_item(get_translation("Close Others"), on_click=self.close_other_area1_tabs)
                             ui.separator()
                             ui.menu_item(primary_bible, on_click=lambda: self.load_area_1_content(title=primary_bible)).tooltip(primary_bible)
                             ui.menu_item(secondary_bible, on_click=lambda: self.load_area_1_content(title=secondary_bible)).tooltip(secondary_bible)
                             ui.separator()
-                            ui.menu_item('Original Reader’s Bible', on_click=lambda: self.load_area_1_content(title='ORB')).tooltip('ORB')
-                            ui.menu_item('Original Interlinear Bible', on_click=lambda: self.load_area_1_content(title='OIB')).tooltip('OIB')
-                            ui.menu_item('Original Parallel Bible', on_click=lambda: self.load_area_1_content(title='OPB')).tooltip('OPB')
-                            ui.menu_item('Original Discourse Bible', on_click=lambda: self.load_area_1_content(title='ODB')).tooltip('ODB')
-                            ui.menu_item('Original Linguistic Bible', on_click=lambda: self.load_area_1_content(title='OLB')).tooltip('OLB')
+                            ui.menu_item(get_translation("Original Reader’s Bible"), on_click=lambda: self.load_area_1_content(title='ORB')).tooltip('ORB')
+                            ui.menu_item(get_translation("Original Interlinear Bible"), on_click=lambda: self.load_area_1_content(title='OIB')).tooltip('OIB')
+                            ui.menu_item(get_translation("Original Parallel Bible"), on_click=lambda: self.load_area_1_content(title='OPB')).tooltip('OPB')
+                            ui.menu_item(get_translation("Original Discourse Bible"), on_click=lambda: self.load_area_1_content(title='ODB')).tooltip('ODB')
+                            ui.menu_item(get_translation("Original Linguistic Bible"), on_click=lambda: self.load_area_1_content(title='OLB')).tooltip('OLB')
                             ui.separator()
                             if app.storage.client["custom"] and config.bibles_custom:
                                 for i in config.bibles_custom:
@@ -979,20 +979,20 @@ class BibleMateGUI:
                                 if not i in (primary_bible, secondary_bible) and ((app.storage.client["custom"] and not i in config.bibles_custom) or not app.storage.client["custom"]):
                                     ui.menu_item(i, on_click=partial(self.load_area_1_content, title=i)).tooltip(config.bibles[i][0])
 
-                    with ui.button(icon='devices_fold').props('flat color=white round').tooltip('Parallel Bibles'):
+                    with ui.button(icon='devices_fold').props('flat color=white round').tooltip(get_translation("Parallel Bibles")):
                         with ui.menu():
-                            ui.menu_item('Add Parallel Tab', on_click=self.add_tab_area2)
-                            ui.menu_item('Close Parallel Tab', on_click=self.remove_tab_area2)
-                            ui.menu_item('Close Others', on_click=self.close_other_area2_tabs)
+                            ui.menu_item(get_translation("Add Parallel Tab"), on_click=self.add_tab_area2)
+                            ui.menu_item(get_translation("Close Parallel Tab"), on_click=self.remove_tab_area2)
+                            ui.menu_item(get_translation("Close Others"), on_click=self.close_other_area2_tabs)
                             ui.separator()
                             ui.menu_item(primary_bible, on_click=lambda: self.load_area_2_content(title=primary_bible)).tooltip(primary_bible)
                             ui.menu_item(secondary_bible, on_click=lambda: self.load_area_2_content(title=secondary_bible)).tooltip(secondary_bible)
                             ui.separator()
-                            ui.menu_item('Original Reader’s Bible', on_click=lambda: self.load_area_2_content(title='ORB')).tooltip('ORB')
-                            ui.menu_item('Original Interlinear Bible', on_click=lambda: self.load_area_2_content(title='OIB')).tooltip('OIB')
-                            ui.menu_item('Original Parallel Bible', on_click=lambda: self.load_area_2_content(title='OPB')).tooltip('OPB')
-                            ui.menu_item('Original Discourse Bible', on_click=lambda: self.load_area_2_content(title='ODB')).tooltip('ODB')
-                            ui.menu_item('Original Linguistic Bible', on_click=lambda: self.load_area_2_content(title='OLB')).tooltip('OLB')
+                            ui.menu_item(get_translation("Original Reader’s Bible"), on_click=lambda: self.load_area_2_content(title='ORB')).tooltip('ORB')
+                            ui.menu_item(get_translation("Original Interlinear Bible"), on_click=lambda: self.load_area_2_content(title='OIB')).tooltip('OIB')
+                            ui.menu_item(get_translation("Original Parallel Bible"), on_click=lambda: self.load_area_2_content(title='OPB')).tooltip('OPB')
+                            ui.menu_item(get_translation("Original Discourse Bible"), on_click=lambda: self.load_area_2_content(title='ODB')).tooltip('ODB')
+                            ui.menu_item(get_translation("Original Linguistic Bible"), on_click=lambda: self.load_area_2_content(title='OLB')).tooltip('OLB')
                             ui.separator()
                             if app.storage.client["custom"] and config.bibles_custom:
                                 for i in config.bibles_custom:
@@ -1005,107 +1005,107 @@ class BibleMateGUI:
                             
 
                     # Bible Tools
-                    with ui.button(icon='build').props('flat color=white round').tooltip('Tools'):
+                    with ui.button(icon='build').props('flat color=white round').tooltip(get_translation("Tools")):
                         with ui.menu():
-                            ui.menu_item('Add Tool Tab', on_click=self.add_tab_area2)
-                            ui.menu_item('Close Tool Tab', on_click=self.remove_tab_area2)
-                            ui.menu_item('Close Others', on_click=self.close_other_area2_tabs)
+                            ui.menu_item(get_translation("Add Tool Tab"), on_click=self.add_tab_area2)
+                            ui.menu_item(get_translation("Close Tool Tab"), on_click=self.remove_tab_area2)
+                            ui.menu_item(get_translation("Close Others"), on_click=self.close_other_area2_tabs)
                             ui.separator()
-                            ui.menu_item('Bible Podcast', on_click=lambda: self.load_area_2_content(title='Podcast', sync=True))
-                            ui.menu_item('Bible Audio', on_click=lambda: self.load_area_2_content(title='Audio', sync=True))
+                            ui.menu_item(get_translation("Bible Podcast"), on_click=lambda: self.load_area_2_content(title='Podcast', sync=True))
+                            ui.menu_item(get_translation("Bible Audio"), on_click=lambda: self.load_area_2_content(title='Audio', sync=True))
                             ui.separator()
-                            ui.menu_item('Bible Commentaries', on_click=lambda: self.load_area_2_content(title='Commentary', sync=True))
-                            ui.menu_item('Cross-references', on_click=lambda: self.load_area_2_content(title='Xrefs', sync=True))
-                            ui.menu_item('Treasury of Scripture Knowledge', on_click=lambda: self.load_area_2_content(title='Treasury', sync=True))
-                            #ui.menu_item('Discourse Analysis', on_click=lambda: self.load_area_2_content(self.work_in_progress))
-                            #ui.menu_item('Morphological Data', on_click=lambda: self.load_area_2_content(self.work_in_progress))
-                            #ui.menu_item('Translation Spectrum', on_click=lambda: self.load_area_2_content(self.work_in_progress))
+                            ui.menu_item(get_translation("Bible Commentaries"), on_click=lambda: self.load_area_2_content(title='Commentary', sync=True))
+                            ui.menu_item(get_translation("Cross-references"), on_click=lambda: self.load_area_2_content(title='Xrefs', sync=True))
+                            ui.menu_item(get_translation("Treasury of Scripture Knowledge"), on_click=lambda: self.load_area_2_content(title='Treasury', sync=True))
+                            #ui.menu_item(get_translation("Discourse Analysis"), on_click=lambda: self.load_area_2_content(self.work_in_progress))
+                            #ui.menu_item(get_translation("Morphological Data"), on_click=lambda: self.load_area_2_content(self.work_in_progress))
+                            #ui.menu_item(get_translation("Translation Spectrum"), on_click=lambda: self.load_area_2_content(self.work_in_progress))
                             ui.separator()
-                            ui.menu_item('Bible Promises', on_click=lambda: self.load_area_2_content(title='Promises_'))
-                            ui.menu_item('Bible Parallels', on_click=lambda: self.load_area_2_content(title='Parallels_'))
+                            ui.menu_item(get_translation("Bible Promises"), on_click=lambda: self.load_area_2_content(title='Promises_'))
+                            ui.menu_item(get_translation("Bible Parallels"), on_click=lambda: self.load_area_2_content(title='Parallels_'))
                             ui.separator()
-                            ui.menu_item('Bible Timelines', on_click=lambda: self.load_area_2_content(title='Timelines', sync=True))
-                            ui.menu_item('Bible Chronology', on_click=lambda: self.load_area_2_content(title='Chronology'))
+                            ui.menu_item(get_translation("Bible Timelines"), on_click=lambda: self.load_area_2_content(title='Timelines', sync=True))
+                            ui.menu_item(get_translation("Bible Chronology"), on_click=lambda: self.load_area_2_content(title='Chronology'))
                             ui.separator()
-                            ui.menu_item('Morphology', on_click=lambda: self.load_area_2_content(title='Morphology', sync=True))
+                            ui.menu_item(get_translation("Morphology"), on_click=lambda: self.load_area_2_content(title='Morphology', sync=True))
                             ui.separator()
-                            ui.menu_item('Indexes', on_click=lambda: self.load_area_2_content(title='Indexes', sync=True))
+                            ui.menu_item(get_translation("Indexes"), on_click=lambda: self.load_area_2_content(title='Indexes', sync=True))
                     
-                    with ui.button(icon='search').props('flat color=white round').tooltip('Search'):
+                    with ui.button(icon='search').props('flat color=white round').tooltip(get_translation("Search")):
                         with ui.menu():
-                            #ui.menu_item('Add Search Tab', on_click=self.add_tab_area2)
-                            #ui.menu_item('Remove Search Tab', on_click=self.remove_tab_area2)
-                            #ui.menu_item('Close Others', on_click=self.close_other_area2_tabs)
+                            #ui.menu_item(get_translation("Add Search Tab"), on_click=self.add_tab_area2)
+                            #ui.menu_item(get_translation("Remove Search Tab"), on_click=self.remove_tab_area2)
+                            #ui.menu_item(get_translation("Close Others"), on_click=self.close_other_area2_tabs)
                             #ui.separator()
-                            ui.menu_item('Bibles', on_click=lambda: self.load_area_2_content(title='Verses'))
-                            ui.menu_item('Parallels', on_click=lambda: self.load_area_2_content(title='Parallels'))
-                            ui.menu_item('Promises', on_click=lambda: self.load_area_2_content(title='Promises'))
-                            ui.menu_item('Topics', on_click=lambda: self.load_area_2_content(title='Topics'))
-                            ui.menu_item('Characters', on_click=lambda: self.load_area_2_content(title='Characters'))
-                            ui.menu_item('Relationships', on_click=lambda: self.load_area_2_content(title='Relationships'))
-                            ui.menu_item('Locations', on_click=lambda: self.load_area_2_content(title='Locations'))
-                            ui.menu_item('Maps', on_click=lambda: self.load_area_2_content(title='Maps'))
-                            ui.menu_item('Names', on_click=lambda: self.load_area_2_content(title='Names'))
-                            ui.menu_item('Dictionaries', on_click=lambda: self.load_area_2_content(title='Dictionaries'))
-                            ui.menu_item('Encyclopedias', on_click=lambda: self.load_area_2_content(title='Encyclopedias'))
-                            ui.menu_item('Lexicons', on_click=lambda: self.load_area_2_content(title='Lexicons'))
+                            ui.menu_item(get_translation("Verses"), on_click=lambda: self.load_area_2_content(title='Verses'))
+                            ui.menu_item(get_translation("Parallels"), on_click=lambda: self.load_area_2_content(title='Parallels'))
+                            ui.menu_item(get_translation("Promises"), on_click=lambda: self.load_area_2_content(title='Promises'))
+                            ui.menu_item(get_translation("Topics"), on_click=lambda: self.load_area_2_content(title='Topics'))
+                            ui.menu_item(get_translation("Characters"), on_click=lambda: self.load_area_2_content(title='Characters'))
+                            ui.menu_item(get_translation("Relationships"), on_click=lambda: self.load_area_2_content(title='Relationships'))
+                            ui.menu_item(get_translation("Locations"), on_click=lambda: self.load_area_2_content(title='Locations'))
+                            ui.menu_item(get_translation("Maps"), on_click=lambda: self.load_area_2_content(title='Maps'))
+                            ui.menu_item(get_translation("Names"), on_click=lambda: self.load_area_2_content(title='Names'))
+                            ui.menu_item(get_translation("Dictionaries"), on_click=lambda: self.load_area_2_content(title='Dictionaries'))
+                            ui.menu_item(get_translation("Encyclopedias"), on_click=lambda: self.load_area_2_content(title='Encyclopedias'))
+                            ui.menu_item(get_translation("Lexicons"), on_click=lambda: self.load_area_2_content(title='Lexicons'))
 
-                    with ui.button(icon='auto_awesome').props('flat color=white round').tooltip('AI'):
+                    with ui.button(icon='auto_awesome').props('flat color=white round').tooltip(get_translation("AI")):
                         with ui.menu():
-                            ui.menu_item('AI Commentary', on_click=lambda: (
+                            ui.menu_item(get_translation("AI Commentary"), on_click=lambda: (
                                 app.storage.user.update(favorite_commentary="AIC"),
                                 self.load_area_2_content(title='Commentary', sync=True)
                             ))
                             #ui.menu_item('AI Q&A', on_click=lambda: self.load_area_2_content(self.work_in_progress))
-                            ui.menu_item('AI Chat', on_click=lambda: self.load_area_2_content(title='Chat'))
-                            ui.menu_item('Partner Mode', on_click=lambda: self.load_area_2_content(title='Partner'))
-                            ui.menu_item('Agent Mode', on_click=lambda: self.load_area_2_content(title='Agent'))
+                            ui.menu_item(get_translation("AI Chat"), on_click=lambda: self.load_area_2_content(title='Chat'))
+                            ui.menu_item(get_translation("Partner Mode"), on_click=lambda: self.load_area_2_content(title='Partner'))
+                            ui.menu_item(get_translation("Agent Mode"), on_click=lambda: self.load_area_2_content(title='Agent'))
 
-                    with ui.button(icon='settings').props('flat color=white round').tooltip('Settings'):
+                    with ui.button(icon='settings').props('flat color=white round').tooltip(get_translation("Settings")):
                         with ui.menu():
                             # swap layout
-                            ui.menu_item('Bible Only', on_click=lambda: self.swap_layout(1))
-                            ui.menu_item('Tool Only', on_click=lambda: self.swap_layout(3))
-                            ui.menu_item('Bible & Tool', on_click=lambda: self.swap_layout(2))
+                            ui.menu_item(get_translation("Bible Only"), on_click=lambda: self.swap_layout(1))
+                            ui.menu_item(get_translation("Tool Only"), on_click=lambda: self.swap_layout(3))
+                            ui.menu_item(get_translation("Bible & Tool"), on_click=lambda: self.swap_layout(2))
                             # swap
                             def toggleSwapButton():
                                 app.storage.user["layout_swap_button"] = not app.storage.user["layout_swap_button"]
-                            with ui.row().tooltip('Toggle Display of Swap Layout Button'):
-                                ui.menu_item('Swap', on_click=toggleSwapButton)
+                            with ui.row().tooltip(get_translation("Toggle Display of Swap Layout Button")):
+                                ui.menu_item(get_translation("Swap"), on_click=toggleSwapButton)
                                 ui.space()
                                 ui.switch().bind_value(app.storage.user, 'layout_swap_button')
                             # navigate
                             def toggleBibleSelectionButton():
                                 app.storage.user["bible_select_button"] = not app.storage.user["bible_select_button"]
-                            with ui.row().tooltip('Toggle Display of Bible Selection Button'):
-                                ui.menu_item('Go', on_click=toggleBibleSelectionButton)
+                            with ui.row().tooltip(get_translation("Toggle Display of Bible Selection Button")):
+                                ui.menu_item(get_translation("Go"), on_click=toggleBibleSelectionButton)
                                 ui.space()
                                 ui.switch().bind_value(app.storage.user, 'bible_select_button')
                             # sync
                             def toggleSync():
                                 app.storage.user["sync"] = not app.storage.user["sync"]
-                            with ui.row().tooltip('Toggle Bible Synchronization'):
-                                ui.menu_item('Sync', on_click=toggleSync)
+                            with ui.row().tooltip(get_translation("Toggle Bible Synchronization")):
+                                ui.menu_item(get_translation("Sync"), on_click=toggleSync)
                                 ui.space()
                                 ui.switch().bind_value(app.storage.user, 'sync')
                             ui.separator()
                             # full screen
                             def toggleFullscreen(): # ui.fullscreen().toggle does not work in this case
                                 app.storage.user["fullscreen"] = not app.storage.user["fullscreen"]
-                            with ui.row().tooltip('Toggle Fullscreen'):
-                                ui.menu_item('Screen', on_click=toggleFullscreen)
+                            with ui.row().tooltip(get_translation("Toggle Fullscreen")):
+                                ui.menu_item(get_translation("Screen"), on_click=toggleFullscreen)
                                 ui.space()
                                 ui.switch().bind_value(app.storage.user, 'fullscreen')
                             # dark mode
                             with ui.menu_item() as dark_mode_menu_item:
-                                dark_mode_label = ui.label("Light Mode" if app.storage.user["dark_mode"] else "Dark Mode").classes('flex items-center')
+                                dark_mode_label = ui.label(get_translation("Light Mode") if app.storage.user["dark_mode"] else get_translation("Dark Mode")).classes('flex items-center')
                             def toggle_dark_mode_menu_item(text_label: ui.label):
                                 app.storage.user['dark_mode'] = not app.storage.user['dark_mode']
                                 #text_label.set_text("Light Mode" if app.storage.user["dark_mode"] else "Dark Mode")
                                 ui.run_javascript('location.reload()')
                             dark_mode_menu_item.on('click', lambda: toggle_dark_mode_menu_item(dark_mode_label))
                             ui.separator()
-                            ui.menu_item('Preferences', on_click=lambda: ui.navigate.to('/settings'))
+                            ui.menu_item(get_translation("Preferences"), on_click=lambda: ui.navigate.to('/settings'))
 
         # --- Drawer (Mobile Menu) ---
         # This section is unchanged
@@ -1126,36 +1126,36 @@ class BibleMateGUI:
                     # This is just a label now; the parent button handles the click
                     ui.label('BibleMate AI').classes('text-lg ml-2')
 
-            quick_search2 = ui.input(placeholder='🔍 Quick search ...', autocomplete=auto_suggestions) \
+            quick_search2 = ui.input(placeholder=f'🔍 {get_translation("Quick search")} ...', autocomplete=auto_suggestions) \
                     .props('clearable outlined rounded dense autofocus enterkeyhint="search" hide-bottom-space') \
                     .classes('w-full !m-0 !p-0')
             quick_search2.on('keydown.enter.prevent', lambda: perform_quick_search(quick_search2))
 
-            ui.switch('Go').bind_value(app.storage.user, 'bible_select_button')
-            ui.switch('Swap').bind_value(app.storage.user, 'layout_swap_button')
-            ui.switch('Menu').bind_value(app.storage.user, 'sync')
-            ui.switch('Fullscreen').bind_value(app.storage.user, 'fullscreen')
-            ui.switch('Dark Mode').bind_value(app.storage.user, 'dark_mode').on_value_change(lambda: ui.run_javascript('location.reload()'))
+            ui.switch(get_translation("Go")).bind_value(app.storage.user, 'bible_select_button')
+            ui.switch(get_translation("Swap")).bind_value(app.storage.user, 'layout_swap_button')
+            ui.switch(get_translation("Sync")).bind_value(app.storage.user, 'sync')
+            ui.switch(get_translation("Fullscreen")).bind_value(app.storage.user, 'fullscreen')
+            ui.switch(get_translation("Dark Mode")).bind_value(app.storage.user, 'dark_mode').on_value_change(lambda: ui.run_javascript('location.reload()'))
 
             # Bibles
-            with ui.expansion('Bibles', icon='local_library').props('header-class="text-secondary"'):
-                ui.item('Original Reader’s Bible', on_click=lambda: (
+            with ui.expansion(get_translation("Bibles"), icon='local_library').props('header-class="text-secondary"'):
+                ui.item(get_translation("Original Reader’s Bible"), on_click=lambda: (
                     self.load_area_1_content(title='ORB'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable').tooltip('ORB')
-                ui.item('Original Interlinear Bible', on_click=lambda: (
+                ui.item(get_translation("Original Interlinear Bible"), on_click=lambda: (
                     self.load_area_1_content(title='OIB'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable').tooltip('OIB')
-                ui.item('Original Parallel Bible', on_click=lambda: (
+                ui.item(get_translation("Original Parallel Bible"), on_click=lambda: (
                     self.load_area_1_content(title='OPB'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable').tooltip('OPB')
-                ui.item('Original Discourse Bible', on_click=lambda: (
+                ui.item(get_translation("Original Discourse Bible"), on_click=lambda: (
                     self.load_area_1_content(title='ODB'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable').tooltip('ODB')
-                ui.item('Original Linguistic Bible', on_click=lambda: (
+                ui.item(get_translation("Original Linguistic Bible"), on_click=lambda: (
                     self.load_area_1_content(title='OLB'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable').tooltip('OLB')
@@ -1175,24 +1175,24 @@ class BibleMateGUI:
                         )).props('clickable').tooltip(config.bibles[i][0])
 
             # Parallel Bibles
-            with ui.expansion('Parallel Bibles', icon='devices_fold').props('header-class="text-secondary"'):
-                ui.item('Original Reader’s Bible', on_click=lambda: (
+            with ui.expansion(get_translation("Parallel Bibles"), icon='devices_fold').props('header-class="text-secondary"'):
+                ui.item(get_translation("Original Reader’s Bible"), on_click=lambda: (
                     self.load_area_2_content(title='ORB'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable').tooltip('ORB')
-                ui.item('Original Interlinear Bible', on_click=lambda: (
+                ui.item(get_translation("Original Interlinear Bible"), on_click=lambda: (
                     self.load_area_2_content(title='OIB'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable').tooltip('OIB')
-                ui.item('Original Parallel Bible', on_click=lambda: (
+                ui.item(get_translation("Original Parallel Bible"), on_click=lambda: (
                     self.load_area_2_content(title='OPB'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable').tooltip('OPB')
-                ui.item('Original Discourse Bible', on_click=lambda: (
+                ui.item(get_translation("Original Discourse Bible"), on_click=lambda: (
                     self.load_area_2_content(title='ODB'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable').tooltip('ODB')
-                ui.item('Original Linguistic Bible', on_click=lambda: (
+                ui.item(get_translation("Original Linguistic Bible"), on_click=lambda: (
                     self.load_area_2_content(title='OLB'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable').tooltip('OLB')
@@ -1212,123 +1212,123 @@ class BibleMateGUI:
                         )).props('clickable').tooltip(config.bibles[i][0])
 
             # Bible Tools
-            with ui.expansion('Tools', icon='build').props('header-class="text-secondary"'):
-                ui.item('Bible Podcast', on_click=lambda: (
+            with ui.expansion(get_translation("Tools"), icon='build').props('header-class="text-secondary"'):
+                ui.item(get_translation("Bible Podcast"), on_click=lambda: (
                     self.load_area_2_content(title='Podcast', sync=True),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Bible Audio', on_click=lambda: (
+                ui.item(get_translation("Bible Audio"), on_click=lambda: (
                     self.load_area_2_content(title='Audio', sync=True),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.separator()
-                ui.item('Bible Commentaries', on_click=lambda: (
+                ui.item(get_translation("Bible Commentaries"), on_click=lambda: (
                     self.load_area_2_content(title='Commentary', sync=True),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Cross-references', on_click=lambda: (
+                ui.item(get_translation("Cross-references"), on_click=lambda: (
                     self.load_area_2_content(title='Xrefs', sync=True),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Treasury of Scripture Knowledge', on_click=lambda: (
+                ui.item(get_translation("Treasury of Scripture Knowledge"), on_click=lambda: (
                     self.load_area_2_content(title='Treasury', sync=True),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.separator()
-                #ui.item('Discourse Analysis', on_click=lambda: (
+                #ui.item(get_translation("Discourse Analysis"), on_click=lambda: (
                 #    self.load_area_2_content(self.work_in_progress),
                 #    app.storage.user.update(left_drawer_open=False)
                 #)).props('clickable')
-                #ui.item('Morphological Data', on_click=lambda: (
+                #ui.item(get_translation("Morphological Data"), on_click=lambda: (
                 #    self.load_area_2_content(self.work_in_progress),
                 #    app.storage.user.update(left_drawer_open=False)
                 #)).props('clickable')
-                #ui.item('Translation Spectrum', on_click=lambda: (
+                #ui.item(get_translation("Translation Spectrum"), on_click=lambda: (
                 #    self.load_area_2_content(self.work_in_progress),
                 #    app.storage.user.update(left_drawer_open=False)
                 #)).props('clickable')
-                ui.item('Bible Promises', on_click=lambda: (
+                ui.item(get_translation("Bible Promises"), on_click=lambda: (
                     self.load_area_2_content(title='Promises_'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Bible Parallels', on_click=lambda: (
+                ui.item(get_translation("Bible Parallels"), on_click=lambda: (
                     self.load_area_2_content(title='Parallels_'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.separator()
-                ui.item('Bible Timelines', on_click=lambda: (
+                ui.item(get_translation("Bible Timelines"), on_click=lambda: (
                     self.load_area_2_content(title='Timelines', sync=True),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Bible Chronology', on_click=lambda: (
+                ui.item(get_translation("Bible Chronology"), on_click=lambda: (
                     self.load_area_2_content(title='Chronology'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.separator()
-                ui.item('Morphology', on_click=lambda: (
+                ui.item(get_translation("Morphology"), on_click=lambda: (
                     self.load_area_2_content(title='Morphology', sync=True),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.separator()
-                ui.item('Indexes', on_click=lambda: (
+                ui.item(get_translation("Indexes"), on_click=lambda: (
                     self.load_area_2_content(title='Indexes', sync=True),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
 
             # Search
-            with ui.expansion('Search', icon='search').props('header-class="text-secondary"'):
-                ui.item('Bibles', on_click=lambda: (
+            with ui.expansion(get_translation("Search"), icon='search').props('header-class="text-secondary"'):
+                ui.item(get_translation("Verses"), on_click=lambda: (
                     self.load_area_2_content(title='Verses'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Parallels', on_click=lambda: (
+                ui.item(get_translation("Parallels"), on_click=lambda: (
                     self.load_area_2_content(title='Parallels'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Promises', on_click=lambda: (
+                ui.item(get_translation("Promises"), on_click=lambda: (
                     self.load_area_2_content(title='Promises'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Topics', on_click=lambda: (
+                ui.item(get_translation("Topics"), on_click=lambda: (
                     self.load_area_2_content(title='Topics'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Characters', on_click=lambda: (
+                ui.item(get_translation("Characters"), on_click=lambda: (
                     self.load_area_2_content(title='Characters'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Relationships', on_click=lambda: (
+                ui.item(get_translation("Relationships"), on_click=lambda: (
                     self.load_area_2_content(title='Relationships'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Locations', on_click=lambda: (
+                ui.item(get_translation("Locations"), on_click=lambda: (
                     self.load_area_2_content(title='Locations'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Maps', on_click=lambda: (
+                ui.item(get_translation("Maps"), on_click=lambda: (
                     self.load_area_2_content(title='Maps'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Names', on_click=lambda: (
+                ui.item(get_translation("Names"), on_click=lambda: (
                     self.load_area_2_content(title='Names'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Dictionaries', on_click=lambda: (
+                ui.item(get_translation("Dictionaries"), on_click=lambda: (
                     self.load_area_2_content(title='Dictionaries'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Encyclopedias', on_click=lambda: (
+                ui.item(get_translation("Encyclopedias"), on_click=lambda: (
                     self.load_area_2_content(title='Encyclopedias'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Lexicons', on_click=lambda: (
+                ui.item(get_translation("Lexicons"), on_click=lambda: (
                     self.load_area_2_content(title='Lexicons'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
             
             # AI
-            with ui.expansion('AI', icon='auto_awesome').props('header-class="text-secondary"'):
-                ui.item('AI Commentary', on_click=lambda: (
+            with ui.expansion(get_translation("AI"), icon='auto_awesome').props('header-class="text-secondary"'):
+                ui.item(get_translation("AI Commentary"), on_click=lambda: (
                     app.storage.user.update(favorite_commentary="AIC"),
                     self.load_area_2_content(title='Commentary', sync=True),
                     app.storage.user.update(left_drawer_open=False)
@@ -1337,35 +1337,35 @@ class BibleMateGUI:
                 #    self.load_area_2_content(self.work_in_progress),
                 #    app.storage.user.update(left_drawer_open=False)
                 #)).props('clickable')
-                ui.item('AI Chat', on_click=lambda: (
+                ui.item(get_translation("AI Chat"), on_click=lambda: (
                     self.load_area_2_content(title='Chat'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Partner Mode', on_click=lambda: (
+                ui.item(get_translation("Partner Mode"), on_click=lambda: (
                     self.load_area_2_content(title='Partner'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Agent Mode', on_click=lambda: (
+                ui.item(get_translation("Agent Mode"), on_click=lambda: (
                     self.load_area_2_content(title='Agent'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
 
             # Preferences
-            with ui.expansion('Settings', icon='settings').props('header-class="text-secondary"'):
-                ui.item('Bible Only', on_click=lambda: (
+            with ui.expansion(get_translation("Settings"), icon='settings').props('header-class="text-secondary"'):
+                ui.item(get_translation("Bible Only"), on_click=lambda: (
                     self.swap_layout(1),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Tool Only', on_click=lambda: (
+                ui.item(get_translation("Tool Only"), on_click=lambda: (
                     self.swap_layout(2),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item('Bible & Tool', on_click=lambda: (
+                ui.item(get_translation("Bible & Tool"), on_click=lambda: (
                     self.swap_layout(3),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.separator()
-                ui.item('Preferences', on_click=lambda: (
+                ui.item(get_translation("Preferences"), on_click=lambda: (
                     ui.navigate.to('/settings'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')

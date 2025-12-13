@@ -1,4 +1,5 @@
 from nicegui import ui, app
+from biblemategui import get_translation
 from biblemategui import BIBLEMATEGUI_DATA
 from biblemategui.fx.bible import *
 from biblemategui.fx.original import *
@@ -145,26 +146,26 @@ def original_interlinear(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, 
             gui.load_area_2_content(title="Verses")
         with ui.button(icon='more_vert').props(f'flat round color={"white" if app.storage.user["dark_mode"] else "black"}'):
             with ui.menu():
-                ui.menu_item('◀️ Prev Chapter', on_click=lambda: previous_chapter(bible_selector.get_selection()))
-                ui.menu_item('▶️ Next Chapter', on_click=lambda: next_chapter(bible_selector.get_selection()))
+                ui.menu_item(f'◀️ {get_translation("Prev Chapter")}', on_click=lambda: previous_chapter(bible_selector.get_selection()))
+                ui.menu_item(f'▶️ {get_translation("Next Chapter")}', on_click=lambda: next_chapter(bible_selector.get_selection()))
                 if area == 1:
                     ui.separator()
-                    ui.menu_item('🔍 Search Bible', on_click=lambda: search_bible())
-                    ui.menu_item('🔍 Search OT', on_click=lambda: search_bible(q=f"OT:::{app.storage.user['tool_query']}"))
-                    ui.menu_item('🔍 Search NT', on_click=lambda: search_bible(q=f"NT:::{app.storage.user['tool_query']}"))
-                    ui.menu_item(f'🔍 Search {bible_selector.book_select.value}', on_click=lambda: search_bible(q=f"{bible_selector.book_select.value}:::{app.storage.user['tool_query']}"))
+                    ui.menu_item(f'🔍 {get_translation("Search")} {bible_selector.version_select.value}', on_click=lambda: search_bible())
+                    ui.menu_item(f'🔍 {get_translation("Search")} {get_translation("OT")}', on_click=lambda: search_bible(q=f"OT:::{app.storage.user['tool_query']}"))
+                    ui.menu_item(f'🔍 {get_translation("Search")} {get_translation("NT")}', on_click=lambda: search_bible(q=f"NT:::{app.storage.user['tool_query']}"))
+                    ui.menu_item(f'🔍 {get_translation("Search")} {bible_selector.book_select.value}', on_click=lambda: search_bible(q=f"{bible_selector.book_select.value}:::{app.storage.user['tool_query']}"))
                 ui.separator()
-                ui.menu_item('⏳ Timelines', on_click=lambda: open_tool(bible_selector.get_selection(), title="Timelines"))
+                ui.menu_item(f'⏳ {get_translation("Timelines")}', on_click=lambda: open_tool(bible_selector.get_selection(), title="Timelines"))
                 ui.separator()
-                ui.menu_item('📡 Bible Podcast', on_click=lambda: open_tool(bible_selector.get_selection(), title="Podcast"))
-                ui.menu_item('🔊 Bible Audio', on_click=lambda: open_tool(bible_selector.get_selection(), title="Audio"))
+                ui.menu_item(f'📡 {get_translation("Bible Podcast")}', on_click=lambda: open_tool(bible_selector.get_selection(), title="Podcast"))
+                ui.menu_item(f'🔊 {get_translation("Bible Audio")}', on_click=lambda: open_tool(bible_selector.get_selection(), title="Audio"))
                 ui.separator()
-                ui.menu_item('🔗 Cross-references', on_click=lambda: open_tool(bible_selector.get_selection(), title="Xrefs"))
-                #ui.menu_item('🧠 AI Commentary', on_click=lambda: (
+                ui.menu_item(f'🔗 {get_translation("Cross-references")}', on_click=lambda: open_tool(bible_selector.get_selection(), title="Xrefs"))
+                #ui.menu_item(f'🧠 {get_translation("AI Commentary")}', on_click=lambda: (
                 #    app.storage.user.update(favorite_commentary="AIC"),
                 #    open_tool(bible_selector.get_selection(), title="Commentary")
                 #))
-                ui.menu_item('📑 Indexes', on_click=lambda: open_tool(bible_selector.get_selection(), title="Indexes"))
+                ui.menu_item(f'📑 {get_translation("Indexes")}', on_click=lambda: open_tool(bible_selector.get_selection(), title="Indexes"))
     bible_selector.create_ui("OIB", b, c, v, additional_items=additional_items)
 
     # create a dummy label for being the parent of `open_verse_context_menu`, as ui.html can't take two context menus

@@ -1,4 +1,5 @@
 from nicegui import ui
+from biblemategui import get_translation
 
 
 # --- LOGIC: Bible Selection Dialog ---
@@ -31,7 +32,7 @@ class BibleSelectionDialog:
         self.content_area.clear()
         
         with self.content_area:
-            self.render_header("Select Book")
+            self.render_header(get_translation("Select Book"))
             
             # Use a generic container with native scrolling for better mobile compatibility
             # Use flex-1 and min-h-0 to ensure proper scrolling behavior inside flex container
@@ -41,7 +42,7 @@ class BibleSelectionDialog:
                     for book_id in range(1, 67):
                         name = self.book_names.get(book_id, f"Book {book_id}")
                         ui.button(name, on_click=lambda id=book_id: self.select_book(id)) \
-                            .props('flat align=left').classes('w-20')
+                            .props('outline align=center text-color=secondary').classes('w-20')
 
     def select_book(self, book_id):
         self.selection['book_id'] = book_id
@@ -52,7 +53,7 @@ class BibleSelectionDialog:
         book_name = self.book_names.get(self.selection['book_id'])
         
         with self.content_area:
-            self.render_header(f"{book_name}: Select Chapter")
+            self.render_header(f"{book_name}: {get_translation('Select Chapter')}")
             
             # Use flex-1 and min-h-0 to ensure proper scrolling behavior inside flex container
             with ui.element('div').classes('w-full flex-1 overflow-y-auto min-h-0'):
@@ -63,7 +64,7 @@ class BibleSelectionDialog:
                         ui.button(str(chap_num), on_click=lambda c=chap_num: self.select_chapter(c)) \
                             .classes('w-15')
 
-            ui.button('Back', on_click=self.render_books).props('outline color=grey').classes('w-full mt-2 shrink-0')
+            ui.button(get_translation("Back"), on_click=self.render_books).props('outline color=grey').classes('w-full mt-2 shrink-0')
 
     def select_chapter(self, chapter):
         self.selection['chapter'] = chapter
@@ -74,7 +75,7 @@ class BibleSelectionDialog:
         book_name = self.book_names.get(self.selection['book_id'])
         
         with self.content_area:
-            self.render_header(f"{book_name} {self.selection['chapter']}: Select Verse")
+            self.render_header(f"{book_name} {self.selection['chapter']}: {get_translation('Select Verse')}")
             
             # Get max verses for this chapter
             max_verses = self.verses[self.selection['book_id']][self.selection['chapter']]
@@ -87,7 +88,7 @@ class BibleSelectionDialog:
                         ui.button(str(v), on_click=lambda verse=v: self.finish_selection(verse)) \
                             .classes('w-15')
 
-            ui.button('Back', on_click=self.render_chapters).props('outline color=grey').classes('w-full mt-2 shrink-0')
+            ui.button(get_translation("Back"), on_click=self.render_chapters).props('outline color=grey').classes('w-full mt-2 shrink-0')
 
     def finish_selection(self, verse):
         self.selection['verse'] = verse

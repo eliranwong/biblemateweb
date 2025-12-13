@@ -262,7 +262,7 @@ def search_bible_verses(gui=None, q='', **_):
                                 removable=True, 
                                 icon='book',
                                 #on_click=partial(ui.notify, f'Clicked {v['ref']}'),
-                            ).classes('cursor-pointer font-bold shadow-sm') as chip:
+                            ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm') as chip:
                                 with ui.menu():
                                     ui.menu_item('📋 Copy', on_click=partial(gui.copy_text, get_verse_content(v['ref'], v['content'])))
                                     ui.separator()

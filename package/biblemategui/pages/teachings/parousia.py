@@ -26,7 +26,7 @@ def parousia(gui=None, **_):
                     verse,
                     icon='book',
                     on_click=partial(open_verse_reference, verse),
-                ).props('dense outline square icon=menu_book').classes('bg-white text-xs')
+                ).props('dense outline square text-color=white icon=menu_book').classes('bg-white text-xs')
 
     # Page Container
     with ui.column().classes('w-full max-w-4xl mx-auto p-4 gap-6'):

@@ -161,7 +161,7 @@ def search_bible_names(gui=None, q='', **_):
                             removable=True, 
                             icon='book',
                             #on_click=partial(ui.notify, f'Clicked {v['ref']}'),
-                        ).classes('cursor-pointer font-bold shadow-sm') as chip:
+                        ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm') as chip:
                             with ui.menu():
                                 ui.menu_item('Search Characters', on_click=partial(search_tool, "Characters", name))
                                 ui.menu_item('Search Locations', on_click=partial(search_tool, "Locations", name))

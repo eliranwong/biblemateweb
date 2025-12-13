@@ -172,7 +172,7 @@ def resource_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                                 icon='book',
                                 color='secondary',
                                 on_click=partial(open_collection, "Promises" if i == "PROMISES_INDEXES" else "Parallels", tool, number),
-                            ).classes('cursor-pointer font-bold shadow-sm')
+                            ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm')
                     else:
                         ui.label('No entries found for this category.') \
                             .classes('p-4 italic')

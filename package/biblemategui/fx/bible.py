@@ -225,11 +225,11 @@ class BibleSelector:
         if not self.version_options:
             self.version_options = getBibleVersionList(app.storage.client["custom"])
         bible_book_list = getBibleBookList(getBiblePath(self.selected_version))
-        self.book_options = [BibleBooks.abbrev["eng"][str(i)][0] for i in bible_book_list if str(i) in BibleBooks.abbrev["eng"]]
+        self.book_options = [BibleBooks.abbrev[app.storage.user['ui_language']][str(i)][0] for i in bible_book_list if str(i) in BibleBooks.abbrev[app.storage.user['ui_language']]]
         self.chapter_options = getBibleChapterList(getBiblePath(self.selected_version), self.selected_book)
         self.verse_options = getBibleVerseList(getBiblePath(self.selected_version), self.selected_book, self.selected_chapter)
         try:
-            default_book = BibleBooks.abbrev["eng"][str(self.selected_book)][0]
+            default_book = BibleBooks.abbrev[app.storage.user['ui_language']][str(self.selected_book)][0]
         except:
             self.selected_book = bible_book_list[0]
             default_book = self.book_options[0]
@@ -314,7 +314,7 @@ class BibleSelector:
     def reset_book_dropdown(self):
         """Reset book dropdown to initial state"""
         book_list = getBibleBookList(getBiblePath(self.selected_version))
-        self.book_options = [BibleBooks.abbrev["eng"][str(i)][0] for i in book_list if str(i) in BibleBooks.abbrev["eng"]]
+        self.book_options = [BibleBooks.abbrev[app.storage.user['ui_language']][str(i)][0] for i in book_list if str(i) in BibleBooks.abbrev[app.storage.user['ui_language']]]
         self.book_select.options = self.book_options
         self.book_select.value = self.book_options[0]
         self.selected_book = book_list[0]
