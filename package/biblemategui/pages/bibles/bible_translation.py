@@ -2,6 +2,7 @@ from nicegui import ui, app
 from biblemategui import get_translation
 from biblemategui.fx.bible import *
 from biblemategui.fx.original import *
+from biblemategui.fx.cloud_index_manager import get_drive_service, CloudIndexManager
 from biblemategui.js.sync_scrolling import *
 from biblemategui.data.cr_books import cr_books
 from biblemategui.data.lexical_data import lexical_data
@@ -10,6 +11,13 @@ import re, os
 
 
 def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, title="", **_):
+
+    verses_with_notes = []
+    token = app.storage.user.get('google_token', "")
+    if token:
+        service = get_drive_service(token)
+        index_mgr = CloudIndexManager(service)
+        verses_with_notes = index_mgr.get_chapter_notes_verselist(b, c)
 
     dummy_label1 = None
     dummy_label2 = None
@@ -28,31 +36,42 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
             return rf'<ref data-word="{lexical_entry}" class="tooltip-word">{lexical_data[lexical_entry+"a"][0]}'
         return match.group(0)
 
+    def open_tool(tool):
+        nonlocal area, gui
+        if area == 2:
+            gui.select_empty_area2_tab()
+        gui.load_area_2_content(title=tool, sync=False)
+
     def lex(event):
         nonlocal gui
         lexical_entry, *_ = event.args
         app.storage.user['tool_query'] = lexical_entry
-        gui.load_area_2_content(title='Lexicons')
+        open_tool("Lexicons")
 
     def wd(event):
         nonlocal gui
         lexical_entry, *_ = event.args
         app.storage.user['tool_query'] = lexical_entry
-        gui.load_area_2_content(title='Lexicons')
+        open_tool("Lexicons")
+
+    def note(event):
+        nonlocal gui, area
+        app.storage.user['tool_book_number'], app.storage.user['tool_chapter_number'], app.storage.user['tool_verse_number'], *_ = event.args
+        open_tool("Notes")
 
     def luV1(event):
         nonlocal bible_selector, gui, db, dummy_label1, area
         b, c, v = event.args
         bible_selector.verse_select.value = v
         with dummy_label1:
-            gui.open_verse_context_menu(db, b, c, v)
+            gui.open_verse_context_menu(db, b, c, v, (str(v) in verses_with_notes))
 
     def luV2(event):
         nonlocal bible_selector, gui, db, dummy_label2, area
         b, c, v = event.args
         bible_selector.verse_select.value = v
         with dummy_label2:
-            gui.open_verse_context_menu(db, b, c, v)
+            gui.open_verse_context_menu(db, b, c, v, (str(v) in verses_with_notes))
 
     def cr(event):
         nonlocal gui
@@ -72,6 +91,7 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
             gui.change_area_2_bible_chapter(None, b, c, v) if area == 1 else gui.change_area_1_bible_chapter(None, b, c, v)
 
     ui.on('lex', lex)
+    ui.on('note', note)
     ui.on('luV1', luV1)
     ui.on('luV2', luV2)
     ui.on('wd', wd)
@@ -116,10 +136,12 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
 
         content = re.sub(r'''<ref onclick='document.title="BIBLE:::([^<>]+?)"'>\1''', convert_uba_bible_link, content)
 
+    # add notes
+    content = re.sub(f">({'|'.join(verses_with_notes)})</vid>", rf'''>\1</vid> <ref onclick="note({b},{c},\1)">📝</ref>''', content)
     # Convert onclick and ondblclick links
     content = content.replace("luV(", "luV1(" if area == 1 else "luV2(")
-    content = re.sub(r'''(onclick|ondblclick)="(cr|bcv|luV1|luV2|luW|lex|bdbid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
-    content = re.sub(r"""(onclick|ondblclick)='(cr|bcv|luV1|luV2|luW|lex|bdbid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
+    content = re.sub(r'''(onclick|ondblclick)="(note|cr|bcv|luV1|luV2|luW|lex|bdbid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
+    content = re.sub(r"""(onclick|ondblclick)='(note|cr|bcv|luV1|luV2|luW|lex|bdbid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
 
     # adjust spacing
     content = content.replace("</vid> <pb/><br>", "</vid> ")

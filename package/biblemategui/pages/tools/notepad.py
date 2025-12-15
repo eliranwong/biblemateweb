@@ -97,14 +97,5 @@ def notepad(gui=None, q='', **_):
 
     ui.on('bcv', bcv)
 
-    # 1. CSS TRICK: Force Quasar's internal input wrapper to fill the height
-    ui.add_css('''
-        .full-height-textarea .q-field__control,
-        .full-height-textarea .q-field__native {
-            height: 100%;
-            max-height: 100%;
-        }
-    ''')
-
     notepad = Notepad(q)
     notepad.setup_ui()

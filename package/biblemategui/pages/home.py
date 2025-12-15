@@ -35,6 +35,7 @@ from biblemategui.pages.tools.promises import bible_promises_menu
 from biblemategui.pages.tools.parallels import bible_parallels_menu
 from biblemategui.pages.tools.morphology import word_morphology
 from biblemategui.pages.tools.notepad import notepad
+from biblemategui.pages.tools.notes import notes
 
 from biblemategui.pages.search.bible_verses import search_bible_verses
 from biblemategui.pages.search.bible_promises import search_bible_promises
@@ -80,7 +81,8 @@ class BibleMateGUI:
 
         # tools
         self.tools = {
-            "note": notepad,
+            "notes": notes,
+            "notepad": notepad,
             "parousia": parousia,
             "parousia_zh": parousia_zh,
             "chat": ai_chat,
@@ -515,7 +517,7 @@ class BibleMateGUI:
         self.select_empty_area2_tab()
         self.load_area_2_content(title="chat", sync=False)
 
-    def open_verse_context_menu(self, db, b, c, v):
+    def open_verse_context_menu(self, db, b, c, v, note=False):
         app.storage.user["tool_book_number"] = b
         app.storage.user["tool_chapter_number"] = c
         app.storage.user["tool_verse_number"] = v
@@ -563,7 +565,10 @@ class BibleMateGUI:
             ui.menu_item(f'👀 {get_translation("Comparison")}', on_click=compare_verse)
             ui.menu_item(f'📑 {get_translation("Indexes")}', on_click=lambda: open_tool("Indexes"))
             ui.separator()
-            ui.menu_item(f'📝 {get_translation("Add Note")}', on_click=add_to_notepad)
+            if config.google_client_id and config.google_client_secret:
+                ui.menu_item(f'📝 {get_translation("Edit Note" if note else "Add Note")}', on_click=lambda: open_tool("Notes"))
+            else:
+                ui.menu_item(f'📝 {get_translation("Add Note")}', on_click=add_to_notepad)
             ui.menu_item(f'💬 {get_translation("Ask BibleMate")}', on_click=ask_biblemate)
         menu.open()
 
@@ -1126,7 +1131,9 @@ class BibleMateGUI:
                             ui.separator()
                             ui.menu_item(get_translation("Indexes"), on_click=lambda: self.load_area_2_content(title='Indexes', sync=True))
                             ui.separator()
-                            ui.menu_item(get_translation("Notepad"), on_click=lambda: self.load_area_2_content(title='Note', sync=True))
+                            if config.google_client_id and config.google_client_secret:
+                                ui.menu_item(get_translation("Notes"), on_click=lambda: self.load_area_2_content(title='Notes', sync=True))
+                            ui.menu_item(get_translation("Notepad"), on_click=lambda: self.load_area_2_content(title='Notepad', sync=True))
                     
                     with ui.button(icon='search').props('flat color=white round').tooltip(get_translation("Search")):
                         with ui.menu():
@@ -1375,8 +1382,13 @@ class BibleMateGUI:
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.separator()
+                if config.google_client_id and config.google_client_secret:
+                    ui.item(get_translation("Notes"), on_click=lambda: (
+                        self.load_area_2_content(title='Notes', sync=True),
+                        app.storage.user.update(left_drawer_open=False)
+                    )).props('clickable')
                 ui.item(get_translation("Notepad"), on_click=lambda: (
-                    self.load_area_2_content(title='Note', sync=True),
+                    self.load_area_2_content(title='Notepad', sync=True),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
 

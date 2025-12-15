@@ -122,6 +122,11 @@ def page_home(
         html {{
             font-size: {app.storage.user['font_size']}%;
         }}
+        .full-height-textarea .q-field__control,
+        .full-height-textarea .q-field__native {{
+            height: 100%;
+            max-height: 100%;
+        }}
     """)
 
     # colors
@@ -368,31 +373,16 @@ def page_home(
 
     ui.on('selection_changed', on_selection)
 
-    # update the URL to reflect current settings without reloading
-    '''def update_url():
-        params = []
-        params.append(f'pc={app.storage.user["primary_color"]}')
-        params.append(f'sc={app.storage.user["secondary_color"]}')
-        params.append(f'fs={app.storage.user["font_size"]}')
-        params.append(f's={str(app.storage.user["sync"]).lower()}')
-        params.append(f'd={str(app.storage.user["dark_mode"]).lower()}')
-        if config.custom_token:
-            params.append(f't={config.custom_token}')
-        params.append(f'k={str(k).lower()}')
-        params.append(f'm={str(m).lower()}')
-        params.append(f'l={app.storage.user["layout"]}')
-        params.append(f'bbt={app.storage.user["bible_book_text"]}')
-        params.append(f'bb={app.storage.user["bible_book_number"]}')
-        params.append(f'bc={app.storage.user["bible_chapter_number"]}')
-        params.append(f'bv={app.storage.user["bible_verse_number"]}')
-        params.append(f'tbt={app.storage.user["tool_book_text"]}')
-        params.append(f'tb={app.storage.user["tool_book_number"]}')
-        params.append(f'tc={app.storage.user["tool_chapter_number"]}')
-        params.append(f'tv={app.storage.user["tool_verse_number"]}')
-        params.append(f'bq={app.storage.user["bible_query"]}')
-        params.append(f'tq={app.storage.user["tool_query"]}')
-        new_url = '/?' + '&'.join(params)
-        ui.run_javascript(f"history.replaceState(null, '', '{new_url}');")''' # TODO - update url when content is loaded
+    # update url
+    ui.timer(0, gui.replace_url, once=True)
+    # Add a JavaScript listener for the 'popstate' event (Back/Forward button)
+    ui.add_head_html('''
+        <script>
+            window.addEventListener('popstate', () => {
+                window.location.reload();
+            });
+        </script>
+    ''')
 
 # Settings
 @ui.page('/settings')

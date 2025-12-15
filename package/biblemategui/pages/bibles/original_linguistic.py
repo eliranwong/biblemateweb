@@ -3,40 +3,66 @@ from biblemategui import get_translation
 from biblemategui import BIBLEMATEGUI_DATA
 from biblemategui.fx.bible import *
 from biblemategui.fx.original import *
+from biblemategui.fx.cloud_index_manager import get_drive_service, CloudIndexManager
 from biblemategui.js.sync_scrolling import *
 import re, os
 
 
 def original_linguistic(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, **_):
 
+    verses_with_notes = []
+    token = app.storage.user.get('google_token', "")
+    if token:
+        service = get_drive_service(token)
+        index_mgr = CloudIndexManager(service)
+        verses_with_notes = index_mgr.get_chapter_notes_verselist(b, c)
+
     dummy_label1 = None
     dummy_label2 = None
 
     bible_selector = BibleSelector(on_version_changed=gui.change_area_1_bible_chapter if area == 1 else gui.change_area_2_bible_chapter, on_book_changed=gui.change_area_1_bible_chapter if area == 1 else gui.change_area_2_bible_chapter, on_chapter_changed=gui.change_area_1_bible_chapter if area == 1 else gui.change_area_2_bible_chapter, on_verse_changed=change_bible_chapter_verse)
 
+    def open_tool(tool):
+        nonlocal area, gui
+        if area == 2:
+            gui.select_empty_area2_tab()
+        gui.load_area_2_content(title=tool, sync=False)
+
+    def lex(event):
+        nonlocal gui
+        lexical_entry, *_ = event.args
+        app.storage.user['tool_query'] = lexical_entry
+        open_tool("Lexicons")
+
     def wd(event):
         nonlocal gui
         lexical_entry, *_ = event.args
         app.storage.user['tool_query'] = lexical_entry
-        gui.load_area_2_content(title='Lexicons')
+        open_tool("Lexicons")
+
+    def note(event):
+        nonlocal gui, area
+        app.storage.user['tool_book_number'], app.storage.user['tool_chapter_number'], app.storage.user['tool_verse_number'], *_ = event.args
+        open_tool("Notes")
 
     def luV1(event):
         nonlocal bible_selector, gui, db, dummy_label1, area
         b, c, v = event.args
         bible_selector.verse_select.value = v
         with dummy_label1:
-            gui.open_verse_context_menu(db, b, c, v)
+            gui.open_verse_context_menu(db, b, c, v, (str(v) in verses_with_notes))
 
     def luV2(event):
         nonlocal bible_selector, gui, db, dummy_label2, area
         b, c, v = event.args
         bible_selector.verse_select.value = v
         with dummy_label2:
-            gui.open_verse_context_menu(db, b, c, v)
+            gui.open_verse_context_menu(db, b, c, v, (str(v) in verses_with_notes))
 
     ui.on('wd', wd)
     ui.on('luV1', luV1)
     ui.on('luV2', luV2)
+    ui.on('note', note)
     #ui.on('luW', luW)
     #ui.on('lex', lex)
     #ui.on('bdbid', bdbid)
@@ -63,10 +89,12 @@ def original_linguistic(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, *
     # convert verse link, like '<vid id="v19.117.1" onclick="luV(1)">'
     content = re.sub(r'<vid id="v([0-9]+?)\.([0-9]+?)\.([0-9]+?)" onclick="luV\(([0-9]+?)\)">', r'<vid id="v\1.\2.\3" onclick="luV(\1, \2, \3)">', content)
     
+    # add notes
+    content = re.sub(f">({'|'.join(verses_with_notes)})</vid>", rf'''>\1</vid> <ref onclick="note({b},{c},\1)">📝</ref>''', content)
     # Convert onclick and ondblclick links
     content = content.replace("luV(", "luV1(" if area == 1 else "luV2(")
-    content = re.sub(r'''(onclick|ondblclick)="(luV1|luV2|luW|lex|bdbid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
-    content = re.sub(r"""(onclick|ondblclick)='(luV1|luV2|luW|lex|bdbid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
+    content = re.sub(r'''(onclick|ondblclick)="(note|luV1|luV2|luW|lex|bdbid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
+    content = re.sub(r"""(onclick|ondblclick)='(note|luV1|luV2|luW|lex|bdbid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
 
     # Bible Selection menu
     def additional_items():
