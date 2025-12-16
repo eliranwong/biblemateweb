@@ -158,35 +158,69 @@ def notes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
             ui.notify(f"Error loading: {e}", type='negative')
             return ""
 
-    def save_current_note():
+    def save_note_sync(service, verse_id, content, filename):
+        """
+        Performs the slow network calls to Google Drive.
+        Running this on the main thread would freeze the app.
+        """
+        import json, io
+        from googleapiclient.http import MediaIoBaseUpload
+        
+        # Prepare the file data
+        file_data = {"verse_id": verse_id, "content": content}
+        media = MediaIoBaseUpload(
+            io.BytesIO(json.dumps(file_data).encode('utf-8')), 
+            mimetype='application/json'
+        )
+        
+        # 1. Search for existing file
+        results = service.files().list(
+            q=f"name='{filename}' and 'appDataFolder' in parents and trashed=false",
+            spaces='appDataFolder',
+            fields='files(id)'
+        ).execute()
+        files = results.get('files', [])
+
+        # 2. Update or Create
+        if files:
+            service.files().update(fileId=files[0]['id'], media_body=media).execute()
+            return "updated"
+        else:
+            meta = {'name': filename, 'parents': ['appDataFolder']}
+            service.files().create(body=meta, media_body=media).execute()
+            return "created"
+
+    async def save_current_note():
+        # 1. Get Data
         vid = get_vid()
         content = notepad.textarea.value
+        filename = get_filename(vid)
+        
+        # 2. Show Loading Spinner
+        # (This prevents the user from clicking save twice)
+        n = ui.notification('Saving to Cloud...', timeout=None, spinner=True)
+        
         try:
-            filename = get_filename(vid)
-            file_data = {"verse_id": vid, "content": content}
-            media = MediaIoBaseUpload(io.BytesIO(json.dumps(file_data).encode('utf-8')), mimetype='application/json')
+            # 3. Run the heavy network call in a separate thread
+            # 'service' is passed explicitly to be thread-safe
+            result = await run.io_bound(
+                save_note_sync, 
+                service, 
+                vid, 
+                content, 
+                filename
+            )
             
-            # Find existing
-            results = service.files().list(
-                q=f"name='{filename}' and 'appDataFolder' in parents and trashed=false",
-                spaces='appDataFolder',
-                fields='files(id)'
-            ).execute()
-            files = results.get('files', [])
-
-            if files:
-                service.files().update(fileId=files[0]['id'], media_body=media).execute()
-            else:
-                meta = {'name': filename, 'parents': ['appDataFolder']}
-                service.files().create(body=meta, media_body=media).execute()
-
-            # Update Index
+            # 4. Update Index & UI (Back on the main thread)
             index_mgr.add_verse(vid)
             app.storage.user['cached_index'] = index_mgr.data
             
-            ui.notify('Saved!')
+            n.dismiss()
+            ui.notify('Saved successfully!', type='positive')
             refresh_ui()
+            
         except Exception as e:
+            n.dismiss()
             ui.notify(f"Error saving: {e}", type='negative')
 
     def delete_current_note():
