@@ -1,5 +1,5 @@
 from biblemategui import BIBLEMATEGUI_DATA, config, loading
-from nicegui import ui, app
+from nicegui import ui, app, run
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 import numpy as np
 import re, apsw, os, json, traceback
@@ -16,7 +16,51 @@ def fetch_bible_encyclopedias_entry(path, sql_table):
         content = fetch[0] if fetch else ""
     return content
 
-def fetch_bible_encyclopedias_matches(query):
+async def fetch_bible_encyclopedias_matches_async(query, sql_table):
+    n = ui.notification("Loading ...", timeout=None, spinner=True)
+    db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "encyclopedia.db")
+    embedding_model="paraphrase-multilingual"
+    path = ""
+    options = []
+    try:
+        with apsw.Connection(db_file) as connection:
+            # search for exact match first
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT * FROM {sql_table} WHERE entry = ?;", (query,))
+            rows = cursor.fetchall()
+            if not rows: # perform similarity search if no an exact match
+                # convert query to vector
+                query_vector = await run.io_bound(get_embeddings, [query], embedding_model)
+                query_vector = query_vector[0]
+                # fetch all entries
+                cursor.execute(f"SELECT path, entry, entry_vector FROM {sql_table}")
+                all_rows = [(f"[{path}] {entry}", entry_vector) for path, entry, entry_vector in cursor.fetchall()]
+                if not all_rows:
+                    return []
+                # build a matrix
+                entries, entry_vectors = zip(*[(row[0], np.array(json.loads(row[1]))) for row in all_rows if row[0] and row[1]])
+                document_matrix = np.vstack(entry_vectors)
+                # perform a similarity search
+                similarities = await run.cpu_bound(cosine_similarity_matrix, query_vector, document_matrix)
+                top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
+                # return top matches
+                options = [entries[i] for i in top_indices]
+            elif len(rows) == 1: # single exact match
+                path = rows[0][0]
+            else:
+                options = [f"[{row[0]}] {row[1]}" for row in rows]
+    except Exception as ex:
+        print("Error during database operation:", ex)
+        traceback.print_exc()
+        #ui.notify('Error during database operation!', type='negative')
+        n.message = f'Error: {str(ex)}'
+        n.type = 'negative'
+        return
+    finally:
+        n.dismiss()
+    return path, options
+
+def fetch_bible_encyclopedias_matches(query, sql_table):
     db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "encyclopedia.db")
     embedding_model="paraphrase-multilingual"
     path = ""
@@ -172,9 +216,8 @@ def search_bible_encyclopedias(gui=None, q='', **_):
         input_field.disable()
 
         try:
-
-            path, options = await loading(fetch_bible_encyclopedias_matches, query)
-
+            #path, options = await loading(fetch_bible_encyclopedias_matches, query, sql_table)
+            path, options = await fetch_bible_encyclopedias_matches_async(query, sql_table)
         except Exception as e:
             # Handle errors (e.g., network failure)
             ui.notify(f'Error: {e}', type='negative')

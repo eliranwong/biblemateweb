@@ -3,7 +3,7 @@ from biblemategui.data.bible_names import bible_names
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 import numpy as np
 from functools import partial
-from nicegui import ui, app
+from nicegui import ui, app, run
 import re, apsw, os, json, traceback
 
 
@@ -15,6 +15,50 @@ def search_bible_names(gui=None, q='', **_):
         nonlocal last_entry, input_field
         if not input_field.value.strip():
             input_field.value = last_entry
+
+    async def fetch_bible_names_matches_async(search_term):
+        n = ui.notification("Loading ...", timeout=None, spinner=True)
+        db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "exlb.db")
+        sql_table = "exlbn"
+        embedding_model="paraphrase-multilingual"
+        options = []
+        try:
+            with apsw.Connection(db_file) as connection:
+                # search for exact match first
+                cursor = connection.cursor()
+                cursor.execute(f"SELECT path FROM {sql_table} WHERE path = ?;", (search_term,))
+                rows = cursor.fetchall()
+                if not rows: # perform similarity search if no an exact match
+                    # convert query to vector
+                    query_vector = await run.io_bound(get_embeddings, [search_term], embedding_model)
+                    query_vector = query_vector[0]
+                    # fetch all entries
+                    cursor.execute(f"SELECT path, entry_vector FROM {sql_table}")
+                    all_rows = cursor.fetchall()
+                    if not all_rows:
+                        return []
+                    # build a matrix
+                    entries, entry_vectors = zip(*[(row[0], np.array(json.loads(row[1]))) for row in all_rows if row[0] and row[1]])
+                    document_matrix = np.vstack(entry_vectors)
+                    # perform a similarity search
+                    similarities = await run.cpu_bound(cosine_similarity_matrix, query_vector, document_matrix)
+                    top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
+                    # return top matches
+                    options = [entries[i] for i in top_indices]
+                elif len(rows) == 1: # single exact match
+                    options = [rows[0][0]]
+                else:
+                    options = [row[0] for row in rows]
+        except Exception as ex:
+            print("Error during database operation:", ex)
+            traceback.print_exc()
+            #ui.notify('Error during database operation!', type='negative')
+            n.message = f'Error: {str(ex)}'
+            n.type = 'negative'
+            return
+        finally:
+            n.dismiss()
+        return options
 
     def fetch_bible_names_matches(search_term):
         db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "exlb.db")
@@ -91,7 +135,8 @@ def search_bible_names(gui=None, q='', **_):
 
             # similarity search
             if search_term:
-                options = await loading(fetch_bible_names_matches, search_term)
+                #options = await loading(fetch_bible_names_matches, search_term)
+                options = await fetch_bible_names_matches_async(search_term)
 
         except Exception as e:
             # Handle errors (e.g., network failure)
