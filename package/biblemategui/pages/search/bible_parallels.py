@@ -3,6 +3,7 @@ from biblemategui.fx.bible import get_bible_content
 from functools import partial
 from nicegui import ui, app, run
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
+from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 import numpy as np
 import re, apsw, os, json, traceback
 
@@ -238,7 +239,8 @@ def search_bible_parallels(gui=None, q='', **_):
             return
 
         n = ui.notification('Loading ...', timeout=None, spinner=True)
-        verses = await run.io_bound(get_bible_content, query, bible=gui.get_area_1_bible_text(), sql_query=SQL_QUERY)
+        parser = BibleVerseParser(False, language=app.storage.user['ui_language'])
+        verses = await run.io_bound(get_bible_content, query, bible=gui.get_area_1_bible_text(), sql_query=SQL_QUERY, parser=parser)
         n.dismiss()
 
         if not verses:

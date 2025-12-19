@@ -133,7 +133,8 @@ def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
                         #ui.notify('Display cleared', type='positive', position='top')
                         continue
 
-                    verses = get_bible_content(query, bible=gui.get_area_1_bible_text(), sql_query=SQL_QUERY)
+                    parser = BibleVerseParser(False, language=app.storage.user['ui_language'])
+                    verses = get_bible_content(query, bible=gui.get_area_1_bible_text(), sql_query=SQL_QUERY, parser=parser)
 
                     if not verses:
                         #ui.notify('No verses found!', type='negative')

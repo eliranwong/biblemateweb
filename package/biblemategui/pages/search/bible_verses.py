@@ -1,4 +1,5 @@
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
+from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from biblemategui.fx.bible import get_bible_content
 from biblemategui import BIBLEMATEGUI_DATA, config, getBibleVersionList
 from functools import partial
@@ -158,6 +159,7 @@ def search_bible_verses(gui=None, q='', **_):
             gui.update_active_area2_tab_records(q=query)
 
         input_field.disable()
+        parser = BibleVerseParser(False, language=app.storage.user['ui_language'])
 
         try:
             n = ui.notification("Loading ...", timeout=None, spinner=True)
@@ -179,7 +181,7 @@ def search_bible_verses(gui=None, q='', **_):
                 if not fetch:
                     ui.notify('No verses found.', type='negative')
                     return
-                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
+                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser)
             elif re.search("^BP[0-9]+?$", query): # bible characters entries
                 db_file = os.path.join(BIBLEMATEGUI_DATA, "data", "biblePeople.data")
                 with apsw.Connection(db_file) as connn:
@@ -189,7 +191,7 @@ def search_bible_verses(gui=None, q='', **_):
                 if not fetch:
                     ui.notify('No verses found.', type='negative')
                     return
-                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
+                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser)
             elif re.search("^BL[0-9]+?$", query): # bible locatios entries
                 db_file = os.path.join(BIBLEMATEGUI_DATA, "indexes2.sqlite")
                 with apsw.Connection(db_file) as connn:
@@ -199,7 +201,7 @@ def search_bible_verses(gui=None, q='', **_):
                 if not fetch:
                     ui.notify('No verses found.', type='negative')
                     return
-                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
+                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser)
             elif re.search(f"^({"|".join(list(config.topics.keys()))})[0-9]+?$", query): # bible topics entries
                 db_file = os.path.join(BIBLEMATEGUI_DATA, "indexes2.sqlite")
                 with apsw.Connection(db_file) as connn:
@@ -209,7 +211,7 @@ def search_bible_verses(gui=None, q='', **_):
                 if not fetch:
                     ui.notify('No verses found.', type='negative')
                     return
-                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
+                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser)
             elif re.search(f"^({"|".join(list(config.dictionaries.keys()))})[0-9]+?$", query): # bible dictionaries entries
                 db_file = os.path.join(BIBLEMATEGUI_DATA, "indexes2.sqlite")
                 with apsw.Connection(db_file) as connn:
@@ -219,7 +221,7 @@ def search_bible_verses(gui=None, q='', **_):
                 if not fetch:
                     ui.notify('No verses found.', type='negative')
                     return
-                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
+                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser)
             elif re.search(f"^(ISBE|{"|".join(list(config.encyclopedias.keys()))})[0-9]+?$", query): # bible encyclopedia entries
                 db_file = os.path.join(BIBLEMATEGUI_DATA, "indexes2.sqlite")
                 with apsw.Connection(db_file) as connn:
@@ -229,9 +231,9 @@ def search_bible_verses(gui=None, q='', **_):
                 if not fetch:
                     ui.notify('No verses found.', type='negative')
                     return
-                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
+                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser)
             else: # regular search
-                verses = await run.io_bound(get_bible_content, user_input=query, bible=get_bibles(), sql_query=SQL_QUERY, search_mode=app.storage.user['search_mode'], top_similar_verses=app.storage.user['top_similar_verses'], search_case_sensitivity=app.storage.user['search_case_sensitivity'])
+                verses = await run.io_bound(get_bible_content, user_input=query, bible=get_bibles(), sql_query=SQL_QUERY, search_mode=app.storage.user['search_mode'], top_similar_verses=app.storage.user['top_similar_verses'], search_case_sensitivity=app.storage.user['search_case_sensitivity'], parser=parser)
                 highlights = True
 
             if not verses:
