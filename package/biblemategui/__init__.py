@@ -7,6 +7,9 @@ from biblemategui.translations.sc import translation_sc
 from nicegui import app, ui
 from typing import List
 import os, glob, apsw, re, asyncio
+import numpy as np
+import json
+
 
 BIBLEMATEGUI_APP_DIR = os.path.dirname(os.path.realpath(__file__))
 BIBLEMATEGUI_USER_DIR = os.path.join(os.path.expanduser("~"), "biblemate")
@@ -100,6 +103,49 @@ async def loading(func, *args, **kwargs):
     finally:
         # 3. Always dismiss the notification, even if errors occur
         n.dismiss()
+
+def load_topic_vectors_from_db(db_file, sql_table):
+    entries = []
+    entry_vectors = []
+    
+    with apsw.Connection(db_file) as connection:
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT entry, entry_vector FROM {sql_table}")
+        
+        # Heavy CPU work: Parsing JSON
+        for entry, vector_json in cursor.fetchall():
+            if entry and vector_json:
+                entries.append(entry)
+                entry_vectors.append(np.array(json.loads(vector_json)))
+
+    if not entries:
+        return [], None
+
+    # Heavy CPU work: Stacking arrays
+    document_matrix = np.vstack(entry_vectors)
+    return entries, document_matrix
+
+def load_vectors_from_db(db_file, sql_table):
+    entries = []
+    entry_vectors = []
+    
+    # Open a NEW connection inside the worker (essential for thread safety)
+    with apsw.Connection(db_file) as connection:
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT path, entry, entry_vector FROM {sql_table}")
+        
+        # Heavy CPU work: Fetching and parsing JSON
+        for path, entry, vector_json in cursor.fetchall():
+            if path and entry and vector_json:
+                entries.append(f"[{path}] {entry}")
+                entry_vectors.append(np.array(json.loads(vector_json)))
+
+    if not entries:
+        return [], None
+
+    # Heavy CPU work: Stacking arrays
+    document_matrix = np.vstack(entry_vectors)
+    return entries, document_matrix
 
 # bibles resources
 def getBibleInfo(db):

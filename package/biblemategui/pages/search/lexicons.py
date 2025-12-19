@@ -1,5 +1,5 @@
 from biblemategui import config, getLexiconList, loading
-from nicegui import ui, app
+from nicegui import ui, app, run
 import re, apsw
 from biblemategui.data.cr_books import cr_books
 from biblemategui.fx.shared import get_image_data_uri
@@ -33,7 +33,7 @@ def fetch_all_lexicons(client_lexicons, lexicon):
 
 def search_bible_lexicons(gui=None, q='', **_):
 
-    last_entry = ""
+    last_entry = q
     client_lexicons = getLexiconList(app.storage.client["custom"])
 
     if q:
@@ -94,7 +94,9 @@ def search_bible_lexicons(gui=None, q='', **_):
         nonlocal input_field, lexicon_module
         lexicon_module = new_module
         app.storage.user['favorite_lexicon'] = new_module
-        all_entries = await loading(fetch_all_lexicons, client_lexicons, new_module)
+        n = ui.notification('Loading ...', timeout=None, spinner=True)
+        all_entries = await run.io_bound(fetch_all_lexicons, client_lexicons, new_module)
+        n.dismiss()
         input_field.set_autocomplete(all_entries)
         input_field.props(f'placeholder="Search {new_module} ..."')
         if scope_select and scope_select.value != new_module:
@@ -127,7 +129,9 @@ def search_bible_lexicons(gui=None, q='', **_):
             elif topic.startswith("BDB") or (topic.startswith("H") and lexicon_module in ("Morphology", "ConcordanceMorphology", "ConcordanceBook")):
                 await change_module("BDB")
 
-            content = await loading(fetch_bible_lexicons_entry, client_lexicons, lexicon_module, topic)
+            n = ui.notification('Loading ...', timeout=None, spinner=True)
+            content = await run.io_bound(fetch_bible_lexicons_entry, client_lexicons, lexicon_module, topic)
+            n.dismiss()
 
         except Exception as e:
             # Handle errors (e.g., network failure)
@@ -210,9 +214,11 @@ def search_bible_lexicons(gui=None, q='', **_):
                 .classes('text-sm cursor-pointer text-secondary').tooltip('Restore last entry')
 
         async def get_all_entries(lexicon):
-            all_entries = await loading(fetch_all_lexicons, client_lexicons, lexicon)
+            all_entries = await run.io_bound(fetch_all_lexicons, client_lexicons, lexicon)
             input_field.set_autocomplete(all_entries)
+        n = ui.notification('Loading ...', timeout=None, spinner=True)
         ui.timer(0, get_all_entries, once=True)
+        n.dismiss()
 
         async def handle_scope_change(e):
             nonlocal lexicon_module

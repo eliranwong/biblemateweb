@@ -4,99 +4,132 @@ from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 import numpy as np
 from functools import partial
 from nicegui import ui, app, run
-import re, apsw, os, json, traceback
+import re, apsw, os, json, traceback, asyncio
 
+def load_names_vectors_from_db(db_file, sql_table):
+    entries = []
+    entry_vectors = []
+    
+    with apsw.Connection(db_file) as connection:
+        cursor = connection.cursor()
+        # Note: This table uses 'path' as the main label, not 'entry'
+        cursor.execute(f"SELECT path, entry_vector FROM {sql_table}")
+        
+        # Heavy CPU work: Parsing JSON
+        for path, vector_json in cursor.fetchall():
+            if path and vector_json:
+                entries.append(path)
+                entry_vectors.append(np.array(json.loads(vector_json)))
+
+    if not entries:
+        return [], None
+
+    # Heavy CPU work: Stacking arrays
+    document_matrix = np.vstack(entry_vectors)
+    return entries, document_matrix
+
+async def fetch_bible_names_matches_async(search_term, spin=True):
+    if spin:
+        n = ui.notification("Loading ...", timeout=None, spinner=True)
+    db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "exlb.db")
+    sql_table = "exlbn"
+    embedding_model = "paraphrase-multilingual"
+    options = []
+    
+    try:
+        # 1. Exact Match Check (Fast, run on main thread)
+        exact_match_found = False
+        with apsw.Connection(db_file) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT path FROM {sql_table} WHERE path = ?;", (search_term,))
+            rows = cursor.fetchall()
+            
+            if len(rows) == 1:
+                options = [rows[0][0]]
+                exact_match_found = True
+            elif len(rows) > 1:
+                options = [row[0] for row in rows]
+                exact_match_found = True
+
+        # 2. Similarity Search (Offloaded to CPU bound thread)
+        if not exact_match_found:
+            # A. Get Query Vector (IO Bound)
+            query_vector = await run.io_bound(get_embeddings, [search_term], embedding_model)
+            query_vector = query_vector[0]
+
+            # B. Load Vectors (The Fix: Run in separate process)
+            # using the new helper function for names
+            entries, document_matrix = await run.cpu_bound(load_names_vectors_from_db, db_file, sql_table)
+
+            if not entries:
+                return []
+
+            # C. Compute Similarity
+            similarities = await run.cpu_bound(cosine_similarity_matrix, query_vector, document_matrix)
+            
+            # D. Sort & Select Top Matches
+            top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
+            options = [entries[i] for i in top_indices]
+
+    except Exception as ex:
+        print("Error during database operation:", ex)
+        traceback.print_exc()
+        if spin:
+            n.message = f'Error: {str(ex)}'
+            n.type = 'negative'
+        return []
+    finally:
+        if spin:
+            n.dismiss()
+        
+    return options
+
+def fetch_bible_names_matches(search_term):
+    db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "exlb.db")
+    sql_table = "exlbn"
+    embedding_model="paraphrase-multilingual"
+    options = []
+    try:
+        with apsw.Connection(db_file) as connection:
+            # search for exact match first
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT path FROM {sql_table} WHERE path = ?;", (search_term,))
+            rows = cursor.fetchall()
+            if not rows: # perform similarity search if no an exact match
+                # convert query to vector
+                query_vector = get_embeddings([search_term], embedding_model)[0]
+                # fetch all entries
+                cursor.execute(f"SELECT path, entry_vector FROM {sql_table}")
+                all_rows = cursor.fetchall()
+                if not all_rows:
+                    return []
+                # build a matrix
+                entries, entry_vectors = zip(*[(row[0], np.array(json.loads(row[1]))) for row in all_rows if row[0] and row[1]])
+                document_matrix = np.vstack(entry_vectors)
+                # perform a similarity search
+                similarities = cosine_similarity_matrix(query_vector, document_matrix)
+                top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
+                # return top matches
+                options = [entries[i] for i in top_indices]
+            elif len(rows) == 1: # single exact match
+                options = [rows[0][0]]
+            else:
+                options = [row[0] for row in rows]
+    except Exception as ex:
+        print("Error during database operation:", ex)
+        traceback.print_exc()
+        ui.notify('Error during database operation!', type='negative')
+        return
+    return options
 
 def search_bible_names(gui=None, q='', **_):
 
-    last_entry = ""
+    last_entry = q
 
     def handle_up_arrow():
         nonlocal last_entry, input_field
         if not input_field.value.strip():
             input_field.value = last_entry
-
-    async def fetch_bible_names_matches_async(search_term):
-        n = ui.notification("Loading ...", timeout=None, spinner=True)
-        db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "exlb.db")
-        sql_table = "exlbn"
-        embedding_model="paraphrase-multilingual"
-        options = []
-        try:
-            with apsw.Connection(db_file) as connection:
-                # search for exact match first
-                cursor = connection.cursor()
-                cursor.execute(f"SELECT path FROM {sql_table} WHERE path = ?;", (search_term,))
-                rows = cursor.fetchall()
-                if not rows: # perform similarity search if no an exact match
-                    # convert query to vector
-                    query_vector = await run.io_bound(get_embeddings, [search_term], embedding_model)
-                    query_vector = query_vector[0]
-                    # fetch all entries
-                    cursor.execute(f"SELECT path, entry_vector FROM {sql_table}")
-                    all_rows = cursor.fetchall()
-                    if not all_rows:
-                        return []
-                    # build a matrix
-                    entries, entry_vectors = zip(*[(row[0], np.array(json.loads(row[1]))) for row in all_rows if row[0] and row[1]])
-                    document_matrix = np.vstack(entry_vectors)
-                    # perform a similarity search
-                    similarities = await run.cpu_bound(cosine_similarity_matrix, query_vector, document_matrix)
-                    top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
-                    # return top matches
-                    options = [entries[i] for i in top_indices]
-                elif len(rows) == 1: # single exact match
-                    options = [rows[0][0]]
-                else:
-                    options = [row[0] for row in rows]
-        except Exception as ex:
-            print("Error during database operation:", ex)
-            traceback.print_exc()
-            #ui.notify('Error during database operation!', type='negative')
-            n.message = f'Error: {str(ex)}'
-            n.type = 'negative'
-            return
-        finally:
-            n.dismiss()
-        return options
-
-    def fetch_bible_names_matches(search_term):
-        db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "exlb.db")
-        sql_table = "exlbn"
-        embedding_model="paraphrase-multilingual"
-        options = []
-        try:
-            with apsw.Connection(db_file) as connection:
-                # search for exact match first
-                cursor = connection.cursor()
-                cursor.execute(f"SELECT path FROM {sql_table} WHERE path = ?;", (search_term,))
-                rows = cursor.fetchall()
-                if not rows: # perform similarity search if no an exact match
-                    # convert query to vector
-                    query_vector = get_embeddings([search_term], embedding_model)[0]
-                    # fetch all entries
-                    cursor.execute(f"SELECT path, entry_vector FROM {sql_table}")
-                    all_rows = cursor.fetchall()
-                    if not all_rows:
-                        return []
-                    # build a matrix
-                    entries, entry_vectors = zip(*[(row[0], np.array(json.loads(row[1]))) for row in all_rows if row[0] and row[1]])
-                    document_matrix = np.vstack(entry_vectors)
-                    # perform a similarity search
-                    similarities = cosine_similarity_matrix(query_vector, document_matrix)
-                    top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
-                    # return top matches
-                    options = [entries[i] for i in top_indices]
-                elif len(rows) == 1: # single exact match
-                    options = [rows[0][0]]
-                else:
-                    options = [row[0] for row in rows]
-        except Exception as ex:
-            print("Error during database operation:", ex)
-            traceback.print_exc()
-            ui.notify('Error during database operation!', type='negative')
-            return
-        return options
 
     def show_all_names(e=None):
         """
@@ -111,7 +144,7 @@ def search_bible_names(gui=None, q='', **_):
                     continue
                 row.set_visibility(True)
 
-    async def filter_names(e=None, keep=True):
+    async def filter_names(e=None, keep=True, spin=True):
         """
         Filters visibility based on input.
         Iterates over default_slot.children to find rows.
@@ -135,8 +168,7 @@ def search_bible_names(gui=None, q='', **_):
 
             # similarity search
             if search_term:
-                #options = await loading(fetch_bible_names_matches, search_term)
-                options = await fetch_bible_names_matches_async(search_term)
+                options = await fetch_bible_names_matches_async(search_term, spin)
 
         except Exception as e:
             # Handle errors (e.g., network failure)
@@ -191,8 +223,13 @@ def search_bible_names(gui=None, q='', **_):
     # ----------------------------------------------------------
     # Core: Fetch and Display
     # ----------------------------------------------------------
-    def show_names():
+    async def show_names():
+        nonlocal q, input_field, names_container, last_entry
+
+        n = ui.notification("Loading ...", timeout=None, spinner=True)
+
         with names_container:
+            check = 0
             for name, meaning in bible_names.items():
                 # Row setup
                 with ui.row().classes('w-full shadow-sm rounded-lg items-center no-wrap border border-gray-200 !gap-0') as row:
@@ -217,11 +254,25 @@ def search_bible_names(gui=None, q='', **_):
                     # --- Content ---
                     meaning = re.sub("^<b>.*?</b> - ", "", meaning)
                     ui.html(meaning, sanitize=False).classes('grow min-w-0 leading-relaxed pl-2 text-base break-words')
+            
+                check += 1
+                if check % 50 == 0:
+                    n.message = f"{check} / {len(bible_names)}"
+                    # Yield to the event loop so the spinner can spin and DOM can update
+                    await asyncio.sleep(0)
+        
+        n.dismiss()
+
+        if q:
+            input_field.value = q
+            await filter_names(None, keep=False, spin=False)
+            q = ""
 
         # Clear input so user can start typing to filter immediately
         input_field.value = ""
         #input_field.props(f'placeholder="Type to filter {len(bible_names)} results..."')
         #ui.notify(f"{len(bible_names)} results found!")
+        input_field.run_method('focus')
 
     # ==============================================================================
     # 3. UI LAYOUT
@@ -246,10 +297,5 @@ def search_bible_names(gui=None, q='', **_):
         # Define the container HERE within the layout structure
         names_container = ui.column().classes('w-full transition-all !gap-1')
 
-    show_names()
-
-    if q:
-        input_field.value = q
-        ui.timer(0, lambda: filter_names(None, keep=False), once=True)
-    else:
-        input_field.run_method('focus')
+    
+    ui.timer(0.1, show_names, once=True)

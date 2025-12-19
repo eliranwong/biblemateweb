@@ -1,4 +1,4 @@
-from biblemategui import BIBLEMATEGUI_DATA, loading
+from biblemategui import BIBLEMATEGUI_DATA, load_vectors_from_db
 from nicegui import ui, app, run
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 import numpy as np
@@ -16,49 +16,58 @@ def fetch_bible_characters_entry(path):
     return content
 
 async def fetch_bible_characters_matches_async(query):
-        n = ui.notification("Loading ...", timeout=None, spinner=True)
-        db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "exlb.db")
-        sql_table = "exlbp"
-        embedding_model="paraphrase-multilingual"
-        path=""
-        options=[]
-        try:
-            with apsw.Connection(db_file) as connection:
-                # search for exact match first
-                cursor = connection.cursor()
-                cursor.execute(f"SELECT * FROM {sql_table} WHERE entry = ?;", (query,))
-                rows = cursor.fetchall()
-                if not rows: # perform similarity search if no an exact match
-                    # convert query to vector
-                    query_vector = await run.io_bound(get_embeddings, [query], embedding_model)
-                    query_vector = query_vector[0]
-                    # fetch all entries
-                    cursor.execute(f"SELECT path, entry, entry_vector FROM {sql_table}")
-                    all_rows = [(f"[{path}] {entry}", entry_vector) for path, entry, entry_vector in cursor.fetchall()]
-                    if not all_rows:
-                        return []
-                    # build a matrix
-                    entries, entry_vectors = zip(*[(row[0], np.array(json.loads(row[1]))) for row in all_rows if row[0] and row[1]])
-                    document_matrix = np.vstack(entry_vectors)
-                    # perform a similarity search
-                    similarities = await run.cpu_bound(cosine_similarity_matrix, query_vector, document_matrix)
-                    top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
-                    # return top matches
-                    options = [entries[i] for i in top_indices]
-                elif len(rows) == 1: # single exact match
-                    path = rows[0][0]
-                else:
-                    options = [f"[{row[0]}] {row[1]}" for row in rows]
-        except Exception as ex:
-            print("Error during database operation:", ex)
-            traceback.print_exc()
-            #ui.notify('Error during database operation!', type='negative')
-            n.message = f'Error: {str(ex)}'
-            n.type = 'negative'
-            return
-        finally:
-            n.dismiss()
-        return path, options
+    n = ui.notification("Loading ...", timeout=None, spinner=True)
+    db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "exlb.db")
+    sql_table = "exlbp"
+    embedding_model = "paraphrase-multilingual"
+    path = ""
+    options = []
+
+    try:
+        # 1. Quick Check: Look for Exact Match (Fast enough for main thread)
+        exact_match_found = False
+        with apsw.Connection(db_file) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT * FROM {sql_table} WHERE entry = ?;", (query,))
+            rows = cursor.fetchall()
+            
+            if len(rows) == 1:
+                path = rows[0][0]
+                exact_match_found = True
+            elif len(rows) > 1:
+                options = [f"[{row[0]}] {row[1]}" for row in rows]
+                exact_match_found = True
+
+        # 2. Similarity Search (if no exact match)
+        if not exact_match_found:
+            # A. Get Query Vector (IO Bound)
+            query_vector = await run.io_bound(get_embeddings, [query], embedding_model)
+            query_vector = query_vector[0]
+
+            # B. Fetch & Process Vectors (CPU Bound - FIXES CONNECTION LOST)
+            # We reuse the generic helper function here
+            entries, document_matrix = await run.cpu_bound(load_vectors_from_db, db_file, sql_table)
+
+            if not entries:
+                return []
+
+            # C. Compute Similarity (CPU Bound)
+            similarities = await run.cpu_bound(cosine_similarity_matrix, query_vector, document_matrix)
+            
+            # D. Sort Results
+            top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
+            options = [entries[i] for i in top_indices]
+
+    except Exception as ex:
+        print("Error during database operation:", ex)
+        traceback.print_exc()
+        n.message = f'Error: {str(ex)}'
+        n.type = 'negative'
+        return
+    finally:
+        n.dismiss()
+        
+    return path, options
 
 def fetch_bible_characters_matches(query):
         db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "exlb.db")
@@ -111,7 +120,7 @@ def fetch_all_characters():
 
 def search_bible_characters(gui=None, q='', **_):
 
-    last_entry = ""
+    last_entry = q
 
     def cr(event):
         nonlocal gui
@@ -151,7 +160,9 @@ def search_bible_characters(gui=None, q='', **_):
     async def show_entry(path, keep=True):
         nonlocal content_container, gui, dialog, input_field
 
-        content = await loading(fetch_bible_characters_entry, path)
+        n = ui.notification('Loading ...', timeout=None, spinner=True)
+        content = await run.io_bound(fetch_bible_characters_entry, path)
+        n.dismiss()
 
         # Clear existing rows first
         content_container.clear()
@@ -208,7 +219,6 @@ def search_bible_characters(gui=None, q='', **_):
         
         input_field.disable()
         try:
-            #path, options = await loading(fetch_bible_characters_matches, query)
             path, options = await fetch_bible_characters_matches_async(query)
         except Exception as e:
             # Handle errors (e.g., network failure)
@@ -259,9 +269,11 @@ def search_bible_characters(gui=None, q='', **_):
 
         # update autocomplete
         async def get_all_characters():
-            all_locations = await loading(fetch_all_characters)
+            all_locations = await run.io_bound(fetch_all_characters)
             input_field.set_autocomplete(all_locations)
+        n = ui.notification('Loading ...', timeout=None, spinner=True)
         ui.timer(0, get_all_characters, once=True)
+        n.dismiss()
 
     # --- Main Content Area ---
     with ui.column().classes('w-full items-center'):

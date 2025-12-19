@@ -11,7 +11,10 @@ class BibleSelectionDialog:
         self.parent = parent
         self.book_names = book_names
         self.verses = verses
-        bible_tab = parent.get_active_area1_tab()
+        self.set_current_verse()
+    
+    def set_current_verse(self):
+        bible_tab = self.parent.get_active_area1_tab()
         if bible_tab in app.storage.user:
             args = app.storage.user.get(bible_tab)
             self.current_verse = (args.get("b"), args.get("c"), args.get("v"))
@@ -19,6 +22,7 @@ class BibleSelectionDialog:
             self.current_verse = (1, 1, 1)
 
     def open(self):
+        self.set_current_verse()
         self.selection = {'book_id': None, 'chapter': None, 'verse': None}
         self.render_books()
         self.dialog.open()

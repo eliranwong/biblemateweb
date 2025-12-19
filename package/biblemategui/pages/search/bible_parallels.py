@@ -1,10 +1,10 @@
-from biblemategui import BIBLEMATEGUI_DATA, loading
+from biblemategui import BIBLEMATEGUI_DATA, load_topic_vectors_from_db
 from biblemategui.fx.bible import get_bible_content
 from functools import partial
 from nicegui import ui, app, run
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 import numpy as np
-import re, apsw, os, json
+import re, apsw, os, json, traceback
 
 
 def fetch_parallels_topic(path):
@@ -32,45 +32,56 @@ async def fetch_topic_matches_async(query):
     n = ui.notification("Loading ...", timeout=None, spinner=True)
     db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "collection.db")
     sql_table = "PARALLEL"
-    embedding_model="paraphrase-multilingual"
-    path=""
-    options=[]
+    embedding_model = "paraphrase-multilingual"
+    path = ""
+    options = []
+    
     try:
+        # 1. Exact Match Check (Fast, on main thread)
+        exact_match_found = False
         with apsw.Connection(db_file) as connection:
-            # search for exact match first
             cursor = connection.cursor()
             cursor.execute(f"SELECT * FROM {sql_table} WHERE entry = ?;", (query,))
             rows = cursor.fetchall()
-            if not rows: # perform similarity search if no an exact match
-                # convert query to vector
-                query_vector = await run.io_bound(get_embeddings, [query], embedding_model)
-                query_vector = query_vector[0]
-                # fetch all entries
-                cursor.execute(f"SELECT entry, entry_vector FROM {sql_table}")
-                all_rows = cursor.fetchall()
-                if not all_rows:
-                    return []
-                # build a matrix
-                entries, entry_vectors = zip(*[(row[0], np.array(json.loads(row[1]))) for row in all_rows if row[0] and row[1]])
-                document_matrix = np.vstack(entry_vectors)
-                # perform a similarity search
-                similarities = await run.cpu_bound(cosine_similarity_matrix, query_vector, document_matrix)
-                top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
-                # return top matches
-                options = [entries[i] for i in top_indices]
-            elif len(rows) == 1: # single exact match
-                path = rows[0][0]
-            else:
+            
+            if len(rows) == 1:
+                # Assuming the first column is the 'path' or generic ID
+                path = rows[0][0] 
+                exact_match_found = True
+            elif len(rows) > 1:
                 options = [row[0] for row in rows]
-        return path, options
+                exact_match_found = True
+
+        # 2. Similarity Search (Offloaded to prevent blocking)
+        if not exact_match_found:
+            # A. Get Query Vector (IO Bound)
+            query_vector = await run.io_bound(get_embeddings, [query], embedding_model)
+            query_vector = query_vector[0]
+
+            # B. Load & Parse Vectors (Run in separate process)
+            # using the NEW helper function defined above
+            entries, document_matrix = await run.cpu_bound(load_topic_vectors_from_db, db_file, sql_table)
+
+            if not entries:
+                return path, []
+
+            # C. Compute Similarity
+            similarities = await run.cpu_bound(cosine_similarity_matrix, query_vector, document_matrix)
+            
+            # D. Sort & Select Top Matches
+            top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
+            options = [entries[i] for i in top_indices]
+
     except Exception as ex:
         print("Error during database operation:", ex)
-        #ui.notify('Error during database operation!', type='negative')
+        traceback.print_exc()
         n.message = f'Error: {str(ex)}'
         n.type = 'negative'
         return
     finally:
         n.dismiss()
+        
+    return path, options
 
 def fetch_topic_matches(query):
     db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "collection.db")
@@ -122,7 +133,7 @@ def fetch_all_paralles_topics():
 
 def search_bible_parallels(gui=None, q='', **_):
 
-    last_entry = ""
+    last_entry = q
     SQL_QUERY = "PRAGMA case_sensitive_like = false; SELECT Book, Chapter, Verse, Scripture FROM Verses WHERE (Scripture REGEXP ?) ORDER BY Book, Chapter, Verse"
 
     # --- Fuzzy Match Dialog ---
@@ -204,7 +215,9 @@ def search_bible_parallels(gui=None, q='', **_):
     async def show_verses(path, keep=True):
         nonlocal SQL_QUERY, verses_container, gui, dialog, input_field, topic_label
 
-        topic, query = await loading(fetch_parallels_topic, path)
+        n = ui.notification('Loading ...', timeout=None, spinner=True)
+        topic, query = await run.io_bound(fetch_parallels_topic, path)
+        n = ui.notification('Loading ...', timeout=None, spinner=True)
 
         # update tab records
         if query and keep:
@@ -224,7 +237,9 @@ def search_bible_parallels(gui=None, q='', **_):
             ui.notify('Display cleared', type='positive', position='top')
             return
 
-        verses = await loading(get_bible_content, query, bible=gui.get_area_1_bible_text(), sql_query=SQL_QUERY)
+        n = ui.notification('Loading ...', timeout=None, spinner=True)
+        verses = await run.io_bound(get_bible_content, query, bible=gui.get_area_1_bible_text(), sql_query=SQL_QUERY)
+        n.dismiss()
 
         if not verses:
             ui.notify('No verses found!', type='negative')
@@ -276,7 +291,6 @@ def search_bible_parallels(gui=None, q='', **_):
         input_field.disable()
 
         try:
-            #path, options = await loading(fetch_topic_matches, query)
             path, options = await fetch_topic_matches_async(query)
 
         except Exception as e:
@@ -330,9 +344,11 @@ def search_bible_parallels(gui=None, q='', **_):
                 .classes('text-sm cursor-pointer text-secondary').tooltip('Restore last entry')
 
         async def get_all_topics():
-            all_locations = await loading(fetch_all_paralles_topics)
+            all_locations = await run.io_bound(fetch_all_paralles_topics)
             input_field.set_autocomplete(all_locations)
+        n = ui.notification('Loading ...', timeout=None, spinner=True)
         ui.timer(0, get_all_topics, once=True)
+        n.dismiss()
 
     topic_label = ui.label().classes('text-2xl font-serif hidden')
 

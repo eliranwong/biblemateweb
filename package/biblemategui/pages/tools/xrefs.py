@@ -1,9 +1,9 @@
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
-from biblemategui import BIBLEMATEGUI_DATA, loading
+from biblemategui import BIBLEMATEGUI_DATA
 from biblemategui.fx.bible import get_bible_content
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from functools import partial
-from nicegui import ui, app
+from nicegui import ui, app, run
 import re, apsw, os
 
 def fetch_xrefs(b, c, v):
@@ -17,7 +17,7 @@ def fetch_xrefs(b, c, v):
 
 def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
 
-    last_entry = ""
+    last_entry = q
     SQL_QUERY = "PRAGMA case_sensitive_like = false; SELECT Book, Chapter, Verse, Scripture FROM Verses WHERE (Scripture REGEXP ?) ORDER BY Book, Chapter, Verse"
 
     # --- Data: 66 Bible Books & ID Mapping ---
@@ -117,7 +117,9 @@ def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
                 for ref2 in parser.extractExhaustiveReferences([ref]):
                     b, c, v = ref2
                     query = ""
-                    query = await loading(fetch_xrefs, b, c, v)
+                    n = ui.notification('Loading ...', timeout=None, spinner=True)
+                    query = await run.io_bound(fetch_xrefs, b, c, v)
+                    n.dismiss()
                     if query:
                         query = query[0]
                     else:

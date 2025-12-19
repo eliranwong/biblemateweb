@@ -233,12 +233,12 @@ class BibleMateGUI:
                                 with self.area1_tab_panels[tab_id]:
                                     args = app.storage.user.get(saved_tab_id)
                                     content = self.get_content(args.get("title"))
-                                    if content is None:
+                                    if content is None and saved_tab_id in app.storage.user:
                                         app.storage.user.pop(saved_tab_id)
                                         continue
                                     args["tab1"] = tab_id
                                     content(gui=self, **args)
-                                    if saved_tab_id != tab_id:
+                                    if saved_tab_id != tab_id and saved_tab_id in app.storage.user:
                                         app.storage.user[tab_id] = app.storage.user.pop(saved_tab_id)
                     if len(previous_tabs1) < default_number_of_tabs1:
                         for i in range(len(previous_tabs1)+1, default_number_of_tabs1+1):
@@ -293,12 +293,12 @@ class BibleMateGUI:
                                 with self.area2_tab_panels[tab_id]:
                                     args = app.storage.user.get(previous_tabs2[i-1])
                                     content = self.get_content(args.get("title"))
-                                    if content is None:
+                                    if content is None and saved_tab_id in app.storage.user:
                                         app.storage.user.pop(saved_tab_id)
                                         continue
                                     args["tab2"] = tab_id
                                     content(gui=self, **args)
-                                    if saved_tab_id != tab_id:
+                                    if saved_tab_id != tab_id and saved_tab_id in app.storage.user:
                                         app.storage.user[tab_id] = app.storage.user.pop(saved_tab_id)
                     if len(previous_tabs2) < default_number_of_tabs2:
                         for i in range(len(previous_tabs2)+1, default_number_of_tabs2+1):

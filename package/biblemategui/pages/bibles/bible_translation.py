@@ -63,6 +63,7 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
         nonlocal bible_selector, gui, db, dummy_label1, area
         b, c, v = event.args
         bible_selector.verse_select.value = v
+        gui.update_active_area1_tab_records(v=v)
         with dummy_label1:
             gui.open_verse_context_menu(db, b, c, v, (str(v) in verses_with_notes))
 
@@ -70,6 +71,7 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
         nonlocal bible_selector, gui, db, dummy_label2, area
         b, c, v = event.args
         bible_selector.verse_select.value = v
+        gui.update_active_area2_tab_records(v=v)
         with dummy_label2:
             gui.open_verse_context_menu(db, b, c, v, (str(v) in verses_with_notes))
 

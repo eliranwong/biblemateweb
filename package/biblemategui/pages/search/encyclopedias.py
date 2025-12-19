@@ -1,4 +1,4 @@
-from biblemategui import BIBLEMATEGUI_DATA, config, loading
+from biblemategui import BIBLEMATEGUI_DATA, config, load_vectors_from_db
 from nicegui import ui, app, run
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 import numpy as np
@@ -19,45 +19,54 @@ def fetch_bible_encyclopedias_entry(path, sql_table):
 async def fetch_bible_encyclopedias_matches_async(query, sql_table):
     n = ui.notification("Loading ...", timeout=None, spinner=True)
     db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "encyclopedia.db")
-    embedding_model="paraphrase-multilingual"
+    embedding_model = "paraphrase-multilingual"
     path = ""
     options = []
+
     try:
+        # 1. Exact Match Check (Fast, run on main thread)
+        exact_match_found = False
         with apsw.Connection(db_file) as connection:
-            # search for exact match first
             cursor = connection.cursor()
             cursor.execute(f"SELECT * FROM {sql_table} WHERE entry = ?;", (query,))
             rows = cursor.fetchall()
-            if not rows: # perform similarity search if no an exact match
-                # convert query to vector
-                query_vector = await run.io_bound(get_embeddings, [query], embedding_model)
-                query_vector = query_vector[0]
-                # fetch all entries
-                cursor.execute(f"SELECT path, entry, entry_vector FROM {sql_table}")
-                all_rows = [(f"[{path}] {entry}", entry_vector) for path, entry, entry_vector in cursor.fetchall()]
-                if not all_rows:
-                    return []
-                # build a matrix
-                entries, entry_vectors = zip(*[(row[0], np.array(json.loads(row[1]))) for row in all_rows if row[0] and row[1]])
-                document_matrix = np.vstack(entry_vectors)
-                # perform a similarity search
-                similarities = await run.cpu_bound(cosine_similarity_matrix, query_vector, document_matrix)
-                top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
-                # return top matches
-                options = [entries[i] for i in top_indices]
-            elif len(rows) == 1: # single exact match
+            
+            if len(rows) == 1:
                 path = rows[0][0]
-            else:
+                exact_match_found = True
+            elif len(rows) > 1:
                 options = [f"[{row[0]}] {row[1]}" for row in rows]
+                exact_match_found = True
+
+        # 2. Similarity Search (Offloaded to CPU bound thread)
+        if not exact_match_found:
+            # A. Get Query Vector (IO Bound)
+            query_vector = await run.io_bound(get_embeddings, [query], embedding_model)
+            query_vector = query_vector[0]
+
+            # B. Load Vectors (The Fix: Run in separate process)
+            # We pass the 'sql_table' argument dynamically here
+            entries, document_matrix = await run.cpu_bound(load_vectors_from_db, db_file, sql_table)
+
+            if not entries:
+                return path, []
+
+            # C. Compute Similarity (CPU Bound)
+            similarities = await run.cpu_bound(cosine_similarity_matrix, query_vector, document_matrix)
+            
+            # D. Sort & Select Top Matches
+            top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
+            options = [entries[i] for i in top_indices]
+
     except Exception as ex:
         print("Error during database operation:", ex)
         traceback.print_exc()
-        #ui.notify('Error during database operation!', type='negative')
         n.message = f'Error: {str(ex)}'
         n.type = 'negative'
         return
     finally:
         n.dismiss()
+        
     return path, options
 
 def fetch_bible_encyclopedias_matches(query, sql_table):
@@ -109,7 +118,7 @@ def fetch_all_encyclopedias(sql_table):
 
 def search_bible_encyclopedias(gui=None, q='', **_):
 
-    last_entry = ""
+    last_entry = q
     scope_select = None
 
     def cr(event):
@@ -151,7 +160,9 @@ def search_bible_encyclopedias(gui=None, q='', **_):
     async def show_entry(path, keep=True):
         nonlocal content_container, gui, dialog, input_field, sql_table
 
-        content = await loading(fetch_bible_encyclopedias_entry, path, sql_table)
+        n = ui.notification('Loading ...', timeout=None, spinner=True)
+        content = await run.io_bound(fetch_bible_encyclopedias_entry, path, sql_table)
+        n.dismiss()
 
         # update tab records
         if content and keep:
@@ -216,7 +227,6 @@ def search_bible_encyclopedias(gui=None, q='', **_):
         input_field.disable()
 
         try:
-            #path, options = await loading(fetch_bible_encyclopedias_matches, query, sql_table)
             path, options = await fetch_bible_encyclopedias_matches_async(query, sql_table)
         except Exception as e:
             # Handle errors (e.g., network failure)
@@ -277,15 +287,19 @@ def search_bible_encyclopedias(gui=None, q='', **_):
                 .classes('text-sm cursor-pointer text-secondary').tooltip('Restore last entry')
 
         async def get_all_entries(sql_table):
-            all_entries = await loading(fetch_all_encyclopedias, sql_table)
+            all_entries = await run.io_bound(fetch_all_encyclopedias, sql_table)
             input_field.set_autocomplete(all_entries)
+        n = ui.notification('Loading ...', timeout=None, spinner=True)
         ui.timer(0, get_all_entries, once=True)
+        n.dismiss()
 
         async def handle_scope_change(e):
             nonlocal sql_table
             sql_table = e.value
             app.storage.user['favorite_encyclopedia'] = sql_table
-            all_entries = await loading(fetch_all_encyclopedias, sql_table)
+            n = ui.notification('Loading ...', timeout=None, spinner=True)
+            all_entries = await run.io_bound(fetch_all_encyclopedias, sql_table)
+            n.dismiss()
             input_field.set_autocomplete(all_entries)
             input_field.props(f'placeholder="Search {config.encyclopedias[sql_table]} ..."')
         scope_select.on_value_change(handle_scope_change)

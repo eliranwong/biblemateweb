@@ -93,6 +93,6 @@ translation_sc = {
     "Rebuild Index": "重建索引",
     "Download All": "下载所有笔记",
     "Book Note": "书卷笔记",
-    "Chapter Note": "单章笔记",
+    "Chapter Note": "全章笔记",
     "Verse Note": "单节笔记",
 }

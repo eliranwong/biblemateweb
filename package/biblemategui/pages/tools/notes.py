@@ -108,12 +108,6 @@ def notes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
     bible_selector = None
     service = get_drive_service(token)
     index_mgr = CloudIndexManager(service)
-    # important - load master index
-    #if "cached_index" in app.storage.user:
-    #    index_mgr.data = app.storage.user['cached_index']
-    #else:
-    #    ui.timer(0, lambda: loading(index_mgr.load_from_drive), once=True)
-    #    app.storage.user['cached_index'] = index_mgr.data
     notepad = CloudNotepad()
 
     def change_note(version=None, book=1, chapter=1, verse=1):
@@ -248,11 +242,9 @@ def notes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
 
     async def run_rebuild():
         # Run the rebuild
-        count = -1
-        def start_rebuild():
-            nonlocal count
-            count = index_mgr.rebuild_index()
-        await loading(start_rebuild)
+        n = ui.notification('Rebuilding search index...', timeout=None, spinner=True)
+        count = await run.io_bound(index_mgr.rebuild_index)
+        n.dismiss()
         if count >= 0:
             app.storage.user['cached_index'] = index_mgr.data # Update session
             refresh_ui() # Refresh stats

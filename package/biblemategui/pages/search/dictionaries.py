@@ -1,4 +1,4 @@
-from biblemategui import BIBLEMATEGUI_DATA, config, loading
+from biblemategui import BIBLEMATEGUI_DATA, config, load_vectors_from_db
 from nicegui import ui, app, run
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 import numpy as np
@@ -20,45 +20,54 @@ async def fetch_bible_dictionaries_matches_async(query):
     n = ui.notification("Loading ...", timeout=None, spinner=True)
     db_file = os.path.join(BIBLEMATEGUI_DATA, "vectors", "dictionary.db")
     sql_table = "Dictionary"
-    embedding_model="paraphrase-multilingual"
+    embedding_model = "paraphrase-multilingual"
     path = ""
     options = []
+
     try:
+        # We need a quick connection just to check for EXACT matches first
+        exact_match_found = False
         with apsw.Connection(db_file) as connection:
-            # search for exact match first
             cursor = connection.cursor()
             cursor.execute(f"SELECT * FROM {sql_table} WHERE entry = ?;", (query,))
             rows = cursor.fetchall()
-            if not rows: # perform similarity search if no an exact match
-                # convert query to vector
-                query_vector = await run.io_bound(get_embeddings, [query], embedding_model)
-                query_vector = query_vector[0]
-                # fetch all entries
-                cursor.execute(f"SELECT path, entry, entry_vector FROM {sql_table}")
-                all_rows = [(f"[{path}] {entry}", entry_vector) for path, entry, entry_vector in cursor.fetchall()]
-                if not all_rows:
-                    return []
-                # build a matrix
-                entries, entry_vectors = zip(*[(row[0], np.array(json.loads(row[1]))) for row in all_rows if row[0] and row[1]])
-                document_matrix = np.vstack(entry_vectors)
-                # perform a similarity search
-                similarities = await run.cpu_bound(cosine_similarity_matrix, query_vector, document_matrix)
-                top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
-                # return top matches
-                options = [entries[i] for i in top_indices]
-            elif len(rows) == 1: # single exact match
+            
+            if len(rows) == 1:
                 path = rows[0][0]
-            else:
+                exact_match_found = True
+            elif len(rows) > 1:
                 options = [f"[{row[0]}] {row[1]}" for row in rows]
+                exact_match_found = True
+
+        # If no exact match, proceed to Similarity Search
+        if not exact_match_found:
+            # 1. Get Query Vector (Already doing this correctly)
+            query_vector = await run.io_bound(get_embeddings, [query], embedding_model)
+            query_vector = query_vector[0]
+
+            # 2. HEAVY LIFTING: Run the new helper function in a separate process
+            # This prevents the "Connection Lost" error
+            entries, document_matrix = await run.cpu_bound(load_vectors_from_db, db_file, sql_table)
+
+            if not entries:
+                return []
+
+            # 3. Compute Similarity (Already doing this correctly)
+            similarities = await run.cpu_bound(cosine_similarity_matrix, query_vector, document_matrix)
+            
+            # 4. Sort and select top results
+            top_indices = np.argsort(similarities)[::-1][:app.storage.user["top_similar_entries"]]
+            options = [entries[i] for i in top_indices]
+
     except Exception as ex:
         print("Error during database operation:", ex)
         traceback.print_exc()
-        #ui.notify('Error during database operation!', type='negative')
         n.message = f'Error: {str(ex)}'
         n.type = 'negative'
         return
     finally:
         n.dismiss()
+        
     return path, options
 
 def fetch_bible_dictionaries_matches(query):
@@ -112,7 +121,7 @@ def fetch_all_dictionaries():
 
 def search_bible_dictionaries(gui=None, q='', **_):
 
-    last_entry = ""
+    last_entry = q
 
     def cr(event):
         nonlocal gui
@@ -151,7 +160,9 @@ def search_bible_dictionaries(gui=None, q='', **_):
     async def show_entry(path, keep=True):
         nonlocal content_container, gui, dialog, input_field
 
-        content = await loading(fetch_bible_dictionaries_entry, path)
+        n = ui.notification('Loading ...', timeout=None, spinner=True)
+        content = await run.io_bound(fetch_bible_dictionaries_entry, path)
+        n.dismiss()
 
         # update tab records
         if content and keep:
@@ -214,7 +225,6 @@ def search_bible_dictionaries(gui=None, q='', **_):
         input_field.disable()
 
         try:
-            #path, options = await loading(fetch_bible_dictionaries_matches, query)
             path, options = await fetch_bible_dictionaries_matches_async(query)
         except Exception as e:
             # Handle errors (e.g., network failure)
@@ -262,9 +272,11 @@ def search_bible_dictionaries(gui=None, q='', **_):
                 .classes('text-sm cursor-pointer text-secondary').tooltip('Restore last entry')
 
         async def get_all_dictionaries():
-            all_dictionaries = await loading(fetch_all_dictionaries)
+            all_dictionaries = await run.io_bound(fetch_all_dictionaries)
             input_field.set_autocomplete(all_dictionaries)
+        n = ui.notification('Loading ...', timeout=None, spinner=True)
         ui.timer(0, get_all_dictionaries, once=True)
+        n.dismiss()
 
     # --- Main Content Area ---
     with ui.column().classes('w-full items-center'):

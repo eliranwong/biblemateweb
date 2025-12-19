@@ -6,10 +6,10 @@ from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from agentmake.plugins.uba.lib.RegexSearch import RegexSearch
 import apsw, os, re, markdown2
 
-def get_ai_commentary_content(references: str):
+def get_ai_commentary_content(references: str, module: str = "AIC"):
     def fetch_ai_commentary_verse(b,c,v):
         fetch = None
-        db = os.path.join(BIBLEMATEGUI_DATA, "commentaries", f"cAIC.commentary")
+        db = os.path.join(BIBLEMATEGUI_DATA, "commentaries", f"c{module}.commentary")
         with apsw.Connection(db) as connn:
             cursor = connn.cursor()
             sql_query = "SELECT Content FROM Commentary WHERE Book=? AND Chapter=? AND Verse=? limit 1"
@@ -27,7 +27,12 @@ def get_ai_commentary_content(references: str):
             content = fetch[0] if fetch else ""
             if content:
                 # remove AI follow-up comment
-                pattern = r'\n---\s*\nIf you\’d like\,\s*.*$'
+                if module == "AIC":
+                    pattern = r'\n---\s*\nIf you\’d like\,\s*.*$'
+                elif module == "AICTC":
+                    pattern = r'\n---\s*\n如果你願意，\s*.*$'
+                elif module == "AICSC":
+                    pattern = r'\n---\s*\n如果您愿意，\s*.*$'
                 content = re.sub(pattern, '', content, flags=re.DOTALL)
                 # convert md to html
                 content = markdown2.markdown(content, extras=["tables","fenced-code-blocks","toc","codelite"])
@@ -36,8 +41,9 @@ def get_ai_commentary_content(references: str):
     return "<hr>".join(results) if results else ""
 
 def get_commentary_content(references: str):
-    if app.storage.user["favorite_commentary"] == "AIC":
-        return get_ai_commentary_content(references)
+    if app.storage.user["favorite_commentary"] in ("AIC", "AICTC", "AICSC"):
+        # redirect for AI commentaries
+        return get_ai_commentary_content(references, app.storage.user["favorite_commentary"])
     def fetch_commentary_chapter(b,c):
         fetch = None
         db = os.path.join(BIBLEMATEGUI_DATA, "commentaries", f"c{app.storage.user["favorite_commentary"]}.commentary")
@@ -75,7 +81,7 @@ def get_commentary_content(references: str):
 
 def bible_commentary(gui=None, b=1, c=1, v=1, q='', **_):
 
-    last_entry = ""
+    last_entry = q
     BIBLE_BOOKS = [BibleBooks.abbrev["eng"][str(i)][0] for i in range(1,67)]
     client_commentaries = getCommentaryVersionList(app.storage.client["custom"])
     scope_select = None

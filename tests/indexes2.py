@@ -131,7 +131,9 @@ def main_page():
             # We fetch all data first to prepare the UI
             results = {}
             for title, table in TABLE_CONFIG.items():
+                n = ui.notification('Loading ...', timeout=None, spinner=True)
                 data = await run.io_bound(fetch_data, table, book_id, chapter, verse)
+                n.dismiss()
                 results[title] = data
 
             spinner.delete()

@@ -8,7 +8,7 @@ import re, apsw, os
 
 def treasury(gui=None, b=1, c=1, v=1, q='', **_):
 
-    last_entry = ""
+    last_entry = q
     SQL_QUERY = "PRAGMA case_sensitive_like = false; SELECT Book, Chapter, Verse, Scripture FROM Verses WHERE (Scripture REGEXP ?) ORDER BY Book, Chapter, Verse"
 
     # --- Data: 66 Bible Books & ID Mapping ---

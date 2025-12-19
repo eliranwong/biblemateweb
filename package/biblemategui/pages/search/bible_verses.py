@@ -1,14 +1,14 @@
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from biblemategui.fx.bible import get_bible_content
-from biblemategui import BIBLEMATEGUI_DATA, config, getBibleVersionList, loading
+from biblemategui import BIBLEMATEGUI_DATA, config, getBibleVersionList
 from functools import partial
-from nicegui import ui, app
+from nicegui import ui, app, run
 import re, apsw, os
 
 
 def search_bible_verses(gui=None, q='', **_):
 
-    last_entry = ""
+    last_entry = q
     default_placeholder = 'Search for words or refs (e.g. Deut 6:4; John 3:16-18)'
     multiple_bibles = None
 
@@ -160,6 +160,7 @@ def search_bible_verses(gui=None, q='', **_):
         input_field.disable()
 
         try:
+            n = ui.notification("Loading ...", timeout=None, spinner=True)
             highlights = False
             if search_morphology := re.search(r"^([EG][0-9]+?)\|", query): # search morphology
                 multiple_bibles.value = [app.storage.user["tool_book_text"]]
@@ -178,7 +179,7 @@ def search_bible_verses(gui=None, q='', **_):
                 if not fetch:
                     ui.notify('No verses found.', type='negative')
                     return
-                verses = await loading(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
+                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
             elif re.search("^BP[0-9]+?$", query): # bible characters entries
                 db_file = os.path.join(BIBLEMATEGUI_DATA, "data", "biblePeople.data")
                 with apsw.Connection(db_file) as connn:
@@ -188,7 +189,7 @@ def search_bible_verses(gui=None, q='', **_):
                 if not fetch:
                     ui.notify('No verses found.', type='negative')
                     return
-                verses = await loading(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
+                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
             elif re.search("^BL[0-9]+?$", query): # bible locatios entries
                 db_file = os.path.join(BIBLEMATEGUI_DATA, "indexes2.sqlite")
                 with apsw.Connection(db_file) as connn:
@@ -198,7 +199,7 @@ def search_bible_verses(gui=None, q='', **_):
                 if not fetch:
                     ui.notify('No verses found.', type='negative')
                     return
-                verses = await loading(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
+                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
             elif re.search(f"^({"|".join(list(config.topics.keys()))})[0-9]+?$", query): # bible topics entries
                 db_file = os.path.join(BIBLEMATEGUI_DATA, "indexes2.sqlite")
                 with apsw.Connection(db_file) as connn:
@@ -208,7 +209,7 @@ def search_bible_verses(gui=None, q='', **_):
                 if not fetch:
                     ui.notify('No verses found.', type='negative')
                     return
-                verses = await loading(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
+                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
             elif re.search(f"^({"|".join(list(config.dictionaries.keys()))})[0-9]+?$", query): # bible dictionaries entries
                 db_file = os.path.join(BIBLEMATEGUI_DATA, "indexes2.sqlite")
                 with apsw.Connection(db_file) as connn:
@@ -218,7 +219,7 @@ def search_bible_verses(gui=None, q='', **_):
                 if not fetch:
                     ui.notify('No verses found.', type='negative')
                     return
-                verses = await loading(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
+                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
             elif re.search(f"^(ISBE|{"|".join(list(config.encyclopedias.keys()))})[0-9]+?$", query): # bible encyclopedia entries
                 db_file = os.path.join(BIBLEMATEGUI_DATA, "indexes2.sqlite")
                 with apsw.Connection(db_file) as connn:
@@ -228,9 +229,9 @@ def search_bible_verses(gui=None, q='', **_):
                 if not fetch:
                     ui.notify('No verses found.', type='negative')
                     return
-                verses = await loading(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
+                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch)
             else: # regular search
-                verses = await loading(get_bible_content, user_input=query, bible=get_bibles(), sql_query=SQL_QUERY, search_mode=app.storage.user['search_mode'], top_similar_verses=app.storage.user['top_similar_verses'], search_case_sensitivity=app.storage.user['search_case_sensitivity'])
+                verses = await run.io_bound(get_bible_content, user_input=query, bible=get_bibles(), sql_query=SQL_QUERY, search_mode=app.storage.user['search_mode'], top_similar_verses=app.storage.user['top_similar_verses'], search_case_sensitivity=app.storage.user['search_case_sensitivity'])
                 highlights = True
 
             if not verses:
@@ -297,9 +298,11 @@ def search_bible_verses(gui=None, q='', **_):
 
         except Exception as e:
             # Handle errors (e.g., network failure)
-            ui.notify(f'Error: {e}', type='negative')
-
+            #ui.notify(f'Error: {e}', type='negative')
+            n.message = f'Error: {str(e)}'
+            n.type = 'negative'
         finally:
+            n.dismiss()
             # ALWAYS re-enable the input, even if an error occurred above
             input_field.enable()
             # Optional: Refocus the cursor so the user can type the next query immediately
