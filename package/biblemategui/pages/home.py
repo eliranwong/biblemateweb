@@ -557,7 +557,7 @@ class BibleMateGUI:
             ui.menu_item(f'🔗 {get_translation("Cross-references")}', on_click=lambda: open_tool("Xrefs"))
             ui.menu_item(f'🏦 {get_translation("Treasury")}', on_click=lambda: open_tool("Treasury"))
             ui.menu_item(f'🧠 {get_translation("AI Commentary")}', on_click=lambda: (
-                app.storage.user.update(favorite_commentary="AIC"),
+                app.storage.user.update(favorite_commentary="AICTC" if app.storage.user['ui_language'] == "tc" else "AIC"),
                 open_tool("Commentary")
             ))
             ui.menu_item(f'📚 {get_translation("Commentaries")}', on_click=lambda: open_tool("Commentary"))
@@ -1167,7 +1167,7 @@ class BibleMateGUI:
                     with ui.button(icon='auto_awesome').props('flat color=white round').tooltip(get_translation("AI")):
                         with ui.menu():
                             ui.menu_item(get_translation("AI Commentary"), on_click=lambda: (
-                                app.storage.user.update(favorite_commentary="AIC"),
+                                app.storage.user.update(favorite_commentary="AICTC" if app.storage.user['ui_language'] == "tc" else "AIC"),
                                 self.load_area_2_content(title='Commentary', sync=True)
                             ))
                             #ui.menu_item('AI Q&A', on_click=lambda: self.load_area_2_content(self.work_in_progress))
@@ -1475,7 +1475,7 @@ class BibleMateGUI:
             # AI
             with ui.expansion(get_translation("AI"), icon='auto_awesome').props('header-class="text-secondary"'):
                 ui.item(get_translation("AI Commentary"), on_click=lambda: (
-                    app.storage.user.update(favorite_commentary="AIC"),
+                    app.storage.user.update(favorite_commentary="AICTC" if app.storage.user['ui_language'] == "tc" else "AIC"),
                     self.load_area_2_content(title='Commentary', sync=True),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
