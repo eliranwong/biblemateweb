@@ -882,8 +882,6 @@ class BibleMateGUI:
             args = app.storage.user[self.get_active_area2_tab()]
             if not self.is_tool(args.get("title")) and (not args.get("b") == book or not args.get("c") == chapter):
                 self.change_area_2_bible_chapter(args.get("bt"), book, chapter, verse)
-                if config.reload_after_sync:
-                    ui.run_javascript('location.reload()')
 
     def change_area_2_bible_chapter(self, version=None, book=1, chapter=1, verse=1, sync=True):
         if version is None:
@@ -915,8 +913,6 @@ class BibleMateGUI:
             args = app.storage.user[self.get_active_area1_tab()]
             if not args.get("b") == book or not args.get("c") == chapter:
                 self.change_area_1_bible_chapter(args.get("bt"), book, chapter, verse)
-                if config.reload_after_sync:
-                    ui.run_javascript('location.reload()')
 
     def add_tab_area1(self):
         """Dynamically add a new tab to Area 1"""
@@ -1048,34 +1044,33 @@ class BibleMateGUI:
         def perform_quick_search(quick_search):
             app.storage.user.update(left_drawer_open=False)
             if search_item := quick_search.value.strip():
-                bibles = getBibleVersionList(app.storage.client["custom"])
+                client_bibles = getBibleVersionList(app.storage.client["custom"])
                 refs = parser.extractAllReferences(search_item)
-                if search_item.lower().startswith("bible:::") and refs:
+                if search_item.lower().startswith("bible:::") and refs: # open a parallel bible chapter in area 2
                     search_item = search_item[8:]
                     b,c,v = refs[0]
-                    if ":::" in search_item and search_item.split(":::", 1)[0].strip() in bibles:
+                    if ":::" in search_item and search_item.split(":::", 1)[0].strip() in client_bibles: # bible version is specified
                         version, search_item = search_item.split(":::", 1)
                         version = version.strip()
-                    else:
+                    else: # bible version is not specified
                         version = None
                     self.change_area_2_bible_chapter(version=version, book=b, chapter=c, verse=v)
-                elif ":::" in search_item and search_item.split(":::", 1)[0].strip().lower() in self.tools:
+                elif ":::" in search_item and search_item.split(":::", 1)[0].strip().lower() in self.tools: # open a tool in area 2
                     tool, app.storage.user["tool_query"] = search_item.split(":::", 1)
                     tool = tool.strip()
                     self.load_area_2_content(title=tool, sync=app.storage.user["sync"])
-                else:
-                    if len(refs) == 1:
-                        b,c,v = refs[0]
-                        if ":::" in search_item and search_item.split(":::", 1)[0].strip() in bibles:
-                            version, search_item = search_item.split(":::", 1)
-                            version = version.strip()
-                        else:
-                            version = None
-                        self.change_area_1_bible_chapter(version=version,book=b, chapter=c, verse=v)
-                    else:
-                        app.storage.user["tool_query"] = search_item
-                        self.load_area_2_content(title='Verses', sync=app.storage.user["sync"])
-
+                elif len(refs) == 1: # open a bible chapter in area 1
+                    b,c,v = refs[0]
+                    if ":::" in search_item and search_item.split(":::", 1)[0].strip() in client_bibles: # bible version is specified
+                        search_item = search_item[8:]
+                        version, search_item = search_item.split(":::", 1)
+                        version = version.strip()
+                    else: # bible version is not specified
+                        version = None
+                    self.change_area_1_bible_chapter(version=version,book=b, chapter=c, verse=v)
+                else: # search for verses in area 2; when no reference or more than a reference
+                    app.storage.user["tool_query"] = search_item
+                    self.load_area_2_content(title='Verses', sync=app.storage.user["sync"])
 
         # qr code dialog
         with ui.dialog() as dialog, ui.card().classes('items-center text-center p-6'):
@@ -1084,7 +1079,7 @@ class BibleMateGUI:
             # Container to hold dynamic content (URL label + QR image)
             qr_container = ui.column().classes('items-center gap-4')
 
-            ui.link("[source code]", "https://github.com/eliranwong/biblemategui").classes('break-all max-w-[300px]')
+            ui.link("[BibleMate AI]", "https://github.com/eliranwong/biblemate").classes('text-secondary break-all max-w-[300px]')
             
             ui.button('Close', on_click=dialog.close).props('outline align=center text-color=secondary')
 
@@ -1631,7 +1626,12 @@ class BibleMateGUI:
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
 
-            #ui.button(get_translation("Share"), on_click=lambda: (
-            #    ui.timer(0, show_url_popup, once=True),
-            #    app.storage.user.update(left_drawer_open=False)
-            #), icon='qr_code').props('flat text-color=secondary')
+            with ui.row().classes('w-full justify-between'):                            
+                # Back Button
+                ui.button(color="secondary", icon='arrow_back', on_click=lambda: ui.run_javascript('history.back()')) \
+                    .props('flat round') \
+                    .tooltip('Go Back')
+                # Forward Button
+                ui.button(color="secondary", icon='arrow_forward', on_click=lambda: ui.run_javascript('history.forward()')) \
+                    .props('flat round') \
+                    .tooltip('Go Forward')

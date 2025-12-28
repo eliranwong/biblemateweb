@@ -137,7 +137,6 @@ translation_sc = {
     "Distance": "距离",
     "From": "从",
     "To": "到",
-    "Locations": "地点",
     "km": "公里",
     "miles": "英里",
     "Loading...": "载入中...",

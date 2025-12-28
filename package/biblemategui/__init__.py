@@ -1,5 +1,6 @@
 from pathlib import Path
 from agentmake import readTextFile, writeTextFile
+from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from biblemategui import config
 from biblemategui.translations.eng import translation_eng
 from biblemategui.translations.tc import translation_tc
@@ -29,7 +30,6 @@ CONFIG_FILE_BACKUP = os.path.join(BIBLEMATEGUI_USER_DIR, "biblemategui.config")
 def write_user_config():
     """Writes the current configuration to the user's config file."""
     configurations = f"""config.hot_reload={config.hot_reload}
-config.reload_after_sync={config.reload_after_sync}
 config.avatar="{config.avatar}"
 config.embedding_model="{config.embedding_model}"
 config.custom_token="{config.custom_token}"
@@ -43,7 +43,6 @@ config.verses_limit={config.verses_limit}"""
 
 # restore config backup after upgrade
 default_config = '''config.hot_reload=False
-config.reload_after_sync=False
 config.avatar=""
 config.embedding_model="paraphrase-multilingual"
 config.custom_token=""
@@ -193,6 +192,98 @@ def getBibleVersionList(custom: bool = False) -> List[str]:
         bibleVersionList = list(set(bibleVersionList))
     return sorted(bibleVersionList)
 
+def getBibleVersionName(abb):
+    if abb in config.bibles_custom:
+        return config.bibles_custom[abb][0]
+    elif abb in config.bibles:
+        return config.bibles[abb][0]
+    return abb
+
+def get_default_bible(language):
+    if language == 'tc':
+        module = "CUV"
+    elif language == 'sc':
+        module = "CUVs"
+    else:
+        module = "NET"
+    return module
+
+def resolve_verses_additional_options(q: str = None, default_bible: str = "NET", custom: bool = False):
+    BIBLE_BOOKS = [BibleBooks.abbrev["eng"][str(i)][0] for i in range(1,67)]
+    OT_BOOKS = BIBLE_BOOKS[:39]
+    NT_BOOKS = BIBLE_BOOKS[39:]
+    client_bibles = getBibleVersionList(custom)
+    selected_bibles = default_bible
+    selected_books = ['All', 'OT', 'NT'] + BIBLE_BOOKS
+    if q and ":::" in q:
+        additional_options, q = q.split(":::", 1)
+        valid_books = []
+        valid_bibles = []
+        for i in additional_options.split(","):
+            if i.strip() in selected_books+["None"]:
+                valid_books.append(i.strip())
+            elif i.strip() in client_bibles:
+                valid_bibles.append(i.strip())
+        # refine valid books and bibles
+        if "None" in valid_books:
+            valid_books = ["None"]
+        elif "All" in valid_books or ("OT" in valid_books and "NT" in valid_books):
+            valid_books = selected_books
+        else:
+            if "OT" in valid_books:
+                valid_books += OT_BOOKS
+                valid_books = list(set(valid_books))
+            if "NT" in valid_books:
+                valid_books += NT_BOOKS
+                valid_books = list(set(valid_books))
+        if valid_books:
+            selected_books = valid_books
+        if valid_bibles:
+            selected_bibles = valid_bibles
+    return client_bibles, selected_bibles, selected_books, q
+
+def update_verses_sql_query(selected_values):
+    """Generates the SQLite query based on selection."""
+    BIBLE_BOOKS = [BibleBooks.abbrev["eng"][str(i)][0] for i in range(1,67)]
+    BOOK_MAP = {book: i + 1 for i, book in enumerate(BIBLE_BOOKS)}
+    OT_BOOKS = BIBLE_BOOKS[:39]
+    NT_BOOKS = BIBLE_BOOKS[39:]
+    if "OT" in selected_values:
+        selected_values.remove("OT")
+        selected_values += OT_BOOKS
+    if "NT" in selected_values:
+        selected_values.remove("NT")
+        selected_values += NT_BOOKS
+    selected_values = list(set(selected_values))
+    
+    # Filter to keep ONLY the actual book strings (ignore All/None/OT/NT)
+    real_books = [b for b in selected_values if b in BIBLE_BOOKS]
+    book_ids = [str(BOOK_MAP[b]) for b in real_books]
+    
+    base_query = "PRAGMA case_sensitive_like = false; SELECT * FROM Verses"
+    where_clauses = []
+
+    # Handle Book Logic
+    if 'All' in selected_values:
+        pass 
+    elif not real_books:
+        where_clauses.append("1=0")
+    elif len(real_books) == 1:
+        where_clauses.append(f"Book={book_ids[0]}")
+    else:
+        # Optimization: check if it's exactly OT or NT for cleaner SQL?
+        # (Optional, but strictly sticking to IDs is safer for the engine)
+        where_clauses.append(f"Book IN ({', '.join(book_ids)})")
+
+    where_clauses.append(f"(Scripture REGEXP ?) ORDER BY Book, Chapter, Verse")
+
+    # Assemble
+    full_query = base_query
+    if where_clauses:
+        full_query += " WHERE " + " AND ".join(where_clauses)
+    
+    return full_query
+
 # commentaries resources
 
 config.commentaries_names = {
@@ -263,6 +354,13 @@ def getCommentaryVersionList(custom: bool = False) -> List[str]:
         commentaryVersionList = list(set(commentaryVersionList))
     return sorted(commentaryVersionList)
 
+def getCommentaryVersionName(abb):
+    if abb in config.commentaries_custom:
+        return config.commentaries_custom[abb][0]
+    elif abb in config.commentaries:
+        return config.commentaries[abb][0]
+    return abb
+
 # lexicons resources
 lexicons_dir = os.path.join(BIBLEMATEGUI_DATA, "lexicons")
 if os.path.isdir(lexicons_dir):
@@ -305,6 +403,14 @@ if os.path.isdir(audio_dir_custom):
 else:
     Path(audio_dir_custom).mkdir(parents=True, exist_ok=True)
     config.audio_custom = {}
+
+def getAudioVersionList(custom: bool = False) -> List[str]:
+    """Returns a list of available Audio versions"""
+    version_options = list(config.audio.keys())
+    if custom:
+        version_options += list(config.audio_custom.keys())
+        version_options = list(set(version_options))
+    return version_options
 
 config.topics = {
     "HIT": "Hitchcock's New and Complete Analysis of the Bible",

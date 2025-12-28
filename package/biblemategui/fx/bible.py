@@ -18,10 +18,10 @@ def regexp_api(expr, item):
 def get_bible_content(user_input="", bible="NET", sql_query="", refs=[], search_mode=1, top_similar_verses=20, search_case_sensitivity=False, api=False, parser=None) -> list:
     verses_limit_reached = False
     dbs = []
-    if isinstance(bible, str):
+    if isinstance(bible, str): # str; single bible
         if bible_path := getBiblePath(bible):
             dbs = [bible_path]
-    else: # multiple bibles
+    else: # list; multiple bibles
         dbs = []
         for i in bible:
             if i_path := getBiblePath(i):

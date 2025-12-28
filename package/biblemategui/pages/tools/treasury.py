@@ -5,6 +5,14 @@ from biblemategui.data.cr_books import cr_books
 from nicegui import ui, app
 import re, apsw, os
 
+def fetch_tske(b, c, v):
+    db = os.path.join(BIBLEMATEGUI_DATA, "cross-reference.sqlite")
+    with apsw.Connection(db) as connn:
+        sql_query = "SELECT Information FROM TSKe WHERE Book=? AND Chapter=? AND Verse=? limit 1"
+        cursor = connn.cursor()
+        cursor.execute(sql_query, (b, c, v))
+        fetch = cursor.fetchone()
+    return fetch[0] if fetch else ""
 
 def treasury(gui=None, b=1, c=1, v=1, q='', **_):
 
@@ -58,14 +66,7 @@ def treasury(gui=None, b=1, c=1, v=1, q='', **_):
                 for ref2 in parser.extractExhaustiveReferences([ref]):
                     b, c, v = ref2
                     query = ""
-                    db = os.path.join(BIBLEMATEGUI_DATA, "cross-reference.sqlite")
-                    with apsw.Connection(db) as connn:
-                        sql_query = "SELECT Information FROM TSKe WHERE Book=? AND Chapter=? AND Verse=? limit 1"
-                        cursor = connn.cursor()
-                        cursor.execute(sql_query, (b, c, v))
-                        fetch = cursor.fetchone()
-                    if not fetch: continue
-                    content = fetch[0]
+                    content = fetch_tske(b, c, v)
                     if content:
                         results.append(content)
                     else:

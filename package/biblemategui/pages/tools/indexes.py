@@ -76,7 +76,7 @@ def resource_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                 query = f"SELECT Information FROM {table_name} WHERE Book=? AND Chapter=? AND Verse=?"
                 cursor.execute(query, (book_id, chapter, verse))
                 rows = cursor.fetchall()
-                return "\n\n".join([row[0] for row in rows]) if rows else None
+                return "\n\n".join([row[0].replace("</td><td>", "&nbsp;&nbsp;</td><td>") for row in rows]) if rows else None
         except Exception as e:
             return f"Error querying database: {str(e)}"
 
@@ -128,7 +128,7 @@ def resource_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                 # Create the Expansion with specific icon
                 with ui.expansion(title, icon=config['icon'], value=is_open) \
                         .classes('w-full border rounded-lg shadow-sm') \
-                        .props('header-class="font-bold text-lg text-primary"'):
+                        .props('header-class="font-bold text-lg text-secondary"'):
                     
                     if content:
                         # convert links, e.g. <ref onclick="bcv(3,19,26)">
@@ -156,7 +156,7 @@ def resource_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                 # Create the Expansion with specific icon
                 with ui.expansion("Bible Promises" if i == "PROMISES_INDEXES" else "Bible Parallels", icon="redeem" if i == "PROMISES_INDEXES" else "link", value=is_open) \
                         .classes('w-full border rounded-lg shadow-sm') \
-                        .props('header-class="font-bold text-lg text-primary"'):
+                        .props('header-class="font-bold text-lg text-secondary"'):
 
                     DB_FILE2 = os.path.join(BIBLEMATEGUI_DATA, "collections3.sqlite")
                     sql_query = "SELECT Tool, Number, Topic FROM " + i + " WHERE Passages LIKE ?"

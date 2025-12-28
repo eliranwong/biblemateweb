@@ -1,6 +1,6 @@
 from nicegui import ui, app
 import asyncio, os, re
-from biblemategui import config, get_translation
+from biblemategui import config, get_translation, getAudioVersionList
 from biblemategui.fx.bible import *
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 
@@ -166,10 +166,7 @@ def bibles_audio(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
         gui.load_area_2_content(title="Audio", sync=False)
 
     # version options
-    version_options = list(config.audio.keys())
-    if app.storage.client["custom"]:
-        version_options += list(config.audio_custom.keys())
-        version_options = list(set(version_options))
+    version_options = getAudioVersionList(app.storage.client["custom"])
     # version
     if bt in ("ORB", "OIB", "OPB", "ODB", "OLB") and b < 40 and "BHS5" in config.audio:
         version = "OHGB"

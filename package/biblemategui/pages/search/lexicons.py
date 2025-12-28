@@ -22,7 +22,7 @@ def get_lexicon_path(client_lexicons, lexicon_name):
     elif lexicon_name in config.lexicons:
         return config.lexicons[lexicon_name]
 
-def fetch_all_lexicons(client_lexicons, lexicon):
+def fetch_all_lexicons_entries(client_lexicons, lexicon):
     db = get_lexicon_path(client_lexicons, lexicon)
     with apsw.Connection(db) as connn:
         cursor = connn.cursor()
@@ -95,7 +95,7 @@ def search_bible_lexicons(gui=None, q='', **_):
         lexicon_module = new_module
         app.storage.user['favorite_lexicon'] = new_module
         n = ui.notification(get_translation('Loading...'), timeout=None, spinner=True)
-        all_entries = await run.io_bound(fetch_all_lexicons, client_lexicons, new_module)
+        all_entries = await run.io_bound(fetch_all_lexicons_entries, client_lexicons, new_module)
         n.dismiss()
         input_field.set_autocomplete(all_entries)
         input_field.props(f'''placeholder="{get_translation('Search')} {new_module} ..."''')
@@ -215,7 +215,7 @@ def search_bible_lexicons(gui=None, q='', **_):
                 .classes('text-sm cursor-pointer text-secondary').tooltip('Restore last entry')
 
         async def get_all_entries(lexicon):
-            all_entries = await run.io_bound(fetch_all_lexicons, client_lexicons, lexicon)
+            all_entries = await run.io_bound(fetch_all_lexicons_entries, client_lexicons, lexicon)
             input_field.set_autocomplete(all_entries)
         n = ui.notification(get_translation('Loading...'), timeout=None, spinner=True)
         ui.timer(0, get_all_entries, once=True)

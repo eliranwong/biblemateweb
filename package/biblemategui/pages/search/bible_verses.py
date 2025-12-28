@@ -1,7 +1,7 @@
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from biblemategui.fx.bible import get_bible_content
-from biblemategui import BIBLEMATEGUI_DATA, config, getBibleVersionList, get_translation
+from biblemategui import BIBLEMATEGUI_DATA, config, get_translation, resolve_verses_additional_options
 from functools import partial
 from nicegui import ui, app, run
 import re, apsw, os
@@ -32,34 +32,8 @@ def search_bible_verses(gui=None, q='', **_):
     BOOK_MAP = {book: i + 1 for i, book in enumerate(BIBLE_BOOKS)}
 
     # Initialize with full selection state
-    all_bibles = getBibleVersionList(app.storage.client["custom"])
-    initial_bibles = gui.get_area_1_bible_text()
-    initial_books = ['All', 'OT', 'NT'] + BIBLE_BOOKS
-    if q and ":::" in q:
-        additional_options, q = q.split(":::", 1)
-        valid_books = []
-        valid_bibles = []
-        for i in additional_options.split(","):
-            if i.strip() in initial_books+["None"]:
-                valid_books.append(i.strip())
-            elif i.strip() in all_bibles:
-                valid_bibles.append(i.strip())
-        # refine valid books and bibles
-        if "None" in valid_books:
-            valid_books = ["None"]
-        elif "All" in valid_books or ("OT" in valid_books and "NT" in valid_books):
-            valid_books = initial_books
-        else:
-            if "OT" in valid_books:
-                valid_books += OT_BOOKS
-                valid_books = list(set(valid_books))
-            if "NT" in valid_books:
-                valid_books += NT_BOOKS
-                valid_books = list(set(valid_books))
-        if valid_books:
-            initial_books = valid_books
-        if valid_bibles:
-            initial_bibles = valid_bibles
+    default_bible = gui.get_area_1_bible_text()
+    client_bibles, initial_bibles, initial_books, q = resolve_verses_additional_options(q, default_bible, app.storage.client["custom"])
     
     state = {'previous': initial_books}
 
@@ -475,7 +449,7 @@ def search_bible_verses(gui=None, q='', **_):
 
         # Multi-select dropdown
         multiple_bibles = ui.select(
-            all_bibles,
+            client_bibles,
             value=initial_bibles,
             #label='Select Bibles to search', 
             multiple=True,

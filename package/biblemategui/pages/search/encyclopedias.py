@@ -144,7 +144,7 @@ def search_bible_encyclopedias(gui=None, q='', **_):
 
     # --- Fuzzy Match Dialog ---
     with ui.dialog() as dialog, ui.card().classes('w-full max-w-md'):
-        ui.label("Bible Encyclopedia ...").classes('text-xl font-bold text-primary mb-4')
+        ui.label("Bible Encyclopedia ...").classes('text-xl font-bold text-secondary mb-4')
         ui.label("We couldn't find an exact match. Please select one of these topics:").classes('text-secondary mb-4')
         
         # This container will hold the radio selection dynamically

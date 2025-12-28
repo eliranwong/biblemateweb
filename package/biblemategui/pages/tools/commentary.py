@@ -6,7 +6,7 @@ from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from agentmake.plugins.uba.lib.RegexSearch import RegexSearch
 import apsw, os, re, markdown2
 
-def get_ai_commentary_content(references: str, module: str = "AIC"):
+def get_ai_commentary_content(references: str, module: str = "AIC", language: str ="eng"):
     def fetch_ai_commentary_verse(b,c,v):
         fetch = None
         db = os.path.join(BIBLEMATEGUI_DATA, "commentaries", f"c{module}.commentary")
@@ -16,7 +16,7 @@ def get_ai_commentary_content(references: str, module: str = "AIC"):
             cursor.execute(sql_query, (b,c,v))
             fetch = cursor.fetchone()
         return fetch
-    parser = BibleVerseParser(False, language=app.storage.user['ui_language'])
+    parser = BibleVerseParser(False, language=language)
     references = parser.extractAllReferences(references)
     if not references:
         return ""
@@ -40,20 +40,20 @@ def get_ai_commentary_content(references: str, module: str = "AIC"):
                 results.append(content)
     return "<hr>".join(results) if results else ""
 
-def get_commentary_content(references: str):
-    if app.storage.user["favorite_commentary"] in ("AIC", "AICTC", "AICSC"):
+def fetch_commentary_content(references: str, module: str = "CBSC", language: str ="eng"):
+    if module in ("AIC", "AICTC", "AICSC"):
         # redirect for AI commentaries
-        return get_ai_commentary_content(references, app.storage.user["favorite_commentary"])
+        return get_ai_commentary_content(references, module, language)
     def fetch_commentary_chapter(b,c):
         fetch = None
-        db = os.path.join(BIBLEMATEGUI_DATA, "commentaries", f"c{app.storage.user["favorite_commentary"]}.commentary")
+        db = os.path.join(BIBLEMATEGUI_DATA, "commentaries", f"c{module}.commentary")
         with apsw.Connection(db) as connn:
             cursor = connn.cursor()
             sql_query = "SELECT Scripture FROM Commentary WHERE Book=? AND Chapter=? limit 1"
             cursor.execute(sql_query, (b,c))
             fetch = cursor.fetchone()
         return fetch
-    parser = BibleVerseParser(False, language=app.storage.user['ui_language'])
+    parser = BibleVerseParser(False, language=language)
     references = parser.extractAllReferences(references)
     if not references:
         return ""
@@ -142,7 +142,7 @@ def bible_commentary(gui=None, b=1, c=1, v=1, q='', **_):
 
         try:
 
-            content = get_commentary_content(references)
+            content = fetch_commentary_content(references, module=app.storage.user.get('favorite_commentary', 'AIC'), language=app.storage.user['ui_language'])
 
             # update tab records
             if content and keep:

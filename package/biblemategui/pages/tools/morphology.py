@@ -5,6 +5,16 @@ from nicegui import ui, app
 from biblemategui.fx.bible import BibleSelector
 from functools import partial
 
+def fetch_morphology(b, c, v):
+    results = []
+    db = os.path.join(BIBLEMATEGUI_DATA, "morphology.sqlite")
+    with apsw.Connection(db) as connn:
+        query = "SELECT * FROM morphology WHERE Book=? AND Chapter=? AND Verse=? ORDER BY WordID"
+        cursor = connn.cursor()
+        cursor.execute(query, (b,c,v))
+        results = cursor.fetchall()
+    return results
+
 def word_morphology(gui=None, b=1, c=1, v=1, area=2, **_):
 
     def add_tooltips(verse_text):
@@ -14,16 +24,6 @@ def word_morphology(gui=None, b=1, c=1, v=1, area=2, **_):
         elif "</grk>" in verse_text:
             verse_text = re.sub('(<grk id=")(.*?)"', r'\1\2" data-word="\2" class="tooltip-word"', verse_text)
         return verse_text
-
-    def fetch_morphology(b, c, v):
-        results = []
-        db = os.path.join(BIBLEMATEGUI_DATA, "morphology.sqlite")
-        with apsw.Connection(db) as connn:
-            query = "SELECT * FROM morphology WHERE Book=? AND Chapter=? AND Verse=? ORDER BY WordID"
-            cursor = connn.cursor()
-            cursor.execute(query, (b,c,v))
-            results = cursor.fetchall()
-        return results
 
     # --- UI LAYOUT ---
     with ui.column().classes('w-full max-w-3xl mx-auto p-4 gap-6'):
