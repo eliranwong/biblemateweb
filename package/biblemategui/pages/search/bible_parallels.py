@@ -218,7 +218,7 @@ def search_bible_parallels(gui=None, q='', **_):
 
         n = ui.notification(get_translation('Loading...'), timeout=None, spinner=True)
         topic, query = await run.io_bound(fetch_parallels_topic, path)
-        n = ui.notification(get_translation('Loading...'), timeout=None, spinner=True)
+        n.dismiss()
 
         # update tab records
         if query and keep:

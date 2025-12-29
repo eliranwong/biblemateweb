@@ -139,7 +139,7 @@ def search_bible_relationships(gui=None, q='', **_):
 
     # -- MAIN CONTENT AREA --
     # max-w-md makes it look like a mobile app even on desktop
-    with ui.column().classes('w-full max-w-md mx-auto p-2 gap-4 mt-2'):
+    with ui.column().classes('w-full mx-auto p-2 gap-4 mt-2'):
         
         @ui.refreshable
         def view_area():

@@ -26,7 +26,7 @@ def bible_chronology(gui=None, **_):
         
         return link_component
 
-    with ui.card().classes('w-full max-w-lg'):
+    with ui.card().classes('w-full'):
         ui.label('📜 Bible Chronology').classes('text-2xl font-bold mb-4')
         with ui.timeline(side='right'):
             for item in bible_events:

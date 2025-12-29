@@ -5,7 +5,7 @@ url = "http://localhost:33355/api/data"
 
 # 2. Define your parameters
 payload = {
-    "query": "regex:::Jesus.*?love",  # Required
+    "query": ".resources",  # Required
     "token": "my-secret-key-123"                  # Optional
 }
 

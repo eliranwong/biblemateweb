@@ -277,7 +277,17 @@ API_TOOLS = {
 }
 
 def get_tool_content(tool: str, query: str, language: str = 'eng', custom: bool = False):
-    return API_TOOLS[tool](query, language, custom)
+    content = API_TOOLS[tool](query, language, custom)
+    # refine markdown text
+    search_replace = (
+        (r"\n([0-9]+?) \(([^\(\)]+?)\)", r"\n- `\1` (`\2`)"),
+        (r"^([0-9]+?) \(([^\(\)]+?)\)", r"- `\1` (`\2`)"),
+        (r"\n\(([^\(\)]+?)\)", r"\n- (`\1`)"),
+        (r"^\(([^\(\)]+?)\)", r"- (`\1`)"),
+    )
+    for search, replace in search_replace:
+        content = re.sub(search, replace, content)
+    return content
 
 def get_api_content(query: str, language: str = 'eng', custom: bool = False):
     if query.lower() == ".resources":
