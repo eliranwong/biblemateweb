@@ -1,5 +1,5 @@
 agentmake>=1.1.90
-biblemate>=0.2.45
+biblemate>=0.2.49
 nicegui>=3.2.0
 apsw
 markdown2

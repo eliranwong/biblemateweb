@@ -12,6 +12,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
 from authlib.integrations.starlette_client import OAuth
+from urllib.parse import unquote
 import os
 
 # --- 2. OAUTH SETUP ---
@@ -37,6 +38,7 @@ def api_data(query: str, language: str = 'eng', token: Optional[str] = None):
     - query: Required (automatically required because no default value is provided)
     - token: Optional (defaults to None)
     """
+    query = unquote(query).strip()
     custom = True if token == config.custom_token else False
     result = {
         "query": query,

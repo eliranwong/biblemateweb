@@ -4,7 +4,7 @@ from typing import List, Optional
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 import re, apsw, os
-from biblemate.uba.bible import BibleVectorDatabase
+from biblemate.api.bible import BibleVectorDatabase
 
 
 def regexp(expr, item):
@@ -15,7 +15,7 @@ def regexp_api(expr, item):
     reg = re.compile(expr, flags=re.IGNORECASE)
     return reg.search(item) is not None
 
-def get_bible_content(user_input="", bible="NET", sql_query="", refs=[], search_mode=1, top_similar_verses=20, search_case_sensitivity=False, api=False, parser=None) -> list:
+def get_bible_content(user_input="", bible="NET", sql_query="", refs=[], search_mode=1, top_similar_verses=20, search_case_sensitivity=False, api=False, parser=None, html=True) -> list:
     verses_limit_reached = False
     dbs = []
     if isinstance(bible, str): # str; single bible
@@ -69,7 +69,10 @@ def get_bible_content(user_input="", bible="NET", sql_query="", refs=[], search_
                             cursor.execute(query, (b, c, v))
                             verse = cursor.fetchone()
                             if not verse: continue
-                            content += f"<vid>{v}</vid> {verse[0].strip()} "
+                            verse_text = verse[0].strip()
+                            if not html:
+                                verse_text = re.sub("<.*?>", "", verse_text)
+                            content += f"<vid>{v}</vid> {verse_text} "
                         ref = parser.bcvToVerseReference(*ref)
                         if len(dbs) > 1:
                             ref += f" [{this_bible}]"
@@ -79,10 +82,13 @@ def get_bible_content(user_input="", bible="NET", sql_query="", refs=[], search_
                         cursor.execute(query, (b, c, v))
                         verse = cursor.fetchone()
                         if not verse: continue
+                        verse_text = verse[0].strip()
+                        if not html:
+                            verse_text = re.sub("<.*?>", "", verse_text)
                         ref = parser.bcvToVerseReference(b, c, v)
                         if len(dbs) > 1:
                             ref += f" [{this_bible}]"
-                        results.append({'ref': ref, 'content': verse[0].strip(), 'bible': this_bible, 'b': b, 'c': c, 'v': v})
+                        results.append({'ref': ref, 'content': verse_text, 'bible': this_bible, 'b': b, 'c': c, 'v': v})
     else:
         # search the bible with regular expression
         query = sql_query if sql_query else "PRAGMA case_sensitive_like = false; SELECT Book, Chapter, Verse, Scripture FROM Verses WHERE (Scripture REGEXP ?) ORDER BY Book, Chapter, Verse"
@@ -102,10 +108,13 @@ def get_bible_content(user_input="", bible="NET", sql_query="", refs=[], search_
                     fetches = fetches[:config.verses_limit]
                     verses_limit_reached = True
                 for verse in fetches:
+                    verse_text = verse[3].strip()
+                    if not html:
+                        verse_text = re.sub("<.*?>", "", verse_text)
                     ref = parser.bcvToVerseReference(verse[0], verse[1], verse[2])
                     if len(dbs) > 1:
                         ref += f" [{this_bible}]"
-                    results.append({'ref': ref, 'content': verse[3].strip(), 'bible': this_bible, 'b': verse[0], 'c': verse[1], 'v': verse[2]})
+                    results.append({'ref': ref, 'content': verse_text, 'bible': this_bible, 'b': verse[0], 'c': verse[1], 'v': verse[2]})
     if verses_limit_reached:
         results.append({'ref': "", 'content': f"{config.verses_limit} verses limit reached!", 'bible': "", 'b': 0, 'c': 0, 'v': 0})
     return results

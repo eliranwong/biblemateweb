@@ -91,7 +91,7 @@ def get_verses_content(query, language, custom):
     client_bibles, selected_bibles, selected_books, query = resolve_verses_additional_options(query, get_default_bible(language), custom)
     #module, query = refine_bible_module_and_query(query, language, custom)
     parser = BibleVerseParser(False, language=language)
-    verses = get_bible_content(user_input=query, bible=selected_bibles, parser=parser)
+    verses = get_bible_content(user_input=query, bible=selected_bibles, parser=parser, html=False)
     verses = [f"[{i['ref']}] {i['content']}" for i in verses]
     return "* "+"\n* ".join(verses)
 
@@ -99,7 +99,7 @@ def get_literal_content(query, language, custom):
     client_bibles, selected_bibles, selected_books, query = resolve_verses_additional_options(query, get_default_bible(language), custom)
     parser = BibleVerseParser(False, language=language)
     sql_query = update_verses_sql_query(selected_books)
-    verses = get_bible_content(user_input=query, bible=selected_bibles, sql_query=sql_query, search_mode=1, api=True, parser=parser)
+    verses = get_bible_content(user_input=query, bible=selected_bibles, sql_query=sql_query, search_mode=1, api=True, parser=parser, html=False)
     verses = [f"[{i['ref']}] {i['content']}" for i in verses]
     return "* "+"\n* ".join(verses)
 
@@ -107,7 +107,7 @@ def get_regex_content(query, language, custom):
     client_bibles, selected_bibles, selected_books, query = resolve_verses_additional_options(query, get_default_bible(language), custom)
     parser = BibleVerseParser(False, language=language)
     sql_query = update_verses_sql_query(selected_books)
-    verses = get_bible_content(user_input=query, bible=selected_bibles, sql_query=sql_query, search_mode=2, api=True, parser=parser)
+    verses = get_bible_content(user_input=query, bible=selected_bibles, sql_query=sql_query, search_mode=2, api=True, parser=parser, html=False)
     verses = [f"[{i['ref']}] {i['content']}" for i in verses]
     return "* "+"\n* ".join(verses)
 
@@ -115,7 +115,7 @@ def get_semantic_content(query, language, custom):
     client_bibles, selected_bibles, selected_books, query = resolve_verses_additional_options(query, get_default_bible(language), custom)
     parser = BibleVerseParser(False, language=language)
     sql_query = update_verses_sql_query(selected_books)
-    verses = get_bible_content(user_input=query, bible=selected_bibles, sql_query=sql_query, search_mode=3, parser=parser)
+    verses = get_bible_content(user_input=query, bible=selected_bibles, sql_query=sql_query, search_mode=3, parser=parser, html=False)
     verses = [f"[{i['ref']}] {i['content']}" for i in verses]
     return "* "+"\n* ".join(verses)
 
@@ -136,8 +136,8 @@ def get_xrefs_content(query, language, custom): # accept multiple references
         query = fetch_xrefs(b, c, v)
         if not query: continue
         markdown_content = f"## Cross References - {parser.bcvToVerseReference(b,c,v)}\n\n"
-        query = parser.bcvToVerseReference(b, c, v) + "; " + query
-        verses = get_bible_content(query, bible=module, parser=parser)
+        query = parser.bcvToVerseReference(b, c, v) + "; " + query[0]
+        verses = get_bible_content(query, bible=module, parser=parser, html=False)
         verses = [f"[{i['ref']}] {i['content']}" for i in verses]
         markdown_content += "* "+"\n* ".join(verses)
         markdown_contents.append(markdown_content)
@@ -147,7 +147,7 @@ def get_promises_content(query, language, custom): # accept single reference
     module, query = refine_bible_module_and_query(query, language, custom)
     topic, query = fetch_promises_topic(query)
     parser = BibleVerseParser(False, language=language)
-    verses = get_bible_content(query, bible=module, parser=parser)
+    verses = get_bible_content(query, bible=module, parser=parser, html=False)
     verses = [f"[{i['ref']}] {i['content']}" for i in verses]
     markdown_content = f"## Promises - {topic}\n\n"
     markdown_content += "* "+"\n* ".join(verses)
@@ -157,7 +157,7 @@ def get_parallels_content(query, language, custom): # accept single reference
     module, query = refine_bible_module_and_query(query, language, custom)
     topic, query = fetch_parallels_topic(query)
     parser = BibleVerseParser(False, language=language)
-    verses = get_bible_content(query, bible=module, parser=parser)
+    verses = get_bible_content(query, bible=module, parser=parser, html=False)
     verses = [f"[{i['ref']}] {i['content']}" for i in verses]
     markdown_content = f"## Promises - {topic}\n\n"
     markdown_content += "* "+"\n* ".join(verses)
@@ -201,10 +201,16 @@ def get_lexicon_content(query, language, custom): # accept single references
     html = fetch_bible_lexicons_entry(client_lexicons, lexicon, topic)
     return htmlToMarkdown(html)
 
-def get_chronology_content():
+def get_chronology_content(query, language, custom):
     markdown_contents = "## Bible Chronnology\n\n"
     for i in bible_events:
-        markdown_contents += f"- {i.get("year", "")} | {i.get("event", "")} | {i.get("reference", "")}"
+        year = i.get("year", "")
+        event = i.get("event", "")
+        reference = i.get("reference", "")
+        if not query:
+            markdown_contents += f"- {year} | {event} | {reference}"
+        elif re.search(query, year) or re.search(query, event) or re.search(query, reference):
+            markdown_contents += f"- {year} | {event} | {reference}"
     return markdown_contents
 
 def get_locations_content(query, language, custom):
@@ -241,43 +247,34 @@ def get_encyclopedias_content(query, language, custom):
     return htmlToMarkdown(html)
 
 API_TOOLS = {
-    #"chat": ai_chat,
-    "morphology": get_morphology_content, # API with additional options
-    #"indexes": get_indexes_content,
-    #"podcast": bibles_podcast,
-    #"audio": bibles_audio,
-    "chapter": get_chapter_content, # API with additional options
-    "comparechapter": get_compare_chapters_content, # API with additional options
-    "bible": get_verses_content, # backward compatibility to UBA
-    "verses": get_verses_content, # API with additional options
-    "literal": get_literal_content, # API with additional options
-    "regex": get_regex_content, # API with additional options
-    "semantic": get_semantic_content, # API with additional options
-    "treasury": get_treasury_content, # API with additional options
-    "tske": get_treasury_content, # backward compatibility to UBA
-    "commentary": get_commentary_content, # API with additional options
-    "chronology": get_chronology_content,
-    #"timelines": bible_timelines,
-    "xrefs": get_xrefs_content, # API with additional options
-    "crossreference": get_xrefs_content, # backward compatibility to UBA
-    "promises": get_promises_content,
-    #"promises_": bible_promises_menu,
-    "parallels": get_parallels_content,
-    #"parallels_": bible_parallels_menu,
-    "topics": get_topics_content,
-    "characters": get_characters_content,
-    "locations": get_locations_content,
-    "names": get_names_content,
-    "dictionaries": get_dictionaries_content,
-    "encyclopedias": get_encyclopedias_content, # API with additional options
-    "lexicons": get_lexicon_content, # API with additional options
-    "lexicon": get_lexicon_content, # backward compatibility to UBA
-    #"maps": search_bible_maps,
-    #"relationships": search_bible_relationships,
+    "morphology": ("retrieve word morphology in bible verse(s)", "e.g. morphology:::John 3:16", get_morphology_content),
+    "chapter": ("retrieve bible chapter(s)", "e.g. chapter:::John 3, chapter:::KJV:::John 3", get_chapter_content),
+    "comparechapter": ("compare bible chapter(s)", "e.g. comparechapter:::KJV,CUV:::John 3", get_compare_chapters_content),
+    "bible": ("", "backward compatibility to UBA", get_verses_content),
+    "verses": ("retrieve bible verse(s)", "e.g. verses:::John 3:16; Rm 5:8, verses:::KJV:::John 3:16; Rm 5:8", get_verses_content),
+    "literal": ("literal string search for bible verse(s)", "e.g. literal:::Jesus love, literal:::KJV:::Jesus love, literal:::Matt,KJV:::love", get_literal_content),
+    "regex": ("regular expression search for bible verse(s)", "e.g. regex:::Jesus.*?love, regex:::KJV:::Jesus.*?love, regex:::Matt,KJV:::Jesus.*?love", get_regex_content),
+    "semantic": ("semantic search for bible verse(s)", "e.g. semantic:::Jesus love, semantic:::KJV:::Jesus love , semantic:::Matt,KJV:::Jesus love", get_semantic_content),
+    "treasury": ("treasury of scripture knowledge of bible verse(s)", "e.g. treasury:::John 3:16", get_treasury_content),
+    "tske": ("", "backward compatibility to UBA", get_treasury_content),
+    "commentary": ("", "e.g. commentary:::John 3:16, commentary:::AICTC:::John 3:16", get_commentary_content),
+    "chronology": ("retrieve or search for bible chronology", "e.g. chronology:::, chronology:::70 AD, chronology:::Jesus, chronology:::Acts 15", get_chronology_content),
+    "xrefs": ("retrieve bible verse cross-references", "; e.g. xrefs:::John 3:16, xrefs:::KJV:::John 3:16", get_xrefs_content),
+    "crossreference": ("", "backward compatibility to UBA", get_xrefs_content),
+    "promises": ("retrieve bible promises", "e.g. promises:::1.1, promises:::KJV:::1.1", get_promises_content),
+    "parallels": ("retrieve bible parallel passages", "e.g. parallels:::1.1, parallels:::KJV:::1.1", get_parallels_content),
+    "topics": ("", "e.g. topic:::NAV100", get_topics_content),
+    "characters": ("retrieve bible character studies", "e.g. characters:::BP100", get_characters_content),
+    "locations": ("retrieve bible location studies", "e.g. locations:::BP100", get_locations_content),
+    "names": ("search for bible names and their meanings", "e.g. names:::Joshua", get_names_content),
+    "dictionaries": ("retrieve bible dictionary entries", "e.g. dictionaries:::EAS100", get_dictionaries_content),
+    "encyclopedias": ("retrieve bible encyclopedia entries", "e.g. encyclopedias:::ISB:::ISBE100", get_encyclopedias_content),
+    "lexicons": ("retrieve bible lexicon entries", "e.g. lexicons:::H100, lexicons:::Morphology:::G100", get_lexicon_content),
+    "lexicon": ("", "backward compatibility to UBA", get_lexicon_content),
 }
 
 def get_tool_content(tool: str, query: str, language: str = 'eng', custom: bool = False):
-    content = API_TOOLS[tool](query, language, custom)
+    content = API_TOOLS[tool][-1](query, language, custom)
     # refine markdown text
     search_replace = (
         (r"\n([0-9]+?) \(([^\(\)]+?)\)", r"\n- `\1` (`\2`)"),
@@ -289,8 +286,23 @@ def get_tool_content(tool: str, query: str, language: str = 'eng', custom: bool 
         content = re.sub(search, replace, content)
     return content
 
+def get_help_content():
+    intro = """# API Usage
+
+Each API query combines a keyword and its options, separated by `:::`
+
+"""
+    help_content = []
+    for i in API_TOOLS:
+        help_content.append(f"""## Keyword - {i}
+{i[0].capitalize()}
+{i[1]}""")
+    return intro + "\n\n".join(help_content)
+
 def get_api_content(query: str, language: str = 'eng', custom: bool = False):
-    if query.lower() == ".resources":
+    if query.lower() == ".help":
+        return get_help_content()
+    elif query.lower() == ".resources":
         return json.dumps(get_resources(custom))
     elif ":::" in query and query.split(":::", 1)[0].strip().lower() in API_TOOLS:
         tool, query = query.split(":::", 1)
