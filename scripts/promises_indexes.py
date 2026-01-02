@@ -1,5 +1,5 @@
 import apsw, os, re
-from biblemategui import BIBLEMATEGUI_DATA
+from biblemateweb import BIBLEMATEWEB_DATA
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 
 
@@ -8,7 +8,7 @@ def create_indexes():
     parser = BibleVerseParser(False)
 
     # --- CONFIGURATION ---
-    DB_FILE = os.path.join(BIBLEMATEGUI_DATA, "collections3.sqlite")
+    DB_FILE = os.path.join(BIBLEMATEWEB_DATA, "collections3.sqlite")
     with apsw.Connection(DB_FILE) as connn:
         cursor = connn.cursor()
         cursor.execute("SELECT * FROM PROMISES")

@@ -1,0 +1,11 @@
+agentmake>=1.1.96
+biblemate>=0.2.56
+nicegui>=3.2.0
+apsw
+markdown2
+qrcode
+pillow
+authlib
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib

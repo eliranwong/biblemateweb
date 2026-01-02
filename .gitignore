@@ -1,3 +1,4 @@
-pages/__pycache__/**
 .nicegui/**
 tests/.nicegui/**
+**/__pycache__/**
+__pycache__/**

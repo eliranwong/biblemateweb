@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from nicegui import app, ui
-from biblemategui import USER_DEFAULT_SETTINGS
+from biblemateweb import USER_DEFAULT_SETTINGS
 
 
 @ui.page('/')

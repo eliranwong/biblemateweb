@@ -1,5 +1,5 @@
 from nicegui import app, ui
-from biblemategui import config
+from biblemateweb import config
 
 @ui.page('/')
 def index():
