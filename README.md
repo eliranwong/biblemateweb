@@ -1,6 +1,6 @@
 # BibleMate AI GUI
 
-BibleMate AI Web Application - Web GUI
+BibleMate AI Web Application - Web GUI & Http Server & API Server
 
 BibleMate AI Web Version is designed to combine the most valuable features from the following two projects into a single, unified web interface:
 
@@ -48,6 +48,10 @@ https://biblemate.gospelchurch.uk
 
 > pip install --upgrade biblemateweb
 
+One-off Data Setup:
+
+> biblematedata
+
 Run:
 
 > biblemateweb
@@ -55,6 +59,12 @@ Run:
 Open:
 
 http://localhost:33355
+
+## Setup Bible Notes Sync with Google Accounts
+
+This feature has already been implemented at https://biblemate.gospelchurch.uk
+
+Setup notes will be added here soon ...
 
 ## Customization
 
@@ -74,28 +84,7 @@ You may generate a random key by running `openssl rand -hex 32` or `openssl rand
 
 Save it as the value of `config.storage_secret` in ~/biblemate/biblemateweb.config, then restart `biblemateweb`.
 
-## Use Existing UniqueBible App Data
+## Public Deployment
 
-Run the following command first before the first launch of `biblemateweb`
-
-```
-cd
-mkdir biblemate
-cd biblemate
-ln -s ../UniqueBible/marvelData data
-cd data
-ln -s ../../UniqueBible/audio/ audio
-mkdir original
-cd original
-ln -s ~/UniqueBible/marvelData/bibles/MOB.bible ORB.bible
-ln -s ~/UniqueBible/marvelData/bibles/MIB.bible OIB.bible
-ln -s ~/UniqueBible/marvelData/bibles/MPB.bible OPB.bible
-ln -s ~/UniqueBible/marvelData/bibles/MTB.bible ODB.bible
-ln -s ~/UniqueBible/marvelData/bibles/MAB.bible OLB.bible
-ln -s ~/agentmake/biblemate/data vectors
-```
-
-## Server Setup
-
-Please read https://nicegui.io/documentation/section_configuration_deployment#server_hosting
+Please read additional notes at https://nicegui.io/documentation/section_configuration_deployment#server_hosting
 
