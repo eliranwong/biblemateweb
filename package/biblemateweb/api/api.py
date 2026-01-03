@@ -20,8 +20,6 @@ from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from agentmake.utils.handle_text import htmlToMarkdown
 import re, json, apsw, os
 
-# TODO: DICTIONARY, ENCYCLOPEDIA, EXLB, _promise, _harmony
-
 def get_resources(custom):
     client_bibles = getBibleVersionList(custom)
     client_commentaries = getCommentaryVersionList(custom)
@@ -65,6 +63,8 @@ def refine_bible_module_and_query(query, language, custom):
 
 def get_compare_chapters_content(query, language, custom): # accept multiple chapter reference
     client_bibles, selected_bibles, selected_books, query = resolve_verses_additional_options(query, get_default_bible(language), custom)
+    if selected_bibles == "NET":
+        selected_bibles = ["NET", "OHGBi"]
     chapters = []
     for b in selected_bibles:
         q = f"{b}:::{query}"
@@ -89,7 +89,6 @@ def get_chapter_content(query, language, custom): # accept multiple chapter refe
 
 def get_verses_content(query, language, custom):
     client_bibles, selected_bibles, selected_books, query = resolve_verses_additional_options(query, get_default_bible(language), custom)
-    #module, query = refine_bible_module_and_query(query, language, custom)
     parser = BibleVerseParser(False, language=language)
     verses = get_bible_content(user_input=query, bible=selected_bibles, parser=parser, html=False)
     verses = [f"[{i['ref']}] {i['content']}" for i in verses]
@@ -125,7 +124,7 @@ def get_treasury_content(query, language, custom): # accept multiple references
     for b, c, v in parser.extractExhaustiveReferences(query):
         html = fetch_tske(b, c, v)
         if not html: continue
-        markdown_contents.append(htmlToMarkdown(html))
+        markdown_contents.append(htmlToMarkdown(f"## TSKE - {parser.bcvToVerseReference(b,c,v)}\n"+html))
     return "\n\n".join(markdown_contents)
 
 def get_xrefs_content(query, language, custom): # accept multiple references
@@ -193,11 +192,13 @@ def get_commentary_content(query, language, custom): # accept multiple reference
     return htmlToMarkdown(html)
 
 def get_lexicon_content(query, language, custom): # accept single references
+    client_lexicons = getLexiconList(custom)
     if ":::" in query:
         lexicon, topic = query.split(":::", 1)
+        if not lexicon in client_lexicons:
+            return "[NO_CONTENT]"
     else:
         lexicon, topic = "SECE", query
-    client_lexicons = getLexiconList(custom)
     html = fetch_bible_lexicons_entry(client_lexicons, lexicon, topic)
     return htmlToMarkdown(html)
 
@@ -241,36 +242,50 @@ def get_dictionaries_content(query, language, custom):
 def get_encyclopedias_content(query, language, custom):
     if ":::" in query:
         sql_table, query = query.split(":::", 1)
-    else:
+        if not sql_table in config.encyclopedias:
+            return "[NO_CONTENT]"
+    elif query.startswith("ISBE"):
         sql_table = "ISB"
+    elif query.startswith("DAC"):
+        sql_table = "DAC"
+    elif query.startswith("DCG"):
+        sql_table = "DCG"
+    elif query.startswith("HAS"):
+        sql_table = "HAS"
+    elif query.startswith("KIT"):
+        sql_table = "KIT"
+    elif query.startswith("MSC"):
+        sql_table = "MSC"
+    else:
+        return "[NO_CONTENT]"
     html = fetch_bible_encyclopedias_entry(query, sql_table)
     return htmlToMarkdown(html)
 
 API_TOOLS = {
-    "morphology": ("retrieve word morphology in bible verse(s)", "e.g. morphology:::John 3:16", get_morphology_content),
-    "chapter": ("retrieve bible chapter(s)", "e.g. chapter:::John 3, chapter:::KJV:::John 3", get_chapter_content),
-    "comparechapter": ("compare bible chapter(s)", "e.g. comparechapter:::KJV,CUV:::John 3", get_compare_chapters_content),
-    "bible": ("", "backward compatibility to UBA", get_verses_content),
-    "verses": ("retrieve bible verse(s)", "e.g. verses:::John 3:16; Rm 5:8, verses:::KJV:::John 3:16; Rm 5:8", get_verses_content),
-    "literal": ("literal string search for bible verse(s)", "e.g. literal:::Jesus love, literal:::KJV:::Jesus love, literal:::Matt,KJV:::love", get_literal_content),
-    "regex": ("regular expression search for bible verse(s)", "e.g. regex:::Jesus.*?love, regex:::KJV:::Jesus.*?love, regex:::Matt,KJV:::Jesus.*?love", get_regex_content),
-    "semantic": ("semantic search for bible verse(s)", "e.g. semantic:::Jesus love, semantic:::KJV:::Jesus love , semantic:::Matt,KJV:::Jesus love", get_semantic_content),
-    "treasury": ("treasury of scripture knowledge of bible verse(s)", "e.g. treasury:::John 3:16", get_treasury_content),
-    "tske": ("", "backward compatibility to UBA", get_treasury_content),
-    "commentary": ("", "e.g. commentary:::John 3:16, commentary:::AICTC:::John 3:16", get_commentary_content),
-    "chronology": ("retrieve or search for bible chronology", "e.g. chronology:::, chronology:::70 AD, chronology:::Jesus, chronology:::Acts 15", get_chronology_content),
-    "xrefs": ("retrieve bible verse cross-references", "; e.g. xrefs:::John 3:16, xrefs:::KJV:::John 3:16", get_xrefs_content),
-    "crossreference": ("", "backward compatibility to UBA", get_xrefs_content),
-    "promises": ("retrieve bible promises", "e.g. promises:::1.1, promises:::KJV:::1.1", get_promises_content),
-    "parallels": ("retrieve bible parallel passages", "e.g. parallels:::1.1, parallels:::KJV:::1.1", get_parallels_content),
-    "topics": ("", "e.g. topic:::NAV100", get_topics_content),
-    "characters": ("retrieve bible character studies", "e.g. characters:::BP100", get_characters_content),
-    "locations": ("retrieve bible location studies", "e.g. locations:::BP100", get_locations_content),
-    "names": ("search for bible names and their meanings", "e.g. names:::Joshua", get_names_content),
-    "dictionaries": ("retrieve bible dictionary entries", "e.g. dictionaries:::EAS100", get_dictionaries_content),
-    "encyclopedias": ("retrieve bible encyclopedia entries", "e.g. encyclopedias:::ISB:::ISBE100", get_encyclopedias_content),
-    "lexicons": ("retrieve bible lexicon entries", "e.g. lexicons:::H100, lexicons:::Morphology:::G100", get_lexicon_content),
-    "lexicon": ("", "backward compatibility to UBA", get_lexicon_content),
+    "morphology": ("retrieve word morphology in bible verse(s)", "morphology:::{verse_reference[s]}", "morphology:::John 3:16", get_morphology_content),
+    "chapter": ("retrieve bible chapter(s)", "chapter:::{bible}*:::{chapter_reference[s]}", "chapter:::John 3, chapter:::KJV:::John 3", get_chapter_content),
+    "comparechapter": ("compare bible chapter(s)", "comparechapter:::{bibles}*:::{chapter_reference[s]}", "comparechapter:::KJV,CUV:::John 3", get_compare_chapters_content),
+    "verses": ("retrieve bible verse(s)", "verses:::{bibles}*:::{verse_reference[s]}", "verses:::John 3:16; Rm 5:8, verses:::KJV:::John 3:16; Rm 5:8, verses:::KJV,CUV:::John 3:16; Rm 5:8", get_verses_content),
+    "bible": ("", "backward compatibility to UBA", "", get_verses_content),
+    "literal": ("literal string search for bible verse(s)", "literal:::{bibles_books}*:::{search_string}", "literal:::Jesus love, literal:::KJV:::Jesus love, literal:::Matt,KJV:::love", get_literal_content),
+    "regex": ("regular expression search for bible verse(s)", "regex:::{bibles_books}*:::{regex_pattern}", "regex:::Jesus.*?love, regex:::KJV:::Jesus.*?love, regex:::Matt,KJV:::Jesus.*?love", get_regex_content),
+    "semantic": ("semantic search for bible verse(s)", "semantic:::{bibles_books}*:::{search_string}", "semantic:::Jesus love, semantic:::KJV:::Jesus love , semantic:::Matt,KJV:::Jesus love", get_semantic_content),
+    "treasury": ("treasury of scripture knowledge of bible verse(s)", "treasury:::{verse_reference[s]}", "treasury:::John 3:16", get_treasury_content),
+    "tske": ("", "", "backward compatibility to UBA", get_treasury_content),
+    "commentary": ("retrieve bible commentary", "commentary:::{commentary}*:::{verse_reference[s]}", "commentary:::John 3:16, commentary:::AICTC:::John 3:16", get_commentary_content),
+    "chronology": ("retrieve or search for bible chronology", "chronology:::{search_string}*", "chronology:::, chronology:::70 AD, chronology:::Jesus, chronology:::Acts 15", get_chronology_content),
+    "xrefs": ("retrieve bible verse cross-references", "xrefs:::{bible}*:::{verse_reference[s]}", "xrefs:::John 3:16, xrefs:::KJV:::John 3:16", get_xrefs_content),
+    "crossreference": ("", "", "backward compatibility to UBA", get_xrefs_content),
+    "promises": ("retrieve bible promises", "promises:::{bible}*:::{promise_entry}", "promises:::1.1, promises:::KJV:::1.1", get_promises_content),
+    "parallels": ("retrieve bible parallel passages", "parallels:::{bible}*:::{parallel_entry}", "parallels:::1.1, parallels:::KJV:::1.1", get_parallels_content),
+    "topics": ("retrieve bible topical studies", "topics:::{topic_entry}", "topics:::NAV100", get_topics_content),
+    "characters": ("retrieve bible character studies", "characters:::{character_entry}", "characters:::BP100", get_characters_content),
+    "locations": ("retrieve bible location studies", "locations:::{location_entry}", "locations:::BP100", get_locations_content),
+    "names": ("search for bible names and their meanings", "names:::{name}", "names:::Joshua", get_names_content),
+    "dictionaries": ("retrieve bible dictionary entries", "dictionaries:::{dictionary_entry}", "dictionaries:::EAS100", get_dictionaries_content),
+    "encyclopedias": ("retrieve bible encyclopedia entries", "encyclopedias:::{encyclopedia_entry}", "encyclopedias:::ISBE100", get_encyclopedias_content),
+    "lexicons": ("retrieve bible lexicon entries", "lexicons:::{lexicon}*:::{lexicon_entry}", "lexicons:::H100, lexicons:::Morphology:::G100", get_lexicon_content),
+    "lexicon": ("", "", "backward compatibility to UBA", get_lexicon_content),
 }
 
 def get_tool_content(tool: str, query: str, language: str = 'eng', custom: bool = False):
@@ -287,16 +302,20 @@ def get_tool_content(tool: str, query: str, language: str = 'eng', custom: bool 
     return content
 
 def get_help_content():
-    intro = """# API Usage
+    intro = """# API Query
 
-Each API query combines a keyword and its options, separated by `:::`
+Each API query consists of a keyword and its associated options, delimited by `:::`.
+
+In the syntax descriptions below, `{option}` indicates a required parameter, while `{option}*` indicates an optional one. Multiple options are separated by commas, e.g. KJV,NET.
 
 """
     help_content = []
     for i in API_TOOLS:
-        help_content.append(f"""## Keyword - {i}
-{i[0].capitalize()}
-{i[1]}""")
+        if API_TOOLS[i][0]:
+            help_content.append(f"""## Keyword - {i}
+* {API_TOOLS[i][0].capitalize()}
+* Syntax: {API_TOOLS[i][1]}
+* Example: {API_TOOLS[i][2]}""")
     return intro + "\n\n".join(help_content)
 
 def get_api_content(query: str, language: str = 'eng', custom: bool = False):

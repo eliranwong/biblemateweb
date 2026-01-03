@@ -1,4 +1,10 @@
-# BibleMate AI GUI
+# BibleMate AI WEB
+
+This repository focuses only on the Web UI, HTTP and API servers of a larger project, [BibleMate AI](https://github.com/eliranwong/biblemate).
+
+For CLI Version / MCP Server / Agent Mode / Partner Mode / Bible Data, read https://github.com/eliranwong/biblemate
+
+---
 
 BibleMate AI Web Application - Web GUI & Http Server & API Server
 
@@ -34,17 +40,15 @@ https://github.com/eliranwong/UniqueBible
 
 # Supported Platforms
 
-1. Web Mode to run on popular web browsers
+* Web UI runs with all popular web browsers
+* Http & API Servers runs on any standard platforms
+* API Data Access independent of running platforms
 
-2. Desktop Mode on Windows/macOS/Linux
-
-# Development in Progress ...
-
-## Public Testing
+# Public Demo
 
 https://biblemate.gospelchurch.uk
 
-## Local Testing:
+# Local Setup
 
 > pip install --upgrade biblemateweb
 
@@ -52,19 +56,33 @@ One-off Data Setup:
 
 > biblematedata
 
-Run:
+Run HTTP & API Servers:
 
 > biblemateweb
 
-Open:
+Open Web UI:
 
-http://localhost:33355
+> open http://localhost:33355
+
+## API Usage
+
+Run API Client:
+
+> biblemateapi -h
+
+Read more at:
+
+https://github.com/eliranwong/biblemateweb/blob/main/tests/api_client.py
+
+https://github.com/eliranwong/biblemateweb/blob/main/docs/api_query.md
 
 ## Setup Bible Notes Sync with Google Accounts
 
-This feature has already been implemented at https://biblemate.gospelchurch.uk
+The BibleMate web UI allows users to create and store personal study notes for any book, chapter, or verse directly in Google Drive. This integration ensures that all notes stay synced across devices, making them easily accessible whenever and wherever you need them.
 
-Setup notes will be added here soon ...
+For demo, check out https://biblemate.gospelchurch.uk
+
+Read setup notes at https://github.com/eliranwong/biblemateweb/blob/main/docs/google_drive_notes_setup.md
 
 ## Customization
 

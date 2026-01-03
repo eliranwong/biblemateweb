@@ -5,7 +5,7 @@ url = "http://localhost:33355/api/data"
 
 # 2. Define your parameters
 payload = {
-    "query": ".resources",  # Required
+    "query": ".help",  # Required
     "token": "my-secret-key-123"                  # Optional
 }
 
@@ -17,7 +17,8 @@ try:
     if response.status_code == 200:
         data = response.json()  # Convert JSON response to Python dict
         print("Success!")
-        print(f"Response: {data}")
+        #print(f"Response: {data}")
+        print(data.get("content"))
     else:
         print(f"Error: {response.status_code}")
         print(response.text)

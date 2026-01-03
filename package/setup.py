@@ -2,7 +2,7 @@ from setuptools import setup
 from setuptools.command.install import install
 import os, shutil, platform, sys
 
-version = "0.2.66"
+version = "0.2.68"
 with open(os.path.join("biblemateweb", "version.txt"), "w", encoding="utf-8") as fileObj:
     fileObj.write(version)
 
@@ -82,6 +82,8 @@ setup(
             f"bmweb={package}.main:main",
             f"biblemategui={package}.main:main",
             f"{package}={package}.main:main",
+            f"bmapi={package}.api_client:main",
+            f"biblemateapi={package}.api_client:main",
         ],
     },
     keywords="mcp agent biblemate ai anthropic azure chatgpt cohere deepseek genai github googleai groq llamacpp mistral ollama openai vertexai xai",
