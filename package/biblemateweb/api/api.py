@@ -304,9 +304,23 @@ def get_tool_content(tool: str, query: str, language: str = 'eng', custom: bool 
 def get_help_content():
     intro = """# API Query
 
-Each API query consists of a keyword and its associated options, delimited by `:::`.
+The commands `.help` and `.resources` are reserved for specific functions:
 
-In the syntax descriptions below, `{option}` indicates a required parameter, while `{option}*` indicates an optional one. Multiple options are separated by commas, e.g. KJV,NET.
+`.help`: Retrieves help documentation and usage guides.
+
+`.resources`: Lists all available Bible versions and resources.
+
+## Standard Queries
+
+All other API queries must follow a specific format consisting of a keyword and its associated options, delimited by a triple colon `:::`.
+
+## Syntax Conventions:
+
+`{option}`: Indicates a required parameter.
+
+`{option}*`: Indicates an optional parameter.
+
+Multiple Values: If a parameter accepts multiple values, separate them with commas (e.g., KJV,NET).
 
 """
     help_content = []
