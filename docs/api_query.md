@@ -111,7 +111,7 @@ Multiple Values: If a parameter accepts multiple values, separate them with comm
 ## Keyword - encyclopedias
 * Retrieve bible encyclopedia entries
 * Syntax: encyclopedias:::{encyclopedia_entry}
-* Example: encyclopedias:::ISB:::ISBE100
+* Example: encyclopedias:::ISBE100
 
 ## Keyword - lexicons
 * Retrieve bible lexicon entries
