@@ -165,7 +165,7 @@ def getBibleBookList(db) -> list:
     with apsw.Connection(db) as connn:
         cursor = connn.cursor()
         cursor.execute(query)
-        bookList = sorted([book[0] for book in cursor.fetchall() if not book[0] == 0])
+        bookList = sorted([book[0] for book in cursor.fetchall() if book[0]])
     return bookList
 
 def getBibleChapterList(db, b) -> list:
