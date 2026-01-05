@@ -20,6 +20,10 @@ from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from agentmake.utils.handle_text import htmlToMarkdown
 import re, json, apsw, os
 
+def html2md(html):
+    html = re.sub("<ref [^<>]*?([A-Z]+?[0-9]+?)[^0-9>][^<>]*?>([^<>]*?)</ref>", r"\2 [`\1`]", html)
+    return htmlToMarkdown(html)
+
 def get_resources(custom):
     client_bibles = getBibleVersionList(custom)
     client_commentaries = getCommentaryVersionList(custom)
@@ -69,7 +73,7 @@ def get_compare_chapters_content(query, language, custom): # accept multiple cha
     for b in selected_bibles:
         q = f"{b}:::{query}"
         chapters.append(get_chapter_content(q, language, custom))
-    return "\n\n".join(chapters)
+    return "\n---\n".join(chapters)
 
 def get_chapter_content(query, language, custom): # accept multiple chapter reference
     module, query = refine_bible_module_and_query(query, language, custom)
@@ -85,7 +89,7 @@ def get_chapter_content(query, language, custom): # accept multiple chapter refe
             verses = [f"({v}) {re.sub("<[^<>]*?>", "", verse_text).strip()}" for *_, v, verse_text in verses]
             chapter += "\n".join(verses)
         chapters.append(chapter)
-    return "\n\n".join(chapters)
+    return "\n---\n".join(chapters)
 
 def get_verses_content(query, language, custom):
     client_bibles, selected_bibles, selected_books, query = resolve_verses_additional_options(query, get_default_bible(language), custom)
@@ -124,8 +128,8 @@ def get_treasury_content(query, language, custom): # accept multiple references
     for b, c, v in parser.extractExhaustiveReferences(query):
         html = fetch_tske(b, c, v)
         if not html: continue
-        markdown_contents.append(htmlToMarkdown(f"## TSKE - {parser.bcvToVerseReference(b,c,v)}\n"+html))
-    return "\n\n".join(markdown_contents)
+        markdown_contents.append(html2md(f"## TSKE - {parser.bcvToVerseReference(b,c,v)}\n"+html))
+    return "\n---\n".join(markdown_contents)
 
 def get_xrefs_content(query, language, custom): # accept multiple references
     module, query = refine_bible_module_and_query(query, language, custom)
@@ -140,7 +144,7 @@ def get_xrefs_content(query, language, custom): # accept multiple references
         verses = [f"({i['ref']}) {i['content']}" for i in verses]
         markdown_content += "\n".join(verses)
         markdown_contents.append(markdown_content)
-    return "\n\n".join(markdown_contents)
+    return "\n---\n".join(markdown_contents)
 
 def get_promises_content(query, language, custom): # accept single reference
     module, query = refine_bible_module_and_query(query, language, custom)
@@ -171,7 +175,7 @@ def get_morphology_content(query, language, custom): # accept multiple reference
             for wordID, clauseID, book, chapter, verse, word, lexicalEntry, morphologyCode, morphology, lexeme, transliteration, pronunciation, interlinear, translation, gloss in results:
                 markdown_content += f"- **{word}** ({lexicalEntry.split(',')[-2]}): {morphology} — {gloss}\n"
             markdown_contents.append(markdown_content)
-    return "\n\n".join(markdown_contents)
+    return "\n---\n".join(markdown_contents)
 
 def get_commentary_content(query, language, custom): # accept multiple references
     def get_default_commentary_module(language):
@@ -189,7 +193,7 @@ def get_commentary_content(query, language, custom): # accept multiple reference
     else:
         module = get_default_commentary_module(language)
     html = fetch_commentary_content(query, module, language)
-    return htmlToMarkdown(html)
+    return html2md(html)
 
 def get_lexicon_content(query, language, custom): # accept single references
     client_lexicons = getLexiconList(custom)
@@ -200,7 +204,7 @@ def get_lexicon_content(query, language, custom): # accept single references
     else:
         lexicon, topic = "SECE", query
     html = fetch_bible_lexicons_entry(client_lexicons, lexicon, topic)
-    return htmlToMarkdown(html)
+    return html2md(html)
 
 def get_chronology_content(query, language, custom):
     markdown_contents = "## Bible Chronnology\n\n"
@@ -216,15 +220,18 @@ def get_chronology_content(query, language, custom):
 
 def get_locations_content(query, language, custom):
     html, *_ = fetch_bible_locations_entry(query)
-    return htmlToMarkdown(html)
+    html = re.sub('<ref onclick="openHtmlImage.*?<h1 class="window">', '<h1 class="window">', html)
+    html = re.sub(r'''<ref onclick="website\('(.*?)'\)">Click HERE for a Live Google Map</ref>''', r'\1', html)
+    return html2md(html)
 
 def get_characters_content(query, language, custom):
     html = fetch_bible_characters_entry(query)
-    return htmlToMarkdown(html)
+    html = html.replace('''<br><div align="center"><font color="navy">Click for more details</font></div></sm>''', "")
+    return html2md(html)
 
 def get_topics_content(query, language, custom):
     html = fetch_bible_topics_entry(query)
-    return htmlToMarkdown(html)
+    return html2md(html)
 
 def get_names_content(query, language, custom):
     db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
@@ -237,7 +244,7 @@ def get_names_content(query, language, custom):
 
 def get_dictionaries_content(query, language, custom):
     html = fetch_bible_dictionaries_entry(query)
-    return htmlToMarkdown(html)
+    return html2md(html)
 
 def get_encyclopedias_content(query, language, custom):
     if ":::" in query:
@@ -259,7 +266,7 @@ def get_encyclopedias_content(query, language, custom):
     else:
         return "[NO_CONTENT]"
     html = fetch_bible_encyclopedias_entry(query, sql_table)
-    return htmlToMarkdown(html)
+    return html2md(html)
 
 API_TOOLS = {
     "morphology": ("retrieve word morphology in bible verse(s)", "morphology:::{verse_reference[s]}", "morphology:::John 3:16", get_morphology_content),
@@ -292,15 +299,18 @@ def get_tool_content(tool: str, query: str, language: str = 'eng', custom: bool 
     content = API_TOOLS[tool][-1](query, language, custom)
     # refine markdown text
     search_replace = (
+        ("([HG][0-9]+?[a-z]*)([\n ])", r"[`\1`]\2"),
+        ("<gloss>", " `"),
+        ("</gloss>", " `"),
         (r"\n([0-9]+?) \(([^\(\)]+?)\)", r"\n- `\1` (`\2`)"),
         (r"^([0-9]+?) \(([^\(\)]+?)\)", r"- `\1` (`\2`)"),
         (r"\n\(([^\(\)]+?)\)", r"\n- (`\1`)"),
         (r"^\(([^\(\)]+?)\)", r"- (`\1`)"),
-        ("<.*?>", ""),
+        ("<[^<>]*?>", ""),
     )
     for search, replace in search_replace:
-        content = re.sub(search, replace, content, flags=re.MULTILINE)
-    return content
+        content = re.sub(search, replace, content+" ", flags=re.MULTILINE)
+    return content.rstrip()
 
 def get_help_content():
     intro = """# API Query
