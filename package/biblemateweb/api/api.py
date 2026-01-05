@@ -82,8 +82,8 @@ def get_chapter_content(query, language, custom): # accept multiple chapter refe
         if not verses: continue
         chapter = f"## {parser.bcvToVerseReference(b,c,1, isChapter=True)} [{module}]\n\n"
         if verses:
-            verses = [f"[{v}] {re.sub("<[^<>]*?>", "", verse_text).strip()}" for *_, v, verse_text in verses]
-            chapter += "* "+"\n* ".join(verses)
+            verses = [f"({v}) {re.sub("<[^<>]*?>", "", verse_text).strip()}" for *_, v, verse_text in verses]
+            chapter += "\n".join(verses)
         chapters.append(chapter)
     return "\n\n".join(chapters)
 
@@ -91,32 +91,32 @@ def get_verses_content(query, language, custom):
     client_bibles, selected_bibles, selected_books, query = resolve_verses_additional_options(query, get_default_bible(language), custom)
     parser = BibleVerseParser(False, language=language)
     verses = get_bible_content(user_input=query, bible=selected_bibles, parser=parser, html=False)
-    verses = [f"[{i['ref']}] {i['content']}" for i in verses]
-    return "* "+"\n* ".join(verses)
+    verses = [f"({i['ref']}) {i['content']}" for i in verses]
+    return "\n".join(verses)
 
 def get_literal_content(query, language, custom):
     client_bibles, selected_bibles, selected_books, query = resolve_verses_additional_options(query, get_default_bible(language), custom)
     parser = BibleVerseParser(False, language=language)
     sql_query = update_verses_sql_query(selected_books)
     verses = get_bible_content(user_input=query, bible=selected_bibles, sql_query=sql_query, search_mode=1, api=True, parser=parser, html=False)
-    verses = [f"[{i['ref']}] {i['content']}" for i in verses]
-    return "* "+"\n* ".join(verses)
+    verses = [f"({i['ref']}) {i['content']}" for i in verses]
+    return "\n".join(verses)
 
 def get_regex_content(query, language, custom):
     client_bibles, selected_bibles, selected_books, query = resolve_verses_additional_options(query, get_default_bible(language), custom)
     parser = BibleVerseParser(False, language=language)
     sql_query = update_verses_sql_query(selected_books)
     verses = get_bible_content(user_input=query, bible=selected_bibles, sql_query=sql_query, search_mode=2, api=True, parser=parser, html=False)
-    verses = [f"[{i['ref']}] {i['content']}" for i in verses]
-    return "* "+"\n* ".join(verses)
+    verses = [f"({i['ref']}) {i['content']}" for i in verses]
+    return "\n".join(verses)
 
 def get_semantic_content(query, language, custom):
     client_bibles, selected_bibles, selected_books, query = resolve_verses_additional_options(query, get_default_bible(language), custom)
     parser = BibleVerseParser(False, language=language)
     sql_query = update_verses_sql_query(selected_books)
     verses = get_bible_content(user_input=query, bible=selected_bibles, sql_query=sql_query, search_mode=3, parser=parser, html=False)
-    verses = [f"[{i['ref']}] {i['content']}" for i in verses]
-    return "* "+"\n* ".join(verses)
+    verses = [f"({i['ref']}) {i['content']}" for i in verses]
+    return "\n".join(verses)
 
 def get_treasury_content(query, language, custom): # accept multiple references
     markdown_contents = []
@@ -137,8 +137,8 @@ def get_xrefs_content(query, language, custom): # accept multiple references
         markdown_content = f"## Cross References - {parser.bcvToVerseReference(b,c,v)}\n\n"
         query = parser.bcvToVerseReference(b, c, v) + "; " + query[0]
         verses = get_bible_content(query, bible=module, parser=parser, html=False)
-        verses = [f"[{i['ref']}] {i['content']}" for i in verses]
-        markdown_content += "* "+"\n* ".join(verses)
+        verses = [f"({i['ref']}) {i['content']}" for i in verses]
+        markdown_content += "\n".join(verses)
         markdown_contents.append(markdown_content)
     return "\n\n".join(markdown_contents)
 
@@ -147,9 +147,9 @@ def get_promises_content(query, language, custom): # accept single reference
     topic, query = fetch_promises_topic(query)
     parser = BibleVerseParser(False, language=language)
     verses = get_bible_content(query, bible=module, parser=parser, html=False)
-    verses = [f"[{i['ref']}] {i['content']}" for i in verses]
+    verses = [f"({i['ref']}) {i['content']}" for i in verses]
     markdown_content = f"## Promises - {topic}\n\n"
-    markdown_content += "* "+"\n* ".join(verses)
+    markdown_content += "\n".join(verses)
     return markdown_content
 
 def get_parallels_content(query, language, custom): # accept single reference
@@ -157,9 +157,9 @@ def get_parallels_content(query, language, custom): # accept single reference
     topic, query = fetch_parallels_topic(query)
     parser = BibleVerseParser(False, language=language)
     verses = get_bible_content(query, bible=module, parser=parser, html=False)
-    verses = [f"[{i['ref']}] {i['content']}" for i in verses]
+    verses = [f"({i['ref']}) {i['content']}" for i in verses]
     markdown_content = f"## Promises - {topic}\n\n"
-    markdown_content += "* "+"\n* ".join(verses)
+    markdown_content += "\n".join(verses)
     return markdown_content
 
 def get_morphology_content(query, language, custom): # accept multiple references
@@ -296,9 +296,10 @@ def get_tool_content(tool: str, query: str, language: str = 'eng', custom: bool 
         (r"^([0-9]+?) \(([^\(\)]+?)\)", r"- `\1` (`\2`)"),
         (r"\n\(([^\(\)]+?)\)", r"\n- (`\1`)"),
         (r"^\(([^\(\)]+?)\)", r"- (`\1`)"),
+        ("<.*?>", ""),
     )
     for search, replace in search_replace:
-        content = re.sub(search, replace, content)
+        content = re.sub(search, replace, content, flags=re.MULTILINE)
     return content
 
 def get_help_content():
