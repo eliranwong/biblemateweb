@@ -31,6 +31,7 @@ def write_user_config():
     """Writes the current configuration to the user's config file."""
     configurations = f"""config.hot_reload={config.hot_reload}
 config.avatar="{config.avatar}"
+config.ai_backend="{config.ai_backend}"
 config.embedding_model="{config.embedding_model}"
 config.custom_token="{config.custom_token}"
 config.google_client_id="{config.google_client_id}"
@@ -44,6 +45,7 @@ config.verses_limit={config.verses_limit}"""
 # restore config backup after upgrade
 default_config = '''config.hot_reload=False
 config.avatar=""
+config.ai_backend=""
 config.embedding_model="paraphrase-multilingual"
 config.custom_token=""
 config.google_client_id=""
@@ -478,4 +480,7 @@ USER_DEFAULT_SETTINGS = {
     'bible_select_button': True,
     'loop_audio': True,
     'loop_podcast': True,
+    'prompt_engineering': True,
+    'use_agent': True,
+    'auto_scroll': True,
 }
