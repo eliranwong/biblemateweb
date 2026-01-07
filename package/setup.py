@@ -2,7 +2,7 @@ from setuptools import setup
 from setuptools.command.install import install
 import os, shutil, platform, sys
 
-version = "0.2.78"
+version = "0.2.81"
 with open(os.path.join("biblemateweb", "version.txt"), "w", encoding="utf-8") as fileObj:
     fileObj.write(version)
 
@@ -49,6 +49,7 @@ setup(
         f"{package}.translations",
         f"{package}.fonts",
         f"{package}.data",
+        f"{package}.mcp_tools",
         f"{package}.pages",
         f"{package}.pages.bibles",
         f"{package}.pages.tools",
@@ -65,6 +66,7 @@ setup(
         f"{package}.translations": ["*.*"],
         f"{package}.fonts": ["*.*"],
         f"{package}.data": ["*.*"],
+        f"{package}.mcp_tools": ["*.*"],
         f"{package}.pages": ["*.*"],
         f"{package}.pages.bibles": ["*.*"],
         f"{package}.pages.tools": ["*.*"],

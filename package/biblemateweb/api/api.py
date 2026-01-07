@@ -98,6 +98,17 @@ def get_verses_content(query, language, custom):
     verses = [f"({i['ref']}) {i['content']}" for i in verses]
     return "\n".join(verses)
 
+def get_search_content(query, language, custom):
+    literal_search = get_literal_content(query, language, custom)
+    semantic_search = get_semantic_content(query, language, custom)
+    return f"""## Literal Search
+
+{literal_search if literal_search else "[NO_CONTENT]"}
+
+## Semantic Search
+
+{semantic_search if semantic_search else "[NO_CONTENT]"}"""
+
 def get_literal_content(query, language, custom):
     client_bibles, selected_bibles, selected_books, query = resolve_verses_additional_options(query, get_default_bible(language), custom)
     parser = BibleVerseParser(False, language=language)
@@ -129,7 +140,7 @@ def get_treasury_content(query, language, custom): # accept multiple references
         html = fetch_tske(b, c, v)
         if not html: continue
         markdown_contents.append(html2md(f"## TSKE - {parser.bcvToVerseReference(b,c,v)}\n"+html))
-    return "\n---\n".join(markdown_contents)
+    return "\n\n---\n\n".join(markdown_contents)
 
 def get_xrefs_content(query, language, custom): # accept multiple references
     module, query = refine_bible_module_and_query(query, language, custom)
@@ -144,7 +155,7 @@ def get_xrefs_content(query, language, custom): # accept multiple references
         verses = [f"({i['ref']}) {i['content']}" for i in verses]
         markdown_content += "\n".join(verses)
         markdown_contents.append(markdown_content)
-    return "\n---\n".join(markdown_contents)
+    return "\n\n---\n\n".join(markdown_contents)
 
 def get_promises_content(query, language, custom): # accept single reference
     module, query = refine_bible_module_and_query(query, language, custom)
@@ -175,7 +186,7 @@ def get_morphology_content(query, language, custom): # accept multiple reference
             for wordID, clauseID, book, chapter, verse, word, lexicalEntry, morphologyCode, morphology, lexeme, transliteration, pronunciation, interlinear, translation, gloss in results:
                 markdown_content += f"- **{word}** ({lexicalEntry.split(',')[-2]}): {morphology} — {gloss}\n"
             markdown_contents.append(markdown_content)
-    return "\n---\n".join(markdown_contents)
+    return "\n\n---\n\n".join(markdown_contents)
 
 def get_commentary_content(query, language, custom): # accept multiple references
     def get_default_commentary_module(language):
@@ -274,6 +285,7 @@ API_TOOLS = {
     "comparechapter": ("compare bible chapter(s)", "comparechapter:::{bibles}*:::{chapter_reference[s]}", "comparechapter:::KJV,CUV:::John 3", get_compare_chapters_content),
     "verses": ("retrieve bible verse(s)", "verses:::{bibles}*:::{verse_reference[s]}", "verses:::John 3:16; Rm 5:8, verses:::KJV:::John 3:16; Rm 5:8, verses:::KJV,CUV:::John 3:16; Rm 5:8", get_verses_content),
     "bible": ("", "backward compatibility to UBA", "", get_verses_content),
+    "search": ("literal string search and semantic search for bible verse(s)", "search:::{bibles_books}*:::{search_string}", "search:::Jesus love, search:::KJV:::Jesus love, search:::Matt,KJV:::love", get_search_content),
     "literal": ("literal string search for bible verse(s)", "literal:::{bibles_books}*:::{search_string}", "literal:::Jesus love, literal:::KJV:::Jesus love, literal:::Matt,KJV:::love", get_literal_content),
     "regex": ("regular expression search for bible verse(s)", "regex:::{bibles_books}*:::{regex_pattern}", "regex:::Jesus.*?love, regex:::KJV:::Jesus.*?love, regex:::Matt,KJV:::Jesus.*?love", get_regex_content),
     "semantic": ("semantic search for bible verse(s)", "semantic:::{bibles_books}*:::{search_string}", "semantic:::Jesus love, semantic:::KJV:::Jesus love , semantic:::Matt,KJV:::Jesus love", get_semantic_content),

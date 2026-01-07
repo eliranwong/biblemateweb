@@ -159,6 +159,8 @@ translation_sc = {
     "Send": "发送",
     "Auto-scroll": "自动滚动",
     "Improve Prompt": "优化指示",
+    "Tools": "工具",
+    "Tool Selection": "选择工具",
     "Semantic Searches": "语义搜索",
     "Frequently Used Resources": "常用资源",
     "User & Custom Data": "用户与自定数据",

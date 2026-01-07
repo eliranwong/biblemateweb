@@ -1,5 +1,5 @@
-agentmake>=1.2.2
-biblemate>=0.2.57
+agentmake>=1.2.3
+biblemate>=0.2.62
 biblematedata>=0.0.2
 nicegui>=3.2.0
 apsw

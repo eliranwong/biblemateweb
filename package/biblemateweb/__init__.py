@@ -483,4 +483,5 @@ USER_DEFAULT_SETTINGS = {
     'prompt_engineering': True,
     'use_agent': True,
     'auto_scroll': True,
+    'auto_tool_selection': False,
 }

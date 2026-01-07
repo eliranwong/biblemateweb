@@ -159,6 +159,8 @@ translation_tc = {
     "Send": "發送",
     "Auto-scroll": "自動滾動",
     "Improve Prompt": "優化指示",
+    "Tools": "工具",
+    "Tool Selection": "選用工具",
     "Semantic Searches": "語義搜索",
     "Frequently Used Resources": "常用資源",
     "User & Custom Data": "用戶與自定數據",

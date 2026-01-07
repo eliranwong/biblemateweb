@@ -5,7 +5,7 @@ from nicegui import ui, app, run
 import asyncio
 from biblemateweb import config, get_translation
 
-async def stream_response(messages, user_request, response_markdown, cancel_event, system=None, scroll_area=None, agent_expansion=None, agent_markdown=None):
+async def stream_response(messages, user_request, response_markdown, cancel_event, system=None, scroll_area=None, agent_expansion=None, agent_markdown=None, **kwargs):
     def get_next_chunk(iterator):
         """
         Runs in a separate thread. 
@@ -58,6 +58,7 @@ async def stream_response(messages, user_request, response_markdown, cancel_even
         print_on_terminal=False, 
         stream_events_only=True, 
         #streaming_event=cancel_event, # this works only for unpacking completion text; not useful in this case
+        **kwargs,
     )
     n.message = get_translation("Running...")
     await asyncio.sleep(0)
