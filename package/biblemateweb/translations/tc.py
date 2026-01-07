@@ -167,4 +167,5 @@ translation_tc = {
     "Enter your message...": "輸入您的訊息...",
     "Creating agent...": "創建代理中...",
     "Created!": "已創建！",
+    "Error": "錯誤",
 }

@@ -167,4 +167,5 @@ translation_sc = {
     "Enter your message...": "输入您的消息...",
     "Creating agent...": "创建代理中...",
     "Created!": "已创建！",
+    "Error": "错误",
 }
