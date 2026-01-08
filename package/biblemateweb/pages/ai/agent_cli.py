@@ -1,6 +1,6 @@
 from nicegui import ui, app
 
-def ai_agent(gui=None, **_):
+def ai_agent_cli(gui=None, **_):
     # Main container with dark background
     with ui.column().classes('w-full items-center justify-center p-8 gap-6 min-h-screen'):
         

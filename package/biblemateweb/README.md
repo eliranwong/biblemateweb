@@ -16,6 +16,20 @@ and
 
 https://github.com/eliranwong/UniqueBible
 
+## Latest New - Agent Mode on the BibleMate Web Version
+
+We are pleased to announce that Agent Mode is now fully integrated across both the BibleMate Web and CLI platforms, providing a unified experience for all users.
+
+### Additional Options for Agent Mode Setup
+
+Configuration options `disable_agent_mode` and `limit_agent_mode_once_daily` are designed to limit access to Agent Mode.
+
+By default, they are:
+
+> config.disable_agent_mode=False
+
+> config.limit_agent_mode_once_daily=False
+
 ## Recent Updates
 
 [Hebrew & Greek Tooltips](https://youtu.be/qCMku8-UZ3I)
@@ -83,6 +97,14 @@ The BibleMate web UI allows users to create and store personal study notes for a
 For demo, check out https://biblemate.gospelchurch.uk
 
 Read setup notes at https://github.com/eliranwong/biblemateweb/blob/main/docs/google_drive_notes_setup.md
+
+## Support Exported Agent Mode Report in Word Document Format
+
+`pandoc` is required to export content to DOCX format.
+
+To install, for example, on Debian/Ubuntu:
+
+> sudo apt install pandoc
 
 ## Customization
 

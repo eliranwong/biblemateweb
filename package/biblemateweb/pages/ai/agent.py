@@ -132,6 +132,28 @@ I'm BibleMate AI [developed by Eliran Wong], an autonomous agent designed to ass
         """Handles the logic when the Send button is pressed."""
         nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT, PROGRESS_STATUS, MASTER_USER_REQUEST, DELETE_DIALOG, DEFAULT_MESSAGES, FINAL_INSTRUCTION
 
+        current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        if app.storage.user["agent_mode_last_use"] == current_date and config.limit_agent_mode_once_daily and not app.storage.client["custom"] and not app.storage.user["api_key"]:
+            with MESSAGE_CONTAINER:
+                preferences = get_translation("Preferences")
+                markdown_info = f"""## Daily Limit Reached
+You've reached your daily limit for using the BibleMate AI Agent Mode.
+
+Please try again tomorrow, or enter a custom token in `{preferences}` for more access!
+
+Alternately, you can use your own AI backend and API keys by entering those information in the `{preferences}`."""
+                ui.chat_message(markdown2html(markdown_info),
+                    name='BibleMate AI',
+                    stamp=datetime.datetime.now().strftime("%H:%M"),
+                    avatar='https://avatars.githubusercontent.com/u/25262722?s=96&v=4',
+                    text_html=True,
+                    sanitize=False,
+                )
+                ui.button(f'Go to {preferences}', on_click=lambda: ui.navigate.to('/settings'))
+            return None
+
+        app.storage.user["agent_mode_last_use"] = current_date
+
         if CANCEL_EVENT is None or CANCEL_EVENT.is_set():
             CANCEL_EVENT = asyncio.Event() # do not use threading.Event() in this case
         else:

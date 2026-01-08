@@ -543,14 +543,19 @@ def page_Settings(
                     .tooltip('Adjust the global top similar verses in a semantic search (5 to 100)')
 
         # --- AI Backend Section ---
-        '''with ui.expansion('AI Backend', icon='memory').classes('w-full rounded-lg'):
+        with ui.expansion('AI Backend', icon='memory').classes('w-full rounded-lg'):
             with ui.column().classes('w-full p-4 gap-4'):
                 ui.select(label='AI Backend',
-                          options=['googleai', 'openai', 'azure', 'xai']) \
+                          options=['googleai', 'openai', 'azure_openai', 'xai', 'custom']) \
                     .bind_value(app.storage.user, 'ai_backend') \
                     .tooltip('Select the AI service provider.')
 
-                ui.input(label='API Endpoint', placeholder='(Optional) Custom API endpoint') \
+                ui.input(label='AI Model') \
+                    .bind_value(app.storage.user, 'ai_model') \
+                    .classes('w-full') \
+                    .tooltip('Your AI model.')
+
+                ui.input(label='API Endpoint', placeholder='(Optional) Custom API endpoint', password=True, password_toggle_button=True) \
                     .bind_value(app.storage.user, 'api_endpoint') \
                     .classes('w-full') \
                     .tooltip('The custom API endpoint URL (if not using default).')
@@ -558,7 +563,7 @@ def page_Settings(
                 ui.input(label='API Key', password=True, password_toggle_button=True) \
                     .bind_value(app.storage.user, 'api_key') \
                     .classes('w-full') \
-                    .tooltip('Your API key for the selected backend.')'''
+                    .tooltip('Your API key for the selected backend.')
 
         # --- Localization Section ---
         with ui.expansion(get_translation("Language"), icon='language').classes('w-full rounded-lg'):

@@ -7,6 +7,7 @@ from biblemateweb import config, BIBLEMATEWEB_APP_DIR, getBibleVersionList, get_
 from biblemateweb.pages.ai.chat import ai_chat
 from biblemateweb.pages.ai.partner import ai_partner
 from biblemateweb.pages.ai.agent import ai_agent
+from biblemateweb.pages.ai.agent_cli import ai_agent_cli
 
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
@@ -92,7 +93,7 @@ class BibleMateWeb:
             "parousia_zh": parousia_zh,
             "chat": ai_chat,
             "partner": ai_partner,
-            "agent": ai_agent,
+            "agent": ai_agent_cli if config.disable_agent_mode else ai_agent,
             "morphology": word_morphology,
             "indexes": resource_indexes,
             "chapterindexes": chapter_indexes,
@@ -1048,7 +1049,7 @@ class BibleMateWeb:
                 refs = parser.extractAllReferences(search_item)
                 if search_item.lower().startswith("bible:::") and refs: # open a parallel bible chapter in area 2
                     search_item = search_item[8:]
-                    b,c,v = refs[0]
+                    b,c,v, *_ = refs[0]
                     if ":::" in search_item and search_item.split(":::", 1)[0].strip() in client_bibles: # bible version is specified
                         version, search_item = search_item.split(":::", 1)
                         version = version.strip()
@@ -1060,7 +1061,7 @@ class BibleMateWeb:
                     tool = tool.strip()
                     self.load_area_2_content(title=tool, sync=app.storage.user["sync"])
                 elif len(refs) == 1: # open a bible chapter in area 1
-                    b,c,v = refs[0]
+                    b,c,v, *_ = refs[0]
                     if ":::" in search_item and search_item.split(":::", 1)[0].strip() in client_bibles: # bible version is specified
                         search_item = search_item[8:]
                         version, search_item = search_item.split(":::", 1)
