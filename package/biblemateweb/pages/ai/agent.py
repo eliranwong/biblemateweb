@@ -1,10 +1,10 @@
 from nicegui import ui, app, run
-import asyncio, datetime, re, os
+import asyncio, datetime, re, os, pypandoc, tempfile, traceback
 from biblemateweb.pages.ai.stream import stream_response
-from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation
+from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation, markdown2html
 from biblemateweb.mcp_tools.elements import TOOL_ELEMENTS
 from biblemateweb.api.api import get_api_content
-from biblemate.core.systems import get_system_tool_instruction, get_system_master_plan, get_system_make_suggestion
+from biblemate.core.systems import get_system_tool_instruction, get_system_master_plan, get_system_make_suggestion, get_system_progress
 #from biblemate.bible_study_mcp import chapter2verses
 from agentmake import readTextFile
 from copy import deepcopy
@@ -17,11 +17,16 @@ def ai_agent(gui=None, q="", **_):
 
     MASTER_USER_REQUEST = None
     PROGRESS_STATUS = "START"
+    MESSAGES = None
     DEFAULT_MESSAGES = [{"role": "system", "content": "You are BibleMate AI, an autonomous agent designed to assist users with their Bible study."}]
-    
+    FINAL_INSTRUCTION = """# Instruction
+Please provide a comprehensive response that resolves my original request, ensuring all previously completed milestones and data points are fully integrated.
+
+# Original Request
+"""
+
     SEND_BUTTON = None
     REQUEST_INPUT = None
-    MESSAGES = None
     MESSAGE_CONTAINER = None
     SCROLL_AREA = None
     CANCEL_EVENT = None
@@ -54,8 +59,52 @@ Available tools are: {available_tools}.
 
 {user_request}"""
 
+    def download_all_content(messages):
+        content = """---
+
+I'm BibleMate AI [developed by Eliran Wong], an autonomous agent designed to assist you with your Bible study.
+
+---
+
+"""
+        content += "\n\n---\n\n".join([i.get("content", "") for i in messages[1:]])
+        ui.download(content.encode('utf-8'), 'BibleMate_AI_Conversation.md')
+        ui.notify(get_translation("Downloaded!"), type='positive')
+
+    def download_report(markdown_content):
+        try:
+            # 1. Create a temporary file that acts as the bridge
+            # 'delete=False' is sometimes needed on Windows to close/re-open, 
+            # but in a simple flow, we can just read it back.
+            with tempfile.NamedTemporaryFile(suffix=".docx") as tmp:
+                
+                # 2. Convert Markdown -> DOCX file
+                pypandoc.convert_text(
+                    markdown_content, 
+                    'docx', 
+                    format='md', 
+                    outputfile=tmp.name
+                )
+                
+                # 3. Read bytes back into memory
+                tmp.seek(0)
+                docx_bytes = tmp.read()
+
+            # 4. Trigger download in NiceGUI (no file left on server)
+            ui.download(docx_bytes, filename='BibleMate_AI_Report.docx')
+            ui.notify(get_translation("Downloaded!"), type='positive')
+        except:
+            traceback.print_exc()
+
+    def reset_page():
+        nonlocal MASTER_USER_REQUEST, MESSAGES, PROGRESS_STATUS, MESSAGE_CONTAINER
+        MASTER_USER_REQUEST = None
+        MESSAGES = None
+        PROGRESS_STATUS = "START"
+        MESSAGE_CONTAINER.clear()
+
     def reset_ui():
-        nonlocal SEND_BUTTON, REQUEST_INPUT, CANCEL_EVENT, CANCEL_NOTIFICATION
+        nonlocal SEND_BUTTON, REQUEST_INPUT, CANCEL_EVENT, CANCEL_NOTIFICATION, PROGRESS_STATUS
         if not CANCEL_EVENT.is_set():
             CANCEL_EVENT.set()
         if CANCEL_EVENT is not None:
@@ -68,6 +117,7 @@ Available tools are: {available_tools}.
         if CANCEL_NOTIFICATION is not None:
             CANCEL_NOTIFICATION.dismiss()
             CANCEL_NOTIFICATION = None
+        PROGRESS_STATUS = "STOP"
 
     async def stop_confirmed():
         nonlocal DELETE_DIALOG, CANCEL_NOTIFICATION, CANCEL_EVENT
@@ -80,46 +130,55 @@ Available tools are: {available_tools}.
     async def handle_send_click():
 
         """Handles the logic when the Send button is pressed."""
-        nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT
+        nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT, PROGRESS_STATUS, MASTER_USER_REQUEST, DELETE_DIALOG, DEFAULT_MESSAGES, FINAL_INSTRUCTION
+
         if CANCEL_EVENT is None or CANCEL_EVENT.is_set():
             CANCEL_EVENT = asyncio.Event() # do not use threading.Event() in this case
         else:
             DELETE_DIALOG.open()
             return None
 
+        if MASTER_USER_REQUEST is not None and PROGRESS_STATUS == "STOP":
+            reset_page()
+
         if not MESSAGES:
             MESSAGES = deepcopy(DEFAULT_MESSAGES)
         prompt_markdown = None
         output_markdown = None
         if user_request := REQUEST_INPUT.value:
+            MASTER_USER_REQUEST = user_request
             REQUEST_INPUT.disable()
             SEND_BUTTON.set_text(get_translation("Stop"))
             SEND_BUTTON.props('color=negative')
 
             with MESSAGE_CONTAINER:
-                ui.chat_message(user_request,
-                    #name='Eliran Wong',
+                user_request = re.sub(r"^[#]+ (.*?)\n", r"**\1**\n", user_request, flags=re.MULTILINE)
+                ui.chat_message(markdown2html(user_request),
+                    name='You',
                     stamp=datetime.datetime.now().strftime("%H:%M"),
                     avatar='https://avatars.githubusercontent.com/u/25262722?s=96&v=4',
+                    text_html=True,
+                    sanitize=False,
                 )
 
-                # prompt-engineering
-                with ui.expansion(get_translation("Prompt Engineering"), icon='tune', value=True) \
-                        .classes('w-full border rounded-lg shadow-sm') \
-                        .props('header-class="font-bold text-lg text-secondary"') as prompt_expansion:
-                    prompt_markdown = ui.markdown().style('font-size: 1.1rem')
-                MASTER_USER_REQUEST = user_request = await stream_response(MESSAGES, user_request, prompt_markdown, CANCEL_EVENT, system="improve_prompt_2", scroll_area=SCROLL_AREA)
-                if not user_request or user_request.strip() == "[NO_CONTENT]":
-                    reset_ui()
-                    return None
-                else:
-                    # refine response
-                    if "```" in user_request:
-                        user_request = re.sub(r"^.*?(```improved_prompt|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
-                        prompt_markdown.content = user_request
-                        await asyncio.sleep(0)
-                    # close prompt expansion
-                    prompt_expansion.close()
+                # when prompt-engineering is enabled
+                if app.storage.user["prompt_engineering"]:
+                    with ui.expansion(get_translation("Prompt Engineering"), icon='tune', value=True) \
+                            .classes('w-full border rounded-lg shadow-sm') \
+                            .props('header-class="font-bold text-lg text-secondary"') as prompt_expansion:
+                        prompt_markdown = ui.markdown().style('font-size: 1.1rem')
+                    MASTER_USER_REQUEST = user_request = await stream_response(MESSAGES, user_request, prompt_markdown, CANCEL_EVENT, system="improve_prompt_2", scroll_area=SCROLL_AREA)
+                    if not user_request or user_request.strip() == "[NO_CONTENT]":
+                        reset_ui()
+                        return None
+                    else:
+                        # refine response
+                        if "```" in user_request:
+                            MASTER_USER_REQUEST = user_request = re.sub(r"^.*?(```improved_prompt|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
+                            prompt_markdown.content = user_request
+                            await asyncio.sleep(0)
+                        # close prompt expansion
+                        prompt_expansion.close()
 
                 # master plan
                 with ui.expansion(get_translation("Master Plan"), icon='architecture', value=True) \
@@ -144,12 +203,12 @@ Available tools are: {available_tools}.
                 ]
                 while not ("STOP" in PROGRESS_STATUS or re.sub("^[^A-Za-z]*?([A-Za-z]+?)[^A-Za-z]*?$", r"\1", PROGRESS_STATUS).upper() == "STOP"):
                     # display step
-                    ui.markdown(f"### Step {step}").style('font-size: 1.1rem')
+                    ui.markdown(f"### {get_translation('Step')} {step}").style('font-size: 1.1rem')
                     step += 1
                     # suggestion
                     system_make_suggestion = get_system_make_suggestion(master_plan=master_plan)
                     follow_up_prompt = "Please provide me with the next step suggestion, based on the action plan."
-                    with ui.expansion(get_translation("Suggestion"), icon='handyman', value=True) \
+                    with ui.expansion(get_translation("Suggestion"), icon='lightbulb', value=True) \
                             .classes('w-full border rounded-lg shadow-sm') \
                             .props('header-class="font-bold text-lg text-secondary"') as suggestion_expansion:
                         suggestion_markdown = ui.markdown().style('font-size: 1.1rem')
@@ -205,10 +264,13 @@ Available tools are: {available_tools}.
                     else:
                         container.clear()
                         with container:
-                            ui.chat_message(user_request,
-                                #name='Eliran Wong',
+                            user_request = re.sub(r"^[#]+ (.*?)\n", r"**\1**\n", user_request, flags=re.MULTILINE)
+                            ui.chat_message(markdown2html(user_request),
+                                name='BibleMate AI',
                                 stamp=datetime.datetime.now().strftime("%H:%M"),
                                 avatar='https://avatars.githubusercontent.com/u/25262722?s=96&v=4',
+                                text_html=True,
+                                sanitize=False,
                             )
 
                     # generate response
@@ -272,8 +334,48 @@ Available tools are: {available_tools}.
                                 {"role": "assistant", "content": answers},
                             ]
 
-                    # TODO: check progress
-                    break
+                    # check progress
+                    system_progress = get_system_progress(master_plan=master_plan)
+                    follow_up_prompt="Please decide either to `CONTINUE` or `STOP` the process."
+                    with ui.expansion(get_translation("Progress"), icon='trending_up', value=True) \
+                            .classes('w-full border rounded-lg shadow-sm') \
+                            .props('header-class="font-bold text-lg text-secondary"') as progress_expansion:
+                        progress_markdown = ui.markdown().style('font-size: 1.1rem')
+                    PROGRESS_STATUS = await stream_response(MESSAGES, follow_up_prompt, progress_markdown, CANCEL_EVENT, system=system_progress, scroll_area=SCROLL_AREA)
+                    if not PROGRESS_STATUS or PROGRESS_STATUS.strip() == "[NO_CONTENT]":
+                        reset_ui()
+                        return None
+                    else:
+                        # refine response
+                        # n/a
+                        # close prompt expansion
+                        progress_expansion.close()
+
+                # final report
+                system_report = "write_final_answer"
+                follow_up_prompt=f"""{FINAL_INSTRUCTION}{MASTER_USER_REQUEST}"""
+                with ui.expansion(get_translation("Final Report"), icon='summarize', value=True) \
+                        .classes('w-full border rounded-lg shadow-sm') \
+                        .props('header-class="font-bold text-lg text-secondary"') as report_expansion:
+                    report_markdown = ui.markdown().style('font-size: 1.1rem')
+                report = await stream_response(MESSAGES, follow_up_prompt, report_markdown, CANCEL_EVENT, system=system_report, scroll_area=SCROLL_AREA)
+                if not report or report.strip() == "[NO_CONTENT]":
+                    reset_ui()
+                    return None
+                else:
+                    # refine response
+                    # n/a
+                    MESSAGES += [
+                        {"role": "user", "content": "Please provide a comprehensive response that resolves my original request, ensuring all previously completed milestones and data points are fully integrated."},
+                        {"role": "assistant", "content": report},
+                    ]
+                    # close prompt expansion
+                    report_expansion.close()
+
+                    # offer downloads
+                    with ui.column().classes('w-full items-center'):
+                        ui.button(get_translation("Download the whole Conversation"), on_click=lambda: download_all_content(MESSAGES))
+                        ui.button(get_translation("Download Final Report"), on_click=lambda: download_report(report))
 
                 #reset
                 reset_ui()
@@ -299,16 +401,12 @@ Available tools are: {available_tools}.
             with ui.scroll_area().classes('w-full p-4 border rounded-lg h-full') as SCROLL_AREA:
                 MESSAGE_CONTAINER = ui.column().classes('w-full items-start gap-2')
 
-        with ui.row().classes('w-full flex-nowrap items-end mb-0'):
+        with ui.row().classes('w-full flex-nowrap items-end mb-27'):
             REQUEST_INPUT = ui.textarea(placeholder=get_translation("Enter your message...")).props('rows=4').classes('flex-grow h-full resize-none').on('keydown.shift.enter.prevent', handle_send_click)
             with ui.column().classes('h-full justify-between gap-2'):
-                ui.checkbox(get_translation("Auto-scroll")).classes('w-full').bind_value(app.storage.user, 'auto_scroll').props('dense')
+                ui.checkbox(get_translation("Auto-scroll")).classes('w-full').bind_value(app.storage.user, 'auto_scroll').props('dense').tooltip(get_translation("Scroll to the end automatically"))
+                ui.checkbox(get_translation("Enhance")).classes('w-full').bind_value(app.storage.user, 'prompt_engineering').props('dense').tooltip(get_translation("Improve Prompt"))
                 SEND_BUTTON = ui.button('Send', on_click=handle_send_click).classes('w-full')
-        
-        with ui.row().classes('w-full flex-nowrap items-end mb-30'):
-            ui.checkbox(get_translation("Improve Prompt")).classes('w-full').bind_value(app.storage.user, 'prompt_engineering').props('dense')
-            ui.checkbox(get_translation("Agent")).classes('w-full').bind_value(app.storage.user, 'use_agent').props('dense')
-            ui.checkbox(get_translation("Tools")).classes('w-full').bind_value(app.storage.user, 'auto_tool_selection').props('dense')
 
         ui.label('BibleMate AI | © 2025 | Eliran Wong')
 

@@ -233,13 +233,13 @@ def ai_chat(gui=None, q="", **_):
         with ui.row().classes('w-full flex-nowrap items-end mb-0'):
             REQUEST_INPUT = ui.textarea(placeholder=get_translation("Enter your message...")).props('rows=4').classes('flex-grow h-full resize-none').on('keydown.shift.enter.prevent', handle_send_click)
             with ui.column().classes('h-full justify-between gap-2'):
-                ui.checkbox(get_translation("Auto-scroll")).classes('w-full').bind_value(app.storage.user, 'auto_scroll').props('dense')
+                ui.checkbox(get_translation("Auto-scroll")).classes('w-full').bind_value(app.storage.user, 'auto_scroll').props('dense').tooltip(get_translation("Scroll to the end automatically"))
                 SEND_BUTTON = ui.button('Send', on_click=handle_send_click).classes('w-full')
         
         with ui.row().classes('w-full flex-nowrap items-end mb-30'):
-            ui.checkbox(get_translation("Improve Prompt")).classes('w-full').bind_value(app.storage.user, 'prompt_engineering').props('dense')
-            ui.checkbox(get_translation("Agent")).classes('w-full').bind_value(app.storage.user, 'use_agent').props('dense')
-            ui.checkbox(get_translation("Tools")).classes('w-full').bind_value(app.storage.user, 'auto_tool_selection').props('dense')
+            ui.checkbox(get_translation("Enhance")).classes('w-full').bind_value(app.storage.user, 'prompt_engineering').props('dense').tooltip(get_translation("Improve Prompt"))
+            ui.checkbox(get_translation("Agent")).classes('w-full').bind_value(app.storage.user, 'use_agent').props('dense').tooltip(get_translation("Create agents to improve responses"))
+            ui.checkbox(get_translation("Tools")).classes('w-full').bind_value(app.storage.user, 'auto_tool_selection').props('dense').tooltip(get_translation("Use tools to improve responses"))
 
         ui.label('BibleMate AI | © 2025 | Eliran Wong')
 

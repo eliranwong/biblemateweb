@@ -1,10 +1,10 @@
 from nicegui import ui, app
-from biblemateweb import BIBLEMATEWEB_DATA, getCommentaryVersionList, get_translation
+from biblemateweb import BIBLEMATEWEB_DATA, getCommentaryVersionList, get_translation, markdown2html
 from biblemateweb.data.cr_books import cr_books
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from agentmake.plugins.uba.lib.RegexSearch import RegexSearch
-import apsw, os, re, markdown2
+import apsw, os, re
 
 def get_ai_commentary_content(references: str, module: str = "AIC", language: str ="eng"):
     def fetch_ai_commentary_verse(b,c,v):
@@ -35,8 +35,7 @@ def get_ai_commentary_content(references: str, module: str = "AIC", language: st
                     pattern = r'\n---\s*\n如果您愿意，\s*.*$'
                 content = re.sub(pattern, '', content, flags=re.DOTALL)
                 # convert md to html
-                content = markdown2.markdown(content, extras=["tables","fenced-code-blocks","toc","codelite"])
-                content = content.replace("<h1>", "<h2>").replace("</h1>", "</h2>")
+                content = markdown2html(content)
                 results.append(content)
     return "<hr>".join(results) if results else ""
 

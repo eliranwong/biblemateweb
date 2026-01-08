@@ -7,9 +7,8 @@ from biblemateweb.translations.tc import translation_tc
 from biblemateweb.translations.sc import translation_sc
 from nicegui import app, ui
 from typing import List
-import os, glob, apsw, re, asyncio
+import os, glob, apsw, re, asyncio, json, markdown2
 import numpy as np
-import json
 
 
 BIBLEMATEWEB_APP_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -88,6 +87,10 @@ def get_translation(text: str):
     elif app.storage.user["ui_language"] == "sc":
         return translation_sc.get(text, text)
     return translation_eng.get(text, text)
+
+def markdown2html(markdown_text):
+    html = markdown2.markdown(markdown_text, extras=["tables","fenced-code-blocks","toc","codelite"])
+    return html.replace("<h1>", "<h2>").replace("</h1>", "</h2>")
 
 async def loading(func, *args, **kwargs):
     n = ui.notification(timeout=None)
