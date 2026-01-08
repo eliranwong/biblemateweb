@@ -24,7 +24,7 @@ def ai_chat(gui=None, q="", **_):
 
     SYSTEM_TOOL_SELECTION = readTextFile(os.path.join(BIBLEMATEWEB_APP_DIR, "mcp_tools", "system_tool_selection_lite.md"))
     TOOLS = eval(readTextFile(os.path.join(BIBLEMATEWEB_APP_DIR, "mcp_tools", "tools.py")))
-    TOOLS_SCHEMA = eval(readTextFile(os.path.join(BIBLEMATEWEB_APP_DIR, "mcp_tools", "tools_schema.py")))
+    #TOOLS_SCHEMA = eval(readTextFile(os.path.join(BIBLEMATEWEB_APP_DIR, "mcp_tools", "tools_schema.py")))
 
     TOOL_INSTRUCTION_PROMPT = """Please transform the following suggestions into clear, precise, and actionable instructions."""
     TOOL_INSTRUCTION_SUFFIX = """
@@ -125,9 +125,10 @@ def ai_chat(gui=None, q="", **_):
                         tools_expansion.close()
 
                     selected_tool = suggested_tools[0]
-                    if not selected_tool in TOOLS_SCHEMA:
+                    if not selected_tool in TOOLS:
                         selected_tool = "get_direct_text_response"
-                    tools_markdown.content = f"## Suggested Tools\n\n`{suggested_tools[1:-1]}`\n\n## Selected Tool:\n\n`{selected_tool}`"
+                    suggested_tools = "\n".join([f"{order+1}. `{i}`" for order, i in enumerate(suggested_tools)])
+                    tools_markdown.content = f"## Suggested Tools\n\n{suggested_tools}\n\n## Selected Tool:\n\n`{selected_tool}`"
                     await asyncio.sleep(0)
                     selected_tool_description = TOOLS.get(selected_tool, "No description available.")
                     tool_instruction_draft = TOOL_INSTRUCTION_PROMPT + "\n\n# Suggestions\n\n"+user_request+f"\n\n# Tool Description of `{selected_tool}`\n\n"+selected_tool_description+TOOL_INSTRUCTION_SUFFIX
