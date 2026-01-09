@@ -1,4 +1,4 @@
-('# TOOL DESCRIPTION: `get_direct_text_response`\n'
+TOOL_DESCRIPTIONS = ('# TOOL DESCRIPTION: `get_direct_text_response`\n'
  'Get a static text-based response directly from a text-based AI model without '
  'using any other tools. This is useful when you want to provide a simple and '
  'direct answer to a question or request, without the need for online latest '

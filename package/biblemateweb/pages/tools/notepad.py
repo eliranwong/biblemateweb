@@ -15,7 +15,7 @@ class Notepad:
         with ui.dialog() as delete_dialog, ui.card():
             ui.label('Are you sure you want to delete this note?')
             with ui.row().classes('justify-end w-full'):
-                ui.button('Cancel', on_click=delete_dialog.close).props('flat text-color=secondary')
+                ui.button(get_translation("Cancel"), on_click=delete_dialog.close).props('flat text-color=secondary')
                 ui.button('Delete', color='red', on_click=lambda: (self.clear_text(), delete_dialog.close()))
         # --- Toolbar ---
         with ui.row().classes('gap-2 mb-0 w-full items-center'):

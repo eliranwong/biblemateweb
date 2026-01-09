@@ -1,13 +1,15 @@
 from nicegui import ui, app, run
-import asyncio, datetime, re, os, pypandoc, tempfile, traceback
+import asyncio, datetime, re, os, pypandoc, tempfile, traceback, json
 from biblemateweb.pages.ai.stream import stream_response
-from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation, markdown2html
+from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation, markdown2html, config
 from biblemateweb.mcp_tools.elements import TOOL_ELEMENTS
+from biblemateweb.mcp_tools.tools import TOOLS
+from biblemateweb.mcp_tools.tool_descriptions import TOOL_DESCRIPTIONS
 from biblemateweb.api.api import get_api_content
 from biblemate.core.systems import get_system_tool_instruction, get_system_master_plan, get_system_make_suggestion, get_system_progress
-#from biblemate.bible_study_mcp import chapter2verses
 from agentmake import readTextFile
 from copy import deepcopy
+from biblemateweb.fx.cloud_index_manager import get_drive_service
 
 
 def chapter2verses(request:str) -> str:
@@ -34,9 +36,6 @@ Please provide a comprehensive response that resolves my original request, ensur
     DELETE_DIALOG = None
 
     SYSTEM_TOOL_SELECTION = readTextFile(os.path.join(BIBLEMATEWEB_APP_DIR, "mcp_tools", "system_tool_selection_lite.md"))
-    TOOLS = eval(readTextFile(os.path.join(BIBLEMATEWEB_APP_DIR, "mcp_tools", "tools.py")))
-    TOOL_DESCRIPTIONS = eval(readTextFile(os.path.join(BIBLEMATEWEB_APP_DIR, "mcp_tools", "tool_descriptions.py")))
-    #TOOLS_SCHEMA = eval(readTextFile(os.path.join(BIBLEMATEWEB_APP_DIR, "mcp_tools", "tools_schema.py")))
 
     TOOL_INSTRUCTION_PROMPT = """Please transform the following suggestions into clear, precise, and actionable instructions."""
     TOOL_INSTRUCTION_SUFFIX = """
@@ -68,7 +67,7 @@ I'm BibleMate AI [developed by Eliran Wong], an autonomous agent designed to ass
 
 """
         content += "\n\n---\n\n".join([i.get("content", "") for i in messages[1:]])
-        ui.download(content.encode('utf-8'), 'BibleMate_AI_Conversation.md')
+        ui.download(content.encode('utf-8'), 'BibleMate_AI_Conversation.txt')
         ui.notify(get_translation("Downloaded!"), type='positive')
 
     def download_report(markdown_content):
@@ -127,33 +126,120 @@ I'm BibleMate AI [developed by Eliran Wong], an autonomous agent designed to ass
             CANCEL_EVENT.set()
         await asyncio.sleep(0)
 
-    async def handle_send_click():
+    def load_access_note(service):
+        try:
+            filename = "access_note_agent_mode.json"
+            results = service.files().list(
+                q=f"name='{filename}' and 'appDataFolder' in parents and trashed=false",
+                spaces='appDataFolder',
+                fields='files(id)'
+            ).execute()
+            files = results.get('files', [])
+            
+            if files:
+                request = service.files().get_media(fileId=files[0]['id'])
+                data = json.loads(request.execute())
+                return data.get("content", "")
+            return ""
+        except Exception as e:
+            #ui.notify(f"Error loading: {e}", type='negative')
+            return ""
 
+    def save_access_note(service, content):
+        """
+        Performs the slow network calls to Google Drive.
+        Running this on the main thread would freeze the app.
+        """
+        import json, io
+        from googleapiclient.http import MediaIoBaseUpload
+        
+        # access file
+        filename = "access_note_agent_mode.json"
+        # Prepare the file data
+        file_data = {"content": content}
+        media = MediaIoBaseUpload(
+            io.BytesIO(json.dumps(file_data).encode('utf-8')), 
+            mimetype='application/json'
+        )
+        
+        # 1. Search for existing file
+        results = service.files().list(
+            q=f"name='{filename}' and 'appDataFolder' in parents and trashed=false",
+            spaces='appDataFolder',
+            fields='files(id)'
+        ).execute()
+        files = results.get('files', [])
+
+        # 2. Update or Create
+        if files:
+            service.files().update(fileId=files[0]['id'], media_body=media).execute()
+            return "updated"
+        else:
+            meta = {'name': filename, 'parents': ['appDataFolder']}
+            service.files().create(body=meta, media_body=media).execute()
+            return "created"
+
+    async def handle_send_click():
         """Handles the logic when the Send button is pressed."""
+
         nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT, PROGRESS_STATUS, MASTER_USER_REQUEST, DELETE_DIALOG, DEFAULT_MESSAGES, FINAL_INSTRUCTION
 
-        current_date = datetime.datetime.now().strftime("%Y-%m-%d")
-        if app.storage.user["agent_mode_last_use"] == current_date and config.limit_agent_mode_once_daily and not app.storage.client["custom"] and not app.storage.user["api_key"]:
-            with MESSAGE_CONTAINER:
-                preferences = get_translation("Preferences")
-                markdown_info = f"""## Daily Limit Reached
-You've reached your daily limit for using the BibleMate AI Agent Mode.
+        # daily limit check
+        if config.limit_agent_mode_once_daily and not app.storage.client["custom"] and not app.storage.user["api_key"].strip():
+            n = ui.notification(get_translation("Checking daily limit..."), timeout=None, spinner=True)
+            await asyncio.sleep(0)
+            # 1. Auth Check        
+            token = app.storage.user.get('google_token', "")
+            if not token:
+                with ui.card().classes('absolute-center'):
+                    ui.html('Sign in with Google to securely save and sync your personal notes across all your devices.<br><i><b>Data Policy Note:</b> BibleMate AI does not collect or store your personal notes. Your notes are saved directly within your own Google Account.</i>', sanitize=False)
+                    with ui.row().classes('w-full justify-center'):
+                        ui.button('Login with Google', on_click=lambda: ui.navigate.to('/login'))
+                    with ui.expansion(get_translation("BibleMate AI Data Policy & Privacy Commitment"), icon='privacy_tip').props('header-class="text-secondary"'):
+                        ui.html(
+                            """<b>We respect your privacy.</b>
+To keep your data private, BibleMate AI doesn't collect, store or share your personal information on its servers. 
+Instead, daily logs or bible notes are saved exclusively on <b>your own Google Drive/Account.</b>, ensuring that you retain full control and ownership of your private data at all times.""", 
+                            sanitize=False,
+                        )
+                n.spinner = False
+                n.dismiss() 
+                return
+            # verify last access when user doesn't use custom token nor their own API keys
+            service = get_drive_service(token)
+            last_access_date = await run.io_bound(load_access_note, service)
+            # check current date
+            current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+            if last_access_date == current_date:
+                MESSAGE_CONTAINER.clear()
+                with MESSAGE_CONTAINER:
+                    ui.html("<h2>Daily Limit Reached</h2>", sanitize=False)
+                    preferences = get_translation("Preferences")
+                    markdown_info = f"""You've reached your daily limit for using the BibleMate AI Agent Mode. Please try again tomorrow!
 
-Please try again tomorrow, or enter a custom token in `{preferences}` for more access!
+To remove the daily limit, please update your `{preferences}` with one of the following:
 
-Alternately, you can use your own AI backend and API keys by entering those information in the `{preferences}`."""
-                ui.chat_message(markdown2html(markdown_info),
-                    name='BibleMate AI',
-                    stamp=datetime.datetime.now().strftime("%H:%M"),
-                    avatar='https://avatars.githubusercontent.com/u/25262722?s=96&v=4',
-                    text_html=True,
-                    sanitize=False,
-                )
-                ui.button(f'Go to {preferences}', on_click=lambda: ui.navigate.to('/settings'))
-            return None
-
-        app.storage.user["agent_mode_last_use"] = current_date
-
+* A valid custom token (provided by your server administrator).
+* Your own AI backend API key and connection details."""
+                    ui.chat_message(markdown2html(markdown_info),
+                        name='BibleMate AI',
+                        stamp=datetime.datetime.now().strftime("%H:%M"),
+                        avatar='https://avatars.githubusercontent.com/u/25262722?s=96&v=4',
+                        text_html=True,
+                        sanitize=False,
+                    )
+                    ui.button(f'Go to {preferences}', on_click=lambda: ui.navigate.to('/settings'))
+                    ui.link('How to set up a custom token?', 'https://github.com/eliranwong/biblemateweb/blob/main/docs/custom_token.md')
+                    ui.link('How to set up an API key?', 'https://github.com/eliranwong/biblemateweb/blob/main/docs/api_key_setup.md')
+                return None
+            # save access note
+            n.message = get_translation("Saving access note...")
+            await run.io_bound(save_access_note, service, current_date)
+            # close spinner
+            n.spinner = False
+            await asyncio.sleep(0)
+            n.dismiss()
+        
         if CANCEL_EVENT is None or CANCEL_EVENT.is_set():
             CANCEL_EVENT = asyncio.Event() # do not use threading.Event() in this case
         else:
@@ -168,11 +254,14 @@ Alternately, you can use your own AI backend and API keys by entering those info
         prompt_markdown = None
         output_markdown = None
         if user_request := REQUEST_INPUT.value:
+            gui.update_active_area2_tab_records(q=user_request)
+            
             MASTER_USER_REQUEST = user_request
             REQUEST_INPUT.disable()
             SEND_BUTTON.set_text(get_translation("Stop"))
             SEND_BUTTON.props('color=negative')
 
+            MESSAGE_CONTAINER.clear()
             with MESSAGE_CONTAINER:
                 user_request = re.sub(r"^[#]+ (.*?)\n", r"**\1**\n", user_request, flags=re.MULTILINE)
                 ui.chat_message(markdown2html(user_request),
@@ -218,15 +307,15 @@ Alternately, you can use your own AI backend and API keys by entering those info
                     # close prompt expansion
                     plan_expansion.close()
                 
-                step =  1
+                STEP =  1
                 MESSAGES += [
                     {"role": "user", "content": MASTER_USER_REQUEST},
                     {"role": "assistant", "content": "Let's begin!"},
                 ]
                 while not ("STOP" in PROGRESS_STATUS or re.sub("^[^A-Za-z]*?([A-Za-z]+?)[^A-Za-z]*?$", r"\1", PROGRESS_STATUS).upper() == "STOP"):
                     # display step
-                    ui.markdown(f"### {get_translation('Step')} {step}").style('font-size: 1.1rem')
-                    step += 1
+                    ui.markdown(f"### {get_translation('Round')} {STEP}").style('font-size: 1.1rem')
+                    STEP += 1
                     # suggestion
                     system_make_suggestion = get_system_make_suggestion(master_plan=master_plan)
                     follow_up_prompt = "Please provide me with the next step suggestion, based on the action plan."
@@ -236,8 +325,7 @@ Alternately, you can use your own AI backend and API keys by entering those info
                         suggestion_markdown = ui.markdown().style('font-size: 1.1rem')
                     suggestion = await stream_response(MESSAGES, follow_up_prompt, suggestion_markdown, CANCEL_EVENT, system=system_make_suggestion, scroll_area=SCROLL_AREA)
                     if not suggestion or suggestion.strip() == "[NO_CONTENT]":
-                        reset_ui()
-                        return None
+                        suggested_tools = ["get_direct_text_response"]
                     else:
                         # refine response
                         # n/a
@@ -252,8 +340,7 @@ Alternately, you can use your own AI backend and API keys by entering those info
                         tools_markdown = ui.markdown().style('font-size: 1.1rem')
                     suggested_tools = await stream_response(MESSAGES, suggestion, tools_markdown, CANCEL_EVENT, system=SYSTEM_TOOL_SELECTION, scroll_area=SCROLL_AREA)
                     if not suggested_tools or suggested_tools.strip() == "[NO_CONTENT]":
-                        reset_ui()
-                        return None
+                        suggested_tools = ["get_direct_text_response"]
                     else:
                         # refine response
                         suggested_tools = re.sub(r"^.*?(\[.*?\]).*?$", r"\1", suggested_tools, flags=re.DOTALL)
@@ -374,6 +461,14 @@ Alternately, you can use your own AI backend and API keys by entering those info
                         progress_expansion.close()
 
                 # final report
+                ui.markdown("---")
+                ui.chat_message(markdown2html(get_translation("Wrapping up...")),
+                    name='BibleMate AI',
+                    stamp=datetime.datetime.now().strftime("%H:%M"),
+                    avatar='https://avatars.githubusercontent.com/u/25262722?s=96&v=4',
+                    text_html=True,
+                    sanitize=False,
+                )
                 system_report = "write_final_answer"
                 follow_up_prompt=f"""{FINAL_INSTRUCTION}{MASTER_USER_REQUEST}"""
                 with ui.expansion(get_translation("Final Report"), icon='summarize', value=True) \
@@ -397,7 +492,7 @@ Alternately, you can use your own AI backend and API keys by entering those info
                     # offer downloads
                     with ui.column().classes('w-full items-center'):
                         ui.button(get_translation("Download the whole Conversation"), on_click=lambda: download_all_content(MESSAGES))
-                        ui.button(get_translation("Download Final Report"), on_click=lambda: download_report(report))
+                        ui.button(get_translation("Download the Final Report Only"), on_click=lambda: download_report(report))
 
                 #reset
                 reset_ui()
@@ -421,10 +516,32 @@ Alternately, you can use your own AI backend and API keys by entering those info
         # w-full flex-grow p-4 border border-gray-300 rounded-lg mb-2
         with ui.column().classes('w-full flex-grow overflow-hidden'):
             with ui.scroll_area().classes('w-full p-4 border rounded-lg h-full') as SCROLL_AREA:
-                MESSAGE_CONTAINER = ui.column().classes('w-full items-start gap-2')
+                with ui.column().classes('w-full items-start gap-2') as MESSAGE_CONTAINER:
+                    welcome_message = """**Hello! I’m BibleMate AI.** You’ve enabled my Agent Mode capabilities.
+
+I can help you dive deeper into the Word by creating structured study plans and managing complex, multi-step tasks across various Bible resources. Whether it’s a thematic search or a deep passage analysis, I’m here to assist.
+
+What would you like to study today? Enter your request below to get started.
+
+---
+
+💡 Tip: Check the Enhance box to automatically improve and clarify your prompt for better results.
+
+---"""
+                    ui.chat_message(markdown2html(get_translation(welcome_message if app.storage.user["ui_language"] == "eng" else get_translation("welcome_agent_mode"))),
+                        name='BibleMate AI',
+                        stamp=datetime.datetime.now().strftime("%H:%M"),
+                        avatar='https://avatars.githubusercontent.com/u/25262722?s=96&v=4',
+                        text_html=True,
+                        sanitize=False,
+                    )
+                    ui.markdown(f"---\n\n## {get_translation('Other AI Modes')}\n\n")
+                    ui.button(get_translation("Chat Mode"), on_click=lambda: gui.load_area_2_content(title="chat"))
+                    ui.button(get_translation("Partner Mode"), on_click=lambda: gui.load_area_2_content(title="partner"))
+                    ui.markdown("---")
 
         with ui.row().classes('w-full flex-nowrap items-end mb-27'):
-            REQUEST_INPUT = ui.textarea(placeholder=get_translation("Enter your message...")).props('rows=4').classes('flex-grow h-full resize-none').on('keydown.shift.enter.prevent', handle_send_click)
+            REQUEST_INPUT = ui.textarea(placeholder=get_translation("Enter your request here...")).props('rows=4').classes('flex-grow h-full resize-none').on('keydown.shift.enter.prevent', handle_send_click)
             with ui.column().classes('h-full justify-between gap-2'):
                 ui.checkbox(get_translation("Auto-scroll")).classes('w-full').bind_value(app.storage.user, 'auto_scroll').props('dense').tooltip(get_translation("Scroll to the end automatically"))
                 ui.checkbox(get_translation("Enhance")).classes('w-full').bind_value(app.storage.user, 'prompt_engineering').props('dense').tooltip(get_translation("Improve Prompt"))

@@ -1,8 +1,9 @@
 from nicegui import ui, app, run
 import asyncio, datetime, re, os
 from biblemateweb.pages.ai.stream import stream_response
-from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation
+from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation, markdown2html, config
 from biblemateweb.mcp_tools.elements import TOOL_ELEMENTS
+from biblemateweb.mcp_tools.tools import TOOLS
 from biblemateweb.api.api import get_api_content
 from biblemate.core.systems import get_system_tool_instruction
 #from biblemate.bible_study_mcp import chapter2verses
@@ -12,6 +13,8 @@ def chapter2verses(request:str) -> str:
     return re.sub("[Cc][Hh][Aa][Pp][Tt][Ee][Rr] ([0-9]+?)([^0-9])", r"\1:1-180\2", request)
 
 def ai_chat(gui=None, q="", **_):
+
+    START = True
 
     SEND_BUTTON = None
     REQUEST_INPUT = None
@@ -23,8 +26,6 @@ def ai_chat(gui=None, q="", **_):
     DELETE_DIALOG = None
 
     SYSTEM_TOOL_SELECTION = readTextFile(os.path.join(BIBLEMATEWEB_APP_DIR, "mcp_tools", "system_tool_selection_lite.md"))
-    TOOLS = eval(readTextFile(os.path.join(BIBLEMATEWEB_APP_DIR, "mcp_tools", "tools.py")))
-    #TOOLS_SCHEMA = eval(readTextFile(os.path.join(BIBLEMATEWEB_APP_DIR, "mcp_tools", "tools_schema.py")))
 
     TOOL_INSTRUCTION_PROMPT = """Please transform the following suggestions into clear, precise, and actionable instructions."""
     TOOL_INSTRUCTION_SUFFIX = """
@@ -61,7 +62,12 @@ def ai_chat(gui=None, q="", **_):
     async def handle_send_click():
 
         """Handles the logic when the Send button is pressed."""
-        nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT
+        nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT, START
+
+        if START:
+            START = False
+            MESSAGE_CONTAINER.clear()
+
         if CANCEL_EVENT is None or CANCEL_EVENT.is_set():
             CANCEL_EVENT = asyncio.Event() # do not use threading.Event() in this case
         else:
@@ -73,6 +79,8 @@ def ai_chat(gui=None, q="", **_):
         prompt_markdown = None
         output_markdown = None
         if user_request := REQUEST_INPUT.value:
+            gui.update_active_area2_tab_records(q=user_request)
+
             REQUEST_INPUT.disable()
             SEND_BUTTON.set_text(get_translation("Stop"))
             SEND_BUTTON.props('color=negative')
@@ -228,15 +236,41 @@ def ai_chat(gui=None, q="", **_):
         # w-full flex-grow p-4 border border-gray-300 rounded-lg mb-2
         with ui.column().classes('w-full flex-grow overflow-hidden'):
             with ui.scroll_area().classes('w-full p-4 border rounded-lg h-full') as SCROLL_AREA:
-                MESSAGE_CONTAINER = ui.column().classes('w-full items-start gap-2')
+                with ui.column().classes('w-full items-start gap-2') as MESSAGE_CONTAINER:
+                    welcome_message = """**Hello! I’m BibleMate AI.** You’ve enabled my Chat Mode capabilities.
+
+I’m here to chat with you about anything in the Bible. Whether you have questions about a verse, need historical context, or just want to explore a topic, let’s talk!
+
+What would you like to discuss today? Enter your message below to get started.
+
+---
+
+💡 Tips — Enhance your experience:
+
+* Enhance: Check this to automatically improve and clarify your prompt.
+* Agent: Check this to engage my advanced reasoning for more detailed responses.
+* Tools: Check this to let me access my dedicated suite of Bible study tools for better accuracy.
+
+---"""
+                    ui.chat_message(markdown2html(get_translation(welcome_message if app.storage.user["ui_language"] == "eng" else get_translation("welcome_chat_mode"))),
+                        name='BibleMate AI',
+                        stamp=datetime.datetime.now().strftime("%H:%M"),
+                        avatar='https://avatars.githubusercontent.com/u/25262722?s=96&v=4',
+                        text_html=True,
+                        sanitize=False,
+                    )
+                    ui.markdown(f"---\n\n## {get_translation('Other AI Modes')}\n\n")
+                    ui.button(get_translation("Partner Mode"), on_click=lambda: gui.load_area_2_content(title="partner"))
+                    ui.button(get_translation("Agent Mode"), on_click=lambda: gui.load_area_2_content(title="chat"))
+                    ui.markdown("---")
 
         with ui.row().classes('w-full flex-nowrap items-end mb-0'):
-            REQUEST_INPUT = ui.textarea(placeholder=get_translation("Enter your message...")).props('rows=4').classes('flex-grow h-full resize-none').on('keydown.shift.enter.prevent', handle_send_click)
+            REQUEST_INPUT = ui.textarea(placeholder=get_translation("Enter your request here...")).props('rows=4').classes('flex-grow h-full resize-none').on('keydown.shift.enter.prevent', handle_send_click)
             with ui.column().classes('h-full justify-between gap-2'):
                 ui.checkbox(get_translation("Auto-scroll")).classes('w-full').bind_value(app.storage.user, 'auto_scroll').props('dense').tooltip(get_translation("Scroll to the end automatically"))
                 SEND_BUTTON = ui.button('Send', on_click=handle_send_click).classes('w-full')
         
-        with ui.row().classes('w-full flex-nowrap items-end mb-30'):
+        with ui.row().classes('w-full flex-nowrap items-end mb-27'):
             ui.checkbox(get_translation("Enhance")).classes('w-full').bind_value(app.storage.user, 'prompt_engineering').props('dense').tooltip(get_translation("Improve Prompt"))
             ui.checkbox(get_translation("Agent")).classes('w-full').bind_value(app.storage.user, 'use_agent').props('dense').tooltip(get_translation("Create agents to improve responses"))
             ui.checkbox(get_translation("Tools")).classes('w-full').bind_value(app.storage.user, 'auto_tool_selection').props('dense').tooltip(get_translation("Use tools to improve responses"))

@@ -93,7 +93,7 @@ def page_home(
     tb: int | None = None, # tool book
     tc: int | None = None, # tool chapter
     tv: int | None = None, # tool verse
-    tool: str | None = None, # supported options: bible, audio, chronology, search ...
+    tool: str | None = None, # supported options: bible, audio, chronology, search, etc ...
     bq: str | None = None, # bible query; currently not in use
     tq: str | None = None, # tool query
 ):
@@ -334,7 +334,7 @@ def page_home(
         #gui.select_empty_area2_tab()
         gui.load_area_2_content(title=tbt if tool == "bible" else tool, keep=k, sync=s, update_url=False)
     elif not gui.area2_tab_loaded: # when nothing is loaded
-        gui.load_area_2_content(title="Audio", sync=True, update_url=False)
+        gui.load_area_2_content(title="chat", sync=True, update_url=False)
 
     if k:
         # update storage based on latest loaded content
@@ -555,7 +555,7 @@ def page_Settings(
                     .classes('w-full') \
                     .tooltip('Your AI model.')
 
-                ui.input(label='API Endpoint', placeholder='(Optional) Custom API endpoint', password=True, password_toggle_button=True) \
+                ui.input(label='API Endpoint (Optional)', placeholder='(Optional) Custom API endpoint', password=True, password_toggle_button=True) \
                     .bind_value(app.storage.user, 'api_endpoint') \
                     .classes('w-full') \
                     .tooltip('The custom API endpoint URL (if not using default).')
@@ -564,6 +564,33 @@ def page_Settings(
                     .bind_value(app.storage.user, 'api_key') \
                     .classes('w-full') \
                     .tooltip('Your API key for the selected backend.')
+
+                DEFAULT_TOKENS = 8192
+                MIN_TOKENS = 2048
+                ui.number(
+                    label='Max Tokens (Optional)',
+                    placeholder=f'Default: {DEFAULT_TOKENS}',
+                    format='%.0f',  # Integer only
+                    min=MIN_TOKENS, # Prevents arrow buttons from going below 2048
+                    validation={
+                        f'Minimum is {MIN_TOKENS}': lambda v: v is None or v >= MIN_TOKENS
+                    }
+                ).bind_value(app.storage.user, 'max_tokens') \
+                .props('clearable outlined') \
+                .classes('w-full')
+
+                with ui.row().classes('w-full items-center'):
+                    ui.label("Model Temperature (Optional)").classes('flex items-center font-bold mr-4')
+                    # We display the current % value next to the label for clarity
+                    ui.label().bind_text_from(app.storage.user, 'temperature', backward=lambda v: str(v)).classes('text-sm text-gray-500')
+                # 2. Temperature Slider
+                # range 0.0 to 2.0 with steps of 0.1
+                temperature_slider = ui.slider(
+                    min=0.0, 
+                    max=2.0, 
+                    step=0.1, 
+                    value=app.storage.user['temperature']
+                ).bind_value(app.storage.user, 'temperature').props('label-always color=primary').tooltip('Adjust the model temperature (0.0 to 2.0)')
 
         # --- Localization Section ---
         with ui.expansion(get_translation("Language"), icon='language').classes('w-full rounded-lg'):

@@ -40,7 +40,9 @@ config.storage_secret="{config.storage_secret}"
 config.port={config.port}
 config.verses_limit={config.verses_limit}
 config.disable_agent_mode={config.disable_agent_mode}
-config.limit_agent_mode_once_daily={config.limit_agent_mode_once_daily}"""
+config.disable_partner_mode={config.disable_partner_mode}
+config.limit_agent_mode_once_daily={config.limit_agent_mode_once_daily}
+config.limit_partner_mode_once_daily={config.limit_partner_mode_once_daily}"""
     writeTextFile(CONFIG_FILE_BACKUP, configurations)
 
 # restore config backup after upgrade
@@ -56,7 +58,9 @@ config.storage_secret="REPLACE_ME_WITH_A_REAL_SECRET"
 config.port=33355
 config.verses_limit=2000
 config.disable_agent_mode=False
-config.limit_agent_mode_once_daily=False'''
+config.disable_partner_mode=False
+config.limit_agent_mode_once_daily=False
+config.limit_partner_mode_once_daily=False'''
 
 def load_config():
     """Loads the user's configuration from the config file."""
@@ -490,7 +494,8 @@ USER_DEFAULT_SETTINGS = {
     'loop_podcast': True,
     'prompt_engineering': True,
     'use_agent': True,
-    'agent_mode_last_use': '',
     'auto_scroll': True,
     'auto_tool_selection': False,
+    'max_tokens': 8192,
+    'temperature': 0.3,
 }

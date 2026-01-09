@@ -1,4 +1,4 @@
-agentmake>=1.2.3
+agentmake>=1.2.4
 biblemate>=0.2.62
 biblematedata>=0.0.2
 nicegui>=3.2.0

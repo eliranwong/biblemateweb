@@ -72,7 +72,7 @@ def search_page():
         selection_container = ui.column().classes('w-full')
         
         with ui.row().classes('w-full justify-end mt-4'):
-            ui.button('Cancel', on_click=dialog.close).props('flat color=grey')
+            ui.button(get_translation("Cancel"), on_click=dialog.close).props('flat color=grey')
 
     def perform_search():
         query = search_input.value.strip()

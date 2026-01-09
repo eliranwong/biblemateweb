@@ -1,4 +1,4 @@
-{'anyalyze_psalms': 'analyze the context and background of the Psalms in the '
+TOOLS = {'anyalyze_psalms': 'analyze the context and background of the Psalms in the '
                     'bible; Psalm reference must be given, e.g. Psalm 23:1-3',
  'ask_bible_scholar': 'ask a bible scholar about the bible',
  'ask_pastor': 'ask a church pastor about the bible',

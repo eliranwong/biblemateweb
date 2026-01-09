@@ -91,11 +91,16 @@ def notes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
     token = app.storage.user.get('google_token', "")
     if not token:
         with ui.card().classes('absolute-center'):
-            ui.html('Sign in with Google to securely save and sync your personal Bible notes across all your devices.<br><i><b>Data Policy Note:</b> BibleMate AI does not collect or store your personal notes. Your notes are saved directly within your own Google Account.</i>', sanitize=False)
+            ui.html('Sign in with Google to securely save and sync your personal notes across all your devices.<br><i><b>Data Policy Note:</b> BibleMate AI does not collect or store your personal notes. Your notes are saved directly within your own Google Account.</i>', sanitize=False)
             with ui.row().classes('w-full justify-center'):
                 ui.button('Login with Google', on_click=lambda: ui.navigate.to('/login'))
             with ui.expansion(get_translation("BibleMate AI Data Policy & Privacy Commitment"), icon='privacy_tip').props('header-class="text-secondary"'):
-                ui.html("<b>We respect your privacy.</b> BibleMate AI is designed to protect your personal data. We do not collect, store, or share your personal Bible notes. When you log in with your Google Account, your notes are created and stored exclusively on <b>your personal Google Drive/Account</b>, ensuring that you retain full control and ownership of your private data at all times.", sanitize=False)
+                ui.html(
+                    """<b>We respect your privacy.</b>
+To keep your data private, BibleMate AI doesn't collect, store or share your personal information on its servers. 
+Instead, daily logs or bible notes are saved exclusively on <b>your own Google Drive/Account.</b>, ensuring that you retain full control and ownership of your private data at all times.""", 
+                    sanitize=False,
+                )
         return
 
     bible_selector = None
@@ -489,7 +494,7 @@ def notes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
     with ui.dialog() as delete_dialog, ui.card():
         ui.label('Are you sure you want to delete this note?')
         with ui.row().classes('justify-end w-full'):
-            ui.button('Cancel', on_click=delete_dialog.close).props('flat text-color=secondary')
+            ui.button(get_translation("Cancel"), on_click=delete_dialog.close).props('flat text-color=secondary')
             ui.button('Delete', color='red', on_click=lambda: (delete_current_note(), delete_dialog.close()))
 
     # Bible Selection menu

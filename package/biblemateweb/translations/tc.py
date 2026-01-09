@@ -2,7 +2,6 @@ translation_tc = {
     "Add Bible Tab": "新聖經標籤頁",
     "Add Parallel Tab": "新平行標籤頁",
     "Add Tool Tab": "新工具標籤頁",
-    "Agent Mode": "代理模式",
     "Agent": "代理",
     "AI Chat": "對話模式",
     "AI Commentary": "AI 註釋",
@@ -102,7 +101,7 @@ translation_tc = {
     "Chapter Tools": "全章工具",
     "Verse Tools": "單節工具",
     "Chapter Summary": "全章摘要",
-    "Verse Commentary": "經文註釋",
+    "Commentary": "經文註釋",
     "Book Analysis": "書卷分析",
     "Overview": "概述",
     "Structural Outline": "結構大綱",
@@ -152,6 +151,8 @@ translation_tc = {
     "Language": "語言",
     "Delete": "刪除",
     "Cancel": "取消",
+    "Confirm": "確認",
+    "Partner Mode Review": "夥伴模式審查",
     "Cancelled!": "已取消！",
     "Done!": "完成！",
     "Stop": "停止",
@@ -173,15 +174,59 @@ translation_tc = {
     "Agent": "代理",
     "Create agents to improve responses": "創建代理優化回應",
     "Use tools to improve responses": "使用工具優化回應",
+    "Tool Selection": "選用工具",
     "Final Report": "總結報告",
-    "Download Final Report": "下載總結報告",
-    "Download All Content": "下載所有內容",
-    "Download the whole Conversation": "下載整個對話",
+    "Download the Final Report Only": "只下載總結報告",
+    "Download the whole Conversation": "下載完整對話",
     "Downloaded!": "已下載！",
-    "Step": "步驟",
+    "Checking daily limit...": "檢查每日限額...",
+    "Saving access note...": "記錄使用日期中...",
+    "Wrapping up...": "結尾中...",
+    "Round": "回合",
     "Appearance": "外觀",
-    "Enter your message...": "輸入您的訊息...",
     "Creating agent...": "創建代理中...",
     "Created!": "已創建！",
     "Error": "錯誤",
+    "welcome_agent_mode": """**你好！我是 BibleMate AI。** 你已開啟「代理模式 (Agent Mode)」功能。
+
+我能協助你深入查考聖經的內容，包括制定結構化的研經計畫，並跨多種聖經工具執行複雜的多步驟任務。無論是主題式搜尋還是深入的經文分析，我都隨時為你提供協助。
+
+今天你想研習什麼呢？請在下方輸入你的需求以開始執行。
+
+---
+
+💡 提示： 勾選「優化」框，系統將自動完善並釐清你的需求，以獲得更理想的結果。
+
+---""",
+    "welcome_chat_mode": """**你好！我是 BibleMate AI。**你已開啟「對話模式 (Chat Mode)」功能。
+
+讓我們一起討論聖經中的任何事物吧！無論你對經文有疑問、需要了解歷史背景，還是想探討特定主題，我隨時都能與你交流。
+
+今天你想討論什麼呢？請在下方輸入你的訊息以開始對話。
+
+---
+
+💡 提示 — 選用功能：
+
+* 優化 (Enhance)： 勾選此項以自動完善並釐清你的提問。
+* 代理 (Agent)： 勾選此項以啟動進階邏輯，獲取更詳盡的回答。
+* 工具 (Tools)： 勾選此項讓我調用專屬的研經工具組，以確保回覆更加精確。
+
+---""",
+    "welcome_partner_mode": """**你好！我是 BibleMate AI。你已開啟「夥伴模式 (Partner Mode)」功能。
+
+在此模式下，我們將作為團隊協作。與代理模式一樣，我會處理複雜的多步驟研經任務，但你始終擁有主導權。你可以審查並調整總體規劃、核准工具選擇，並修改我執行每一步時的指令。
+
+今天想一起研讀什麼呢？請在下方輸入你的需求，開始我們的協作。
+
+---
+
+💡 提示： 勾選「最佳化」框，系統將自動完善並明確你的需求，以獲得更理想的結果。
+
+---""",
+    "Agent Mode": "代理模式",
+    "Partner Mode": "夥伴模式",
+    "Chat Mode": "對話模式",
+    "Other AI Modes": "其他模式",
+    "Enter your request here...": "在此輸入你的需求",
 }

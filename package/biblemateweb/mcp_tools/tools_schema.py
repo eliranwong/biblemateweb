@@ -1,4 +1,4 @@
-{'anyalyze_psalms': {'description': 'analyze the context and background of the '
+TOOLS_SCHEMA = {'anyalyze_psalms': {'description': 'analyze the context and background of the '
                                     'Psalms in the bible; Psalm reference must '
                                     'be given, e.g. Psalm 23:1-3',
                      'name': 'anyalyze_psalms',

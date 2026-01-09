@@ -278,7 +278,7 @@ def main_page():
                 with ui.dialog() as delete_dialog, ui.card():
                     ui.label('Are you sure you want to delete this note?')
                     with ui.row().classes('justify-end w-full'):
-                        ui.button('Cancel', on_click=delete_dialog.close).props('flat')
+                        ui.button(get_translation("Cancel"), on_click=delete_dialog.close).props('flat')
                         ui.button('Delete', color='red', on_click=lambda: [delete_current_note(), delete_dialog.close()])
                 
                 ui.button('Delete', color='red', icon='delete', on_click=delete_dialog.open).props('flat')

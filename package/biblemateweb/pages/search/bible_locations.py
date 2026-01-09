@@ -157,7 +157,7 @@ def search_bible_locations(gui=None, q='', **_):
         selection_container = ui.column().classes('w-full')
         
         with ui.row().classes('w-full justify-end mt-4'):
-            ui.button('Cancel', on_click=dialog.close).props('flat color=grey')
+            ui.button(get_translation("Cancel"), on_click=dialog.close).props('flat color=grey')
 
     # ----------------------------------------------------------
     # Core: Fetch and Display

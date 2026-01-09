@@ -19,21 +19,19 @@ async def stream_response(messages, user_request, response_markdown, cancel_even
             return e  # Return the error to be handled in the main loop
 
     if system == "auto":
-        system = await stream_response(messages, user_request, agent_markdown, cancel_event, system="create_agent", scroll_area=scroll_area)
+        system = await stream_response(messages, user_request, agent_markdown, cancel_event, system="bible/create_agent", scroll_area=scroll_area)
         if not system or system.strip() == "[NO_CONTENT]":
             return None
         else:
             # refine response
-            refined = False
+            system = system.replace("should:", "should:\n")
+            system = system.replace("examples:", "examples:\n")
             if system.startswith("```agent\n"):
                 system = system[9:]
-                refined = True
             if system.endswith("```"):
                 system = system[:-3].strip()
-                refined = True
-            if refined:
-                agent_markdown.content = system
-                await asyncio.sleep(0)
+            agent_markdown.content = system
+            await asyncio.sleep(0)
             # close prompt expansion
             if agent_expansion is not None:
                 agent_expansion.close()
@@ -52,10 +50,12 @@ async def stream_response(messages, user_request, response_markdown, cancel_even
         agentmake, 
         messages, 
         system=system,
-        backend=app.storage.user["ai_backend"] if app.storage.user["api_key"] and app.storage.user["ai_backend"] else config.ai_backend if config.ai_backend else DEFAULT_AI_BACKEND, 
-        model=app.storage.user["ai_model"] if app.storage.user["api_key"] and app.storage.user["ai_model"] else None, 
-        api_key=app.storage.user["api_key"] if app.storage.user["api_key"] else None,
-        api_endpoint=app.storage.user["api_endpoint"] if app.storage.user["api_key"] and app.storage.user["api_endpoint"] else None,
+        backend=app.storage.user["ai_backend"] if app.storage.user["api_key"].strip() and app.storage.user["ai_backend"] else config.ai_backend if config.ai_backend else DEFAULT_AI_BACKEND, 
+        model=app.storage.user["ai_model"].strip() if app.storage.user["api_key"].strip() and app.storage.user["ai_model"].strip() else None, 
+        api_key=app.storage.user["api_key"].strip() if app.storage.user["api_key"].strip() else None,
+        api_endpoint=app.storage.user["api_endpoint"].strip() if app.storage.user["api_key"].strip() and app.storage.user["api_endpoint"].strip() else None,
+        max_tokens=app.storage.user["max_tokens"] if app.storage.user["max_tokens"] and app.storage.user["api_endpoint"].strip() else None,
+        temperature=app.storage.user["temperature"] if app.storage.user["temperature"] and app.storage.user["api_endpoint"].strip() else None,
         follow_up_prompt=user_request, 
         stream=True, 
         print_on_terminal=False, 

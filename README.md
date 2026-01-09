@@ -22,13 +22,21 @@ We are pleased to announce that Agent Mode is now fully integrated across both t
 
 ### Additional Options for Agent Mode Setup
 
+Agent Mode consumes more tokens than standard mode. Consider restricting public access to manage costs.
+
 Configuration options `disable_agent_mode` and `limit_agent_mode_once_daily` are designed to limit access to Agent Mode.
 
-By default, they are:
+To disable public access to agent mode, set:
 
-> config.disable_agent_mode=False
+> config.disable_agent_mode=True
 
-> config.limit_agent_mode_once_daily=False
+To daily limit access to agent mode, set:
+
+> config.limit_agent_mode_once_daily=True
+
+Users can still use the Agent Mode by entering a custom token or their own API keys in `Preferences`, even either of the two options above are set to `True`.
+
+Note: Setting a daily limit requires [Google Account authentication](https://github.com/eliranwong/biblemateweb/blob/main/docs/google_drive_notes_setup.md), as users' access settings are stored directly in users' own Google Drive. BibleMate AI is designed for privacy; our servers do not store any user data.
 
 ## Recent Updates
 

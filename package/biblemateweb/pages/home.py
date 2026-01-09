@@ -6,6 +6,7 @@ from biblemateweb import config, BIBLEMATEWEB_APP_DIR, getBibleVersionList, get_
 
 from biblemateweb.pages.ai.chat import ai_chat
 from biblemateweb.pages.ai.partner import ai_partner
+from biblemateweb.pages.ai.partner_cli import ai_partner_cli
 from biblemateweb.pages.ai.agent import ai_agent
 from biblemateweb.pages.ai.agent_cli import ai_agent_cli
 
@@ -92,8 +93,8 @@ class BibleMateWeb:
             "parousia": parousia,
             "parousia_zh": parousia_zh,
             "chat": ai_chat,
-            "partner": ai_partner,
-            "agent": ai_agent_cli if config.disable_agent_mode else ai_agent,
+            "partner": ai_partner_cli if config.disable_partner_mode and not app.storage.user["api_key"].strip() else ai_partner,
+            "agent": ai_agent_cli if config.disable_agent_mode and not app.storage.user["api_key"].strip() else ai_agent,
             "morphology": word_morphology,
             "indexes": resource_indexes,
             "chapterindexes": chapter_indexes,
@@ -1254,7 +1255,7 @@ class BibleMateWeb:
                         with ui.menu():
                             ui.menu_item(get_translation("Book Analysis"), on_click=lambda: self.load_area_2_content(title='Analysis'))
                             ui.menu_item(get_translation("Chapter Summary"), on_click=lambda: self.load_area_2_content(title='Summary'))
-                            ui.menu_item(get_translation("Verse Commentary"), on_click=lambda: (
+                            ui.menu_item(get_translation("Commentary"), on_click=lambda: (
                                 app.storage.user.update(favorite_commentary=self.get_aic()),
                                 self.load_area_2_content(title='Commentary', sync=True)
                             ))
@@ -1584,7 +1585,7 @@ class BibleMateWeb:
                     self.load_area_2_content(title='Summary'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item(get_translation("Verse Commentary"), on_click=lambda: (
+                ui.item(get_translation("Commentary"), on_click=lambda: (
                     app.storage.user.update(favorite_commentary=self.get_aic()),
                     self.load_area_2_content(title='Commentary', sync=True),
                     app.storage.user.update(left_drawer_open=False)
