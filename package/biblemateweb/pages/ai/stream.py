@@ -1,9 +1,10 @@
-from agentmake import agentmake, DEFAULT_AI_BACKEND
+from agentmake import agentmake, DEFAULT_AI_BACKEND, unpack_instruction_content, unpack_system_content
 from agentmake.utils.text_wrapper import get_stream_event_text
 from agentmake.utils.read_assistant_response import is_openai_style
 from nicegui import ui, app, run
 import asyncio
-from biblemateweb import config, get_translation
+from biblemateweb import config, get_translation, DEFAULT_MESSAGES
+from copy import deepcopy
 
 async def stream_response(messages, user_request, response_markdown, cancel_event, system=None, scroll_area=None, agent_expansion=None, agent_markdown=None, **kwargs):
     def get_next_chunk(iterator):
@@ -18,8 +19,14 @@ async def stream_response(messages, user_request, response_markdown, cancel_even
         except Exception as e:
             return e  # Return the error to be handled in the main loop
 
+    if "instruction" in kwargs:
+        instruction_content = kwargs.pop("instruction")
+        instruction_content = unpack_instruction_content(instruction_content)
+        # refine user request
+        user_request = instruction_content + "\n" + user_request
+
     if system == "auto":
-        system = await stream_response(messages, user_request, agent_markdown, cancel_event, system="bible/create_agent", scroll_area=scroll_area)
+        system = await stream_response(deepcopy(DEFAULT_MESSAGES), user_request, agent_markdown, cancel_event, system="bible/create_agent", scroll_area=scroll_area)
         if not system or system.strip() == "[NO_CONTENT]":
             return None
         else:
@@ -35,6 +42,37 @@ async def stream_response(messages, user_request, response_markdown, cancel_even
             # close prompt expansion
             if agent_expansion is not None:
                 agent_expansion.close()
+    elif system is not None:
+        system_content = unpack_system_content(system)
+        system = None
+        # refine user request
+        # Note: when a conversation goes long, system message placed in the beginning of the messages chain does not work properly.
+        # Embed the system message into the user request to enhance the response
+        user_request = f"""---
+
+START OF YOUR NEW ROLE
+
+---
+
+{system_content}
+
+---
+
+END OF YOUR NEW ROLE
+
+---
+
+START OF MY REQUEST
+
+---
+
+{user_request}
+
+---
+
+END OF MY REQUEST
+
+---"""
 
     # get streaming object
     n = ui.notification(get_translation("Loading..."), timeout=None, spinner=True)

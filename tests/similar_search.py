@@ -139,7 +139,7 @@ def search_page():
 
     # Footer
     with ui.footer().classes('bg-slate-50 p-4 text-center text-slate-400 text-sm'):
-        ui.label('© 2025 BibleMate AI')
+        ui.label('© 2025-2026 BibleMate AI')
 
 # Run the app
 if __name__ in {"__main__", "__mp_main__"}:

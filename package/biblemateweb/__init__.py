@@ -24,6 +24,8 @@ for i in ("audio", "bibles"):
         Path(os.path.join(BIBLEMATEWEB_DATA, i)).mkdir(parents=True, exist_ok=True)
 CONFIG_FILE_BACKUP = os.path.join(BIBLEMATEWEB_USER_DIR, "biblemateweb.config")
 
+DEFAULT_MESSAGES = [{"role": "system", "content": "You are BibleMate AI, an autonomous agent designed to assist users with Bible study. You dynamically adapt your role to best fulfill each individual request."}]
+
 # NOTE: When add a config item, update both `write_user_config` and `default_config`
 
 def write_user_config():

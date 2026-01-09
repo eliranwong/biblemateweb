@@ -1,12 +1,12 @@
 from nicegui import ui, app, run
 import asyncio, datetime, re, os
 from biblemateweb.pages.ai.stream import stream_response
-from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation, markdown2html, config
+from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation, markdown2html, DEFAULT_MESSAGES
 from biblemateweb.mcp_tools.elements import TOOL_ELEMENTS
 from biblemateweb.mcp_tools.tools import TOOLS
 from biblemateweb.api.api import get_api_content
 from biblemate.core.systems import get_system_tool_instruction
-#from biblemate.bible_study_mcp import chapter2verses
+from copy import deepcopy
 from agentmake import readTextFile
 
 def chapter2verses(request:str) -> str:
@@ -75,7 +75,7 @@ def ai_chat(gui=None, q="", **_):
             return None
 
         if not MESSAGES:
-            MESSAGES = [{"role": "system", "content": "You are BibleMate AI, an autonomous agent designed to assist users with their Bible study."}]
+            MESSAGES = deepcopy(DEFAULT_MESSAGES)
         prompt_markdown = None
         output_markdown = None
         if user_request := REQUEST_INPUT.value:
@@ -275,7 +275,7 @@ What would you like to discuss today? Enter your message below to get started.
             ui.checkbox(get_translation("Agent")).classes('w-full').bind_value(app.storage.user, 'use_agent').props('dense').tooltip(get_translation("Create agents to improve responses"))
             ui.checkbox(get_translation("Tools")).classes('w-full').bind_value(app.storage.user, 'auto_tool_selection').props('dense').tooltip(get_translation("Use tools to improve responses"))
 
-        ui.label('BibleMate AI | © 2025 | Eliran Wong')
+        ui.label('BibleMate AI | © 2025-2026 | Eliran Wong')
 
         # Dialog to confirm the reset
         with ui.dialog() as DELETE_DIALOG, ui.card():

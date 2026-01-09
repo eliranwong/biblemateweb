@@ -1,7 +1,7 @@
 from nicegui import ui, app, run
 import asyncio, datetime, re, os, pypandoc, tempfile, traceback, json
 from biblemateweb.pages.ai.stream import stream_response
-from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation, markdown2html, config
+from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation, markdown2html, config, DEFAULT_MESSAGES
 from biblemateweb.mcp_tools.elements import TOOL_ELEMENTS
 from biblemateweb.mcp_tools.tools import TOOLS
 from biblemateweb.mcp_tools.tool_descriptions import TOOL_DESCRIPTIONS
@@ -82,7 +82,6 @@ def ai_partner(gui=None, q="", **_):
     MASTER_USER_REQUEST = None
     PROGRESS_STATUS = "START"
     MESSAGES = None
-    DEFAULT_MESSAGES = [{"role": "system", "content": "You are BibleMate AI, an autonomous agent designed to assist users with their Bible study."}]
     FINAL_INSTRUCTION = """# Instruction
 Please provide a comprehensive response that resolves my original request, ensuring all previously completed milestones and data points are fully integrated.
 
@@ -244,7 +243,7 @@ I'm BibleMate AI [developed by Eliran Wong], an autonomous agent designed to ass
     async def handle_send_click():
         """Handles the logic when the Send button is pressed."""
 
-        nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT, PROGRESS_STATUS, MASTER_USER_REQUEST, DELETE_DIALOG, DEFAULT_MESSAGES, FINAL_INSTRUCTION, REVIEW_DIALOG, SELECTION_DIALOG
+        nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT, PROGRESS_STATUS, MASTER_USER_REQUEST, DELETE_DIALOG, FINAL_INSTRUCTION, REVIEW_DIALOG, SELECTION_DIALOG
 
         # daily limit check
         if config.limit_partner_mode_once_daily and not app.storage.client["custom"] and not app.storage.user["api_key"].strip():
@@ -629,7 +628,7 @@ What shall we study together today? Enter your request below to begin our collab
                 ui.checkbox(get_translation("Enhance")).classes('w-full').bind_value(app.storage.user, 'prompt_engineering').props('dense').tooltip(get_translation("Improve Prompt"))
                 SEND_BUTTON = ui.button('Send', on_click=handle_send_click).classes('w-full')
 
-        ui.label('BibleMate AI | © 2025 | Eliran Wong')
+        ui.label('BibleMate AI | © 2025-2026 | Eliran Wong')
 
         # Dialog to confirm the reset
         with ui.dialog() as DELETE_DIALOG, ui.card():
