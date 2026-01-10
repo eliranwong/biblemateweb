@@ -859,6 +859,13 @@ class BibleMateWeb:
         self.select_empty_area2_tab()
         self.load_area_2_content(title='Verses')
 
+    def open_area_1_bible_bible(self, bible):
+        if refs := BibleVerseParser(False).extractAllReferences(app.storage.user['tool_query']): # to work with text selection
+            b, c, v, *_ = refs[0]
+            self.change_area_1_bible_chapter(version=bible, book=b, chapter=c, verse=v)
+        else:
+            self.load_area_1_content(title=bible)
+
     def change_area_1_bible_chapter(self, version=None, book=1, chapter=1, verse=1):
         if version is None:
             version = self.get_area_1_bible_text()
@@ -1154,23 +1161,23 @@ class BibleMateWeb:
                             ui.menu_item(get_translation("Close Bible Tab"), on_click=self.remove_tab_area1)
                             ui.menu_item(get_translation("Close Others"), on_click=self.close_other_area1_tabs)
                             ui.separator()
-                            ui.menu_item(primary_bible, on_click=lambda: self.load_area_1_content(title=primary_bible)).tooltip(primary_bible)
-                            ui.menu_item(secondary_bible, on_click=lambda: self.load_area_1_content(title=secondary_bible)).tooltip(secondary_bible)
+                            ui.menu_item(primary_bible, on_click=lambda: self.open_area_1_bible_bible(primary_bible)).tooltip(primary_bible)
+                            ui.menu_item(secondary_bible, on_click=lambda: self.open_area_1_bible_bible(secondary_bible)).tooltip(secondary_bible)
                             ui.separator()
-                            ui.menu_item(get_translation("Original Reader’s Bible"), on_click=lambda: self.load_area_1_content(title='ORB')).tooltip('ORB')
-                            ui.menu_item(get_translation("Original Interlinear Bible"), on_click=lambda: self.load_area_1_content(title='OIB')).tooltip('OIB')
-                            ui.menu_item(get_translation("Original Parallel Bible"), on_click=lambda: self.load_area_1_content(title='OPB')).tooltip('OPB')
-                            ui.menu_item(get_translation("Original Discourse Bible"), on_click=lambda: self.load_area_1_content(title='ODB')).tooltip('ODB')
-                            ui.menu_item(get_translation("Original Linguistic Bible"), on_click=lambda: self.load_area_1_content(title='OLB')).tooltip('OLB')
+                            ui.menu_item(get_translation("Original Reader’s Bible"), on_click=lambda: self.open_area_1_bible_bible('ORB')).tooltip('ORB')
+                            ui.menu_item(get_translation("Original Interlinear Bible"), on_click=lambda: self.open_area_1_bible_bible('OIB')).tooltip('OIB')
+                            ui.menu_item(get_translation("Original Parallel Bible"), on_click=lambda: self.open_area_1_bible_bible('OPB')).tooltip('OPB')
+                            ui.menu_item(get_translation("Original Discourse Bible"), on_click=lambda: self.open_area_1_bible_bible('ODB')).tooltip('ODB')
+                            ui.menu_item(get_translation("Original Linguistic Bible"), on_click=lambda: self.open_area_1_bible_bible('OLB')).tooltip('OLB')
                             ui.separator()
                             if app.storage.client["custom"] and config.bibles_custom:
                                 for i in config.bibles_custom:
                                     if not i in (primary_bible, secondary_bible):
-                                        ui.menu_item(i, on_click=partial(self.load_area_1_content, title=i)).tooltip(config.bibles_custom[i][0])
+                                        ui.menu_item(i, on_click=partial(self.open_area_1_bible_bible, i)).tooltip(config.bibles_custom[i][0])
                                 ui.separator()
                             for i in config.bibles:
                                 if not i in (primary_bible, secondary_bible) and ((app.storage.client["custom"] and not i in config.bibles_custom) or not app.storage.client["custom"]):
-                                    ui.menu_item(i, on_click=partial(self.load_area_1_content, title=i)).tooltip(config.bibles[i][0])
+                                    ui.menu_item(i, on_click=partial(self.open_area_1_bible_bible, i)).tooltip(config.bibles[i][0])
 
                     with ui.button(icon='devices_fold').props('flat color=white round').tooltip(get_translation("Parallel Bibles")):
                         with ui.menu():
@@ -1366,37 +1373,37 @@ class BibleMateWeb:
             # Bibles
             with ui.expansion(get_translation("Bibles"), icon='local_library').props('header-class="text-secondary"'):
                 ui.item(get_translation("Original Reader’s Bible"), on_click=lambda: (
-                    self.load_area_1_content(title='ORB'),
+                    self.open_area_1_bible_bible('ORB'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable').tooltip('ORB')
                 ui.item(get_translation("Original Interlinear Bible"), on_click=lambda: (
-                    self.load_area_1_content(title='OIB'),
+                    self.open_area_1_bible_bible('OIB'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable').tooltip('OIB')
                 ui.item(get_translation("Original Parallel Bible"), on_click=lambda: (
-                    self.load_area_1_content(title='OPB'),
+                    self.open_area_1_bible_bible('OPB'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable').tooltip('OPB')
                 ui.item(get_translation("Original Discourse Bible"), on_click=lambda: (
-                    self.load_area_1_content(title='ODB'),
+                    self.open_area_1_bible_bible('ODB'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable').tooltip('ODB')
                 ui.item(get_translation("Original Linguistic Bible"), on_click=lambda: (
-                    self.load_area_1_content(title='OLB'),
+                    self.open_area_1_bible_bible('OLB'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable').tooltip('OLB')
                 ui.separator()
                 if app.storage.client["custom"] and config.bibles_custom:
                     for i in config.bibles_custom:
                         ui.item(i, on_click=lambda: (
-                            self.load_area_1_content(title=i),
+                            self.open_area_1_bible_bible(i),
                             app.storage.user.update(left_drawer_open=False)
                         )).props('clickable').tooltip(config.bibles_custom[i][0])
                     ui.separator()
                 for i in config.bibles:
                     if (app.storage.client["custom"] and not i in config.bibles_custom) or not app.storage.client["custom"]:
                         ui.item(i, on_click=lambda: (
-                            self.load_area_1_content(title=i),
+                            self.open_area_1_bible_bible(i),
                             app.storage.user.update(left_drawer_open=False)
                         )).props('clickable').tooltip(config.bibles[i][0])
 

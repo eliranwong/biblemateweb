@@ -352,8 +352,9 @@ To remove the daily limit, please update your `{preferences}` with one of the fo
                         # refine response
                         if "```" in user_request:
                             MASTER_USER_REQUEST = user_request = re.sub(r"^.*?(```improved_prompt|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
-                            prompt_markdown.content = user_request
-                            await asyncio.sleep(0)
+                        # apply the last fix from stream output
+                        prompt_markdown.content = user_request
+                        await asyncio.sleep(0)
                         # close prompt expansion
                         prompt_expansion.close()
 
@@ -373,19 +374,20 @@ To remove the daily limit, please update your `{preferences}` with one of the fo
                     return None
                 else:
                     # refine response
-                    # n/a
+                    # apply the last fix from stream output
+                    plan_markdown.content = master_plan
+                    await asyncio.sleep(0)
                     # close prompt expansion
                     plan_expansion.close()
                 
-                STEP =  1
+                ROUND =  1
                 MESSAGES += [
                     {"role": "user", "content": MASTER_USER_REQUEST},
                     {"role": "assistant", "content": "Let's begin!"},
                 ]
                 while not ("STOP" in PROGRESS_STATUS or re.sub("^[^A-Za-z]*?([A-Za-z]+?)[^A-Za-z]*?$", r"\1", PROGRESS_STATUS).upper() == "STOP"):
-                    # display step
-                    ui.markdown(f"### {get_translation('Round')} {STEP}").style('font-size: 1.1rem')
-                    STEP += 1
+                    # display round
+                    ui.markdown(f"### {get_translation('Round')} {ROUND}").style('font-size: 1.1rem')
                     # suggestion
                     system_make_suggestion = get_system_make_suggestion(master_plan=master_plan)
                     follow_up_prompt = "Please provide me with the next step suggestion, based on the action plan."
@@ -399,7 +401,9 @@ To remove the daily limit, please update your `{preferences}` with one of the fo
                         return None
                     else:
                         # refine response
-                        # n/a
+                        # apply the last fix from stream output
+                        suggestion_markdown.content = suggestion
+                        await asyncio.sleep(0)
                         # close prompt expansion
                         suggestion_expansion.close()
 
@@ -409,7 +413,7 @@ To remove the daily limit, please update your `{preferences}` with one of the fo
                             .classes('w-full border rounded-lg shadow-sm') \
                             .props('header-class="font-bold text-lg text-secondary"') as tools_expansion:
                         tools_markdown = ui.markdown().style('font-size: 1.1rem')
-                    suggested_tools = await stream_response(MESSAGES, suggestion, tools_markdown, CANCEL_EVENT, system=SYSTEM_TOOL_SELECTION, scroll_area=SCROLL_AREA)
+                    suggested_tools = await stream_response(DEFAULT_MESSAGES, suggestion, tools_markdown, CANCEL_EVENT, system=SYSTEM_TOOL_SELECTION, scroll_area=SCROLL_AREA)
                     if not suggested_tools or suggested_tools.strip() == "[NO_CONTENT]":
                         suggested_tools = ["get_direct_text_response"]
                     else:
@@ -478,6 +482,10 @@ To remove the daily limit, please update your `{preferences}` with one of the fo
                             if not answers or answers.strip() == "[NO_CONTENT]":
                                 reset_ui()
                                 return None
+                            else:
+                                # apply the last fix from stream output
+                                output_markdown.content = answers
+                                await asyncio.sleep(0)
                         else:
                             element = TOOL_ELEMENTS.get(selected_tool)
                             # API access
@@ -508,6 +516,10 @@ To remove the daily limit, please update your `{preferences}` with one of the fo
                                 if not answers or answers.strip() == "[NO_CONTENT]":
                                     reset_ui()
                                     return None
+                                else:
+                                    # apply the last fix from stream output
+                                    output_markdown.content = answers
+                                    await asyncio.sleep(0)
                     except Exception as e:
                         output_markdown.content = f"[{get_translation('Error')}: {str(e)}]"
                         await asyncio.sleep(0)
@@ -520,8 +532,8 @@ To remove the daily limit, please update your `{preferences}` with one of the fo
                             n = None
                         if answers and not answers.strip() == "[NO_CONTENT]":
                             MESSAGES += [
-                                {"role": "user", "content": user_request},
-                                {"role": "assistant", "content": answers},
+                                {"role": "user", "content": f"[ROUND {ROUND}]\n\n{user_request}"},
+                                {"role": "assistant", "content": f"[TOOL] {selected_tool}\n\n[RESPONSE]\n\n{answers}"},
                             ]
 
                     # check progress
@@ -540,6 +552,9 @@ To remove the daily limit, please update your `{preferences}` with one of the fo
                         # n/a
                         # close prompt expansion
                         progress_expansion.close()
+
+                    # update round
+                    ROUND += 1
 
                 # final report
                 ui.markdown("---")
@@ -562,10 +577,13 @@ To remove the daily limit, please update your `{preferences}` with one of the fo
                     return None
                 else:
                     # refine response
-                    # n/a
+                    # apply the last fix from stream output
+                    report_markdown.content = report
+                    await asyncio.sleep(0)
+                    # update
                     MESSAGES += [
-                        {"role": "user", "content": "Please provide a comprehensive response that resolves my original request, ensuring all previously completed milestones and data points are fully integrated."},
-                        {"role": "assistant", "content": report},
+                        {"role": "user", "content": "[FINAL] Please provide a comprehensive response that resolves my original request, ensuring all previously completed milestones and data points are fully integrated."},
+                        {"role": "assistant", "content": f"[REPORT]\n\n{report}"},
                     ]
                     # close prompt expansion
                     report_expansion.close()

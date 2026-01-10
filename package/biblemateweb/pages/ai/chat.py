@@ -106,8 +106,9 @@ def ai_chat(gui=None, q="", **_):
                         # refine response
                         if "```" in user_request:
                             user_request = re.sub(r"^.*?(```improved_prompt|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
-                            prompt_markdown.content = user_request
-                            await asyncio.sleep(0)
+                        # apply the last fix from stream output
+                        prompt_markdown.content = user_request
+                        await asyncio.sleep(0)
                         # close prompt expansion
                         prompt_expansion.close()
                 
@@ -120,8 +121,7 @@ def ai_chat(gui=None, q="", **_):
                         tools_markdown = ui.markdown().style('font-size: 1.1rem')
                     suggested_tools = await stream_response(MESSAGES, user_request, tools_markdown, CANCEL_EVENT, system=SYSTEM_TOOL_SELECTION, scroll_area=SCROLL_AREA)
                     if not suggested_tools or suggested_tools.strip() == "[NO_CONTENT]":
-                        reset_ui()
-                        return None
+                        suggested_tools = ["get_direct_text_response"]
                     else:
                         # refine response
                         suggested_tools = re.sub(r"^.*?(\[.*?\]).*?$", r"\1", suggested_tools, flags=re.DOTALL)
@@ -150,6 +150,9 @@ def ai_chat(gui=None, q="", **_):
                         reset_ui()
                         return None
                     else:
+                        # apply the last fix from stream output
+                        tool_instruction_markdown.content = user_request
+                        await asyncio.sleep(0)
                         # close prompt expansion
                         tool_instruction_expansion.close()
 
@@ -168,6 +171,10 @@ def ai_chat(gui=None, q="", **_):
                         if not answers or answers.strip() == "[NO_CONTENT]":
                             reset_ui()
                             return None
+                        else:
+                            # apply the last fix from stream output
+                            output_markdown.content = answers
+                            await asyncio.sleep(0)
                     else:
                         element = TOOL_ELEMENTS.get(selected_tool)
                         # API access
@@ -198,6 +205,10 @@ def ai_chat(gui=None, q="", **_):
                             if not answers or answers.strip() == "[NO_CONTENT]":
                                 reset_ui()
                                 return None
+                            else:
+                                # apply the last fix from stream output
+                                output_markdown.content = answers
+                                await asyncio.sleep(0)
                 except Exception as e:
                     output_markdown.content = f"[{get_translation('Error')}: {str(e)}]"
                     await asyncio.sleep(0)

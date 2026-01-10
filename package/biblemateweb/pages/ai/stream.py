@@ -4,7 +4,7 @@ from agentmake.utils.read_assistant_response import is_openai_style
 from nicegui import ui, app, run
 import asyncio
 from biblemateweb import config, get_translation, DEFAULT_MESSAGES
-from copy import deepcopy
+
 
 async def stream_response(messages, user_request, response_markdown, cancel_event, system=None, scroll_area=None, agent_expansion=None, agent_markdown=None, **kwargs):
     def get_next_chunk(iterator):
@@ -26,7 +26,7 @@ async def stream_response(messages, user_request, response_markdown, cancel_even
         user_request = instruction_content + "\n" + user_request
 
     if system == "auto":
-        system = await stream_response(deepcopy(DEFAULT_MESSAGES), user_request, agent_markdown, cancel_event, system="bible/create_agent", scroll_area=scroll_area)
+        system = await stream_response(DEFAULT_MESSAGES, user_request, agent_markdown, cancel_event, system="bible/create_agent", scroll_area=scroll_area)
         if not system or system.strip() == "[NO_CONTENT]":
             return None
         else:
@@ -58,21 +58,11 @@ START OF YOUR NEW ROLE
 
 ---
 
-END OF YOUR NEW ROLE
-
----
-
 START OF MY REQUEST
 
 ---
 
-{user_request}
-
----
-
-END OF MY REQUEST
-
----"""
+{user_request}"""
 
     # get streaming object
     n = ui.notification(get_translation("Loading..."), timeout=None, spinner=True)
@@ -157,4 +147,4 @@ END OF MY REQUEST
         cancel_event = None
         return None
     
-    return text_chunks
+    return text_chunks.replace(" ", " ").replace("‑", "-") # replace non-standard characters in some LLM output, e.g. gpt-oss
