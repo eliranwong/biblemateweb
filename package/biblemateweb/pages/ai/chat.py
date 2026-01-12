@@ -42,6 +42,7 @@ def ai_chat(gui=None, q="", **_):
             CANCEL_EVENT.set()
         if CANCEL_EVENT is not None:
             CANCEL_EVENT = None
+        SEND_BUTTON.enable()
         SEND_BUTTON.set_text(get_translation("Send"))
         SEND_BUTTON.props('color=primary')
         REQUEST_INPUT.enable()
@@ -52,7 +53,8 @@ def ai_chat(gui=None, q="", **_):
             CANCEL_NOTIFICATION = None
 
     async def stop_confirmed():
-        nonlocal DELETE_DIALOG, CANCEL_NOTIFICATION, CANCEL_EVENT
+        nonlocal DELETE_DIALOG, CANCEL_NOTIFICATION, CANCEL_EVENT, SEND_BUTTON
+        SEND_BUTTON.disable()
         DELETE_DIALOG.close()
         CANCEL_NOTIFICATION = ui.notification(get_translation("Stopping..."), timeout=None, spinner=True)
         if CANCEL_EVENT is not None and not CANCEL_EVENT.is_set():

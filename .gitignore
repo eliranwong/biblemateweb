@@ -3,3 +3,4 @@ tests/.nicegui/**
 **/__pycache__/**
 __pycache__/**
 nohup.out
+package/.nicegui/**

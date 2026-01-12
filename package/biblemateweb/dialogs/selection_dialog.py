@@ -11,7 +11,7 @@ class SelectionDialog(ui.dialog):
             # This container will hold the radio selection dynamically
             self.selection_container = ui.column().classes('w-full')
             
-            with ui.row().classes('w-full justify-end'):
+            with ui.row().classes('w-full justify-center'):
                 # Button 1: Cancel
                 # Sending None indicates "Canceled"
                 ui.button(get_translation("Cancel"), on_click=lambda: self.submit(None)) \
