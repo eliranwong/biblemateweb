@@ -22,6 +22,7 @@ def ai_agent(gui=None, q="", **_):
     TOOL_INSTRUCTION_CONTAINERS = []
     OUTPUT_MARKDOWNS = []
     MASTER_USER_REQUEST = None
+    MASTER_PLAN = None
     PROGRESS_STATUS = None
     ROUND =  1
     MESSAGES = None
@@ -31,8 +32,6 @@ Please provide a comprehensive response that resolves my original request, ensur
 # Original Request
 """
 
-    EDIT_ENHANCED_PROMPT_BUTTON = None
-    EDIT_MASTER_PLAN_BUTTON = None
     SEND_BUTTON = None
     REQUEST_INPUT = None
     MESSAGE_CONTAINER = None
@@ -64,9 +63,16 @@ Available tools are: {available_tools}.
 
 {user_request}"""
 
-    async def edit_enhanced_prompt():
-        nonlocal EDIT_ENHANCED_PROMPT_BUTTON
-        edited_item = await ReviewDialog().open_with_text(item)
+    async def edit_request():
+        nonlocal MESSAGES
+        user_request = MESSAGES[1]["content"]
+        if edited_item := await ReviewDialog().open_with_text(user_request, label=get_translation("Edit Request")):
+            MESSAGES[1]["content"] = edited_item
+
+    async def edit_master_plan():
+        nonlocal MASTER_PLAN
+        if edited_item := await ReviewDialog().open_with_text(MASTER_PLAN, label=get_translation("Edit Plan")):
+            MASTER_PLAN = edited_item
 
     async def edit_messages():
         nonlocal MESSAGES, TOOL_INSTRUCTION_CONTAINERS, OUTPUT_MARKDOWNS
@@ -76,7 +82,7 @@ Available tools are: {available_tools}.
             if index is None:
                 return None
             item = MESSAGES[index+3]["content"]
-            edited_item = await ReviewDialog().open_with_text(item)
+            edited_item = await ReviewDialog().open_with_text(item, label=get_translation("Edit Round"))
             if edited_item:
                 MESSAGES[index+3]["content"] = edited_item
                 if ".5" in str(index/2):
@@ -137,15 +143,17 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
             traceback.print_exc()
 
     def reset_page():
-        nonlocal MASTER_USER_REQUEST, MESSAGES, PROGRESS_STATUS, MESSAGE_CONTAINER, ROUND
+        nonlocal MASTER_USER_REQUEST, MASTER_PLAN, MESSAGES, PROGRESS_STATUS, MESSAGE_CONTAINER, ROUND
         MASTER_USER_REQUEST = None
+        MASTER_PLAN = None
         PROGRESS_STATUS = None
         MESSAGES = None
         ROUND =  1
         MESSAGE_CONTAINER.clear()
 
-    def reset_ui(master_plan=None, clear_input=False, round_container=None):
+    async def reset_ui(clear_input=False, round_container=None):
         nonlocal SEND_BUTTON, REQUEST_INPUT, CANCEL_EVENT, CANCEL_NOTIFICATION, MESSAGE_CONTAINER, MESSAGES
+
         if not CANCEL_EVENT.is_set():
             CANCEL_EVENT.set()
         if CANCEL_EVENT is not None:
@@ -160,12 +168,16 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
         if CANCEL_NOTIFICATION is not None:
             CANCEL_NOTIFICATION.dismiss()
             CANCEL_NOTIFICATION = None
-        if master_plan is not None:
-            with MESSAGE_CONTAINER:
-                with ui.row().classes('w-full justify-center') as resume_container:
-                    if MESSAGES is not None and len(MESSAGES) > 3:
-                        ui.button(get_translation("Edit"), on_click=edit_messages)
-                    ui.button(get_translation("Resume"), on_click=lambda: run_rounds(master_plan=master_plan, resume_container=resume_container, round_container=round_container))
+        
+        with MESSAGE_CONTAINER:
+            with ui.row().classes('w-full justify-center') as resume_container:
+                if MESSAGES is not None and len(MESSAGES) >= 2:
+                    ui.button(get_translation("Edit Request"), on_click=edit_request)
+                if MASTER_PLAN is not None:
+                    ui.button(get_translation("Edit Plan"), on_click=edit_master_plan)
+                if MESSAGES is not None and len(MESSAGES) > 3:
+                    ui.button(get_translation("Edit Rounds"), on_click=edit_messages)
+                ui.button(get_translation("Resume"), on_click=lambda: run_rounds(resume_container=resume_container, round_container=round_container))
 
     async def stop_confirmed():
         nonlocal DELETE_DIALOG, CANCEL_NOTIFICATION, CANCEL_EVENT, SEND_BUTTON
@@ -229,8 +241,8 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
             service.files().create(body=meta, media_body=media).execute()
             return "created"
 
-    async def run_rounds(master_plan, resume_container=None, round_container=None):
-        nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT, PROGRESS_STATUS, MASTER_USER_REQUEST, DELETE_DIALOG, FINAL_INSTRUCTION, ROUND, TOOL_INSTRUCTION_CONTAINERS, OUTPUT_MARKDOWNS
+    async def run_rounds(resume_container=None, round_container=None):
+        nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT, PROGRESS_STATUS, MASTER_USER_REQUEST, DELETE_DIALOG, FINAL_INSTRUCTION, ROUND, TOOL_INSTRUCTION_CONTAINERS, OUTPUT_MARKDOWNS, MASTER_PLAN
 
         if resume_container is not None:
             resume_container.clear()
@@ -253,7 +265,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                         # display round
                         ui.markdown(f"### {get_translation('Round')} {ROUND}").style('font-size: 1.1rem')
                         # suggestion
-                        system_make_suggestion = get_system_make_suggestion(master_plan=master_plan)
+                        system_make_suggestion = get_system_make_suggestion(master_plan=MASTER_PLAN)
                         follow_up_prompt = "Please provide me with the next step suggestion, based on the action plan."
                         with ui.expansion(get_translation("Suggestion"), icon='lightbulb', value=True) \
                                 .classes('w-full border rounded-lg shadow-sm') \
@@ -261,7 +273,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                             suggestion_markdown = ui.markdown().style('font-size: 1.1rem')
                         suggestion = await stream_response(MESSAGES, follow_up_prompt, suggestion_markdown, CANCEL_EVENT, system=system_make_suggestion, scroll_area=SCROLL_AREA)
                         if not suggestion or suggestion.strip() == "[NO_CONTENT]":
-                            reset_ui(master_plan, round_container=round_container)
+                            await reset_ui(round_container=round_container)
                             return None
                         else:
                             # refine response
@@ -307,7 +319,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                                 tool_instruction_markdown = ui.markdown().style('font-size: 1.1rem')
                         user_request = await stream_response(MESSAGES, tool_instruction_draft, tool_instruction_markdown, CANCEL_EVENT, system=system_tool_instruction, scroll_area=SCROLL_AREA)
                         if not user_request or user_request.strip() == "[NO_CONTENT]":
-                            reset_ui(master_plan, round_container=round_container)
+                            await reset_ui(round_container=round_container)
                             return None
                         else:
                             tool_instruction_container.clear()
@@ -335,7 +347,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                                 answers = await stream_response(MESSAGES, user_request, output_markdown, CANCEL_EVENT, system="auto", scroll_area=SCROLL_AREA, agent_expansion=agent_expansion, agent_markdown=agent_markdown)
                                 # update
                                 if not answers or answers.strip() == "[NO_CONTENT]":
-                                    reset_ui(master_plan, round_container=round_container)
+                                    await reset_ui(round_container=round_container)
                                     return None
                                 else:
                                     # apply the last fix from stream output
@@ -369,7 +381,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                                     answers = await stream_response(MESSAGES, user_request, output_markdown, CANCEL_EVENT, system=system, scroll_area=SCROLL_AREA, agent_expansion=agent_expansion, agent_markdown=agent_markdown, **element)
                                     # update
                                     if not answers or answers.strip() == "[NO_CONTENT]":
-                                        reset_ui(master_plan, round_container=round_container)
+                                        await reset_ui(round_container=round_container)
                                         return None
                                     else:
                                         # apply the last fix from stream output
@@ -393,7 +405,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                                 ]
 
                         # check progress
-                        system_progress = get_system_progress(master_plan=master_plan)
+                        system_progress = get_system_progress(master_plan=MASTER_PLAN)
                         follow_up_prompt="Please decide either to `CONTINUE` or `STOP` the process."
                         with ui.expansion(get_translation("Progress"), icon='trending_up', value=True) \
                                 .classes('w-full border rounded-lg shadow-sm') \
@@ -402,7 +414,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                         PROGRESS_STATUS = await stream_response(MESSAGES, follow_up_prompt, progress_markdown, CANCEL_EVENT, system=system_progress, scroll_area=SCROLL_AREA)
                         if not PROGRESS_STATUS or PROGRESS_STATUS.strip() == "[NO_CONTENT]":
                             MESSAGES = MESSAGES[:-2]
-                            reset_ui(master_plan, round_container=round_container)
+                            await reset_ui(round_container=round_container)
                             return None
                         else:
                             # refine response
@@ -431,7 +443,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                         report_markdown = ui.markdown().style('font-size: 1.1rem')
                     report = await stream_response(MESSAGES, follow_up_prompt, report_markdown, CANCEL_EVENT, system=system_report, scroll_area=SCROLL_AREA)
                     if not report or report.strip() == "[NO_CONTENT]":
-                        reset_ui(master_plan, round_container=round_container)
+                        await reset_ui(round_container=round_container)
                         return None
                     else:
                         # refine response
@@ -449,20 +461,20 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
 
                         # offer downloads
                         with ui.column().classes('w-full items-center'):
-                            ui.button(get_translation("Download the whole Conversation"), on_click=lambda: download_all_content(MESSAGES, master_plan))
+                            ui.button(get_translation("Download the whole Conversation"), on_click=lambda: download_all_content(MESSAGES, MASTER_PLAN))
                             ui.button(get_translation("Download the Final Report Only"), on_click=lambda: download_report(report))
 
                 #reset
-                reset_ui(clear_input=True)
+                await reset_ui(clear_input=True)
         except Exception as e:
             ui.notify(f"Error: {e}", type='negative')
             #traceback.print_exc()
-            reset_ui(master_plan)
+            await reset_ui()
 
     async def handle_send_click():
         """Handles the logic when the Send button is pressed."""
 
-        nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT, PROGRESS_STATUS, MASTER_USER_REQUEST, DELETE_DIALOG, FINAL_INSTRUCTION, EDIT_ENHANCED_PROMPT_BUTTON, EDIT_MASTER_PLAN_BUTTON
+        nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT, PROGRESS_STATUS, MASTER_USER_REQUEST, DELETE_DIALOG, FINAL_INSTRUCTION, MASTER_PLAN
 
         if not REQUEST_INPUT.value.strip():
             return None
@@ -567,7 +579,7 @@ To remove the daily limit, please update your `{preferences}` with one of the fo
                     prompt_markdown = ui.markdown().style('font-size: 1.1rem')
                 MASTER_USER_REQUEST = user_request = await stream_response(MESSAGES, user_request, prompt_markdown, CANCEL_EVENT, system="improve_prompt_2", scroll_area=SCROLL_AREA)
                 if not user_request or user_request.strip() == "[NO_CONTENT]":
-                    reset_ui()
+                    await reset_ui()
                     return None
                 else:
                     # refine response
@@ -575,11 +587,14 @@ To remove the daily limit, please update your `{preferences}` with one of the fo
                         MASTER_USER_REQUEST = user_request = re.sub(r"^.*?(```improved_prompt|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
                     # apply the last fix from stream output
                     prompt_markdown.content = user_request
-                    with ui.row().classes('w-full justify-center'):
-                        EDIT_ENHANCED_PROMPT_BUTTON = ui.button(get_translation("Edit"), on_click=edit_enhanced_prompt)
                     await asyncio.sleep(0)
                     # close prompt expansion
                     prompt_expansion.close()
+
+            MESSAGES += [
+                {"role": "user", "content": MASTER_USER_REQUEST},
+                {"role": "assistant", "content": "Let's begin!"},
+            ]
 
             # master plan
             with ui.expansion(get_translation("Study Plan"), icon='architecture', value=True) \
@@ -587,26 +602,20 @@ To remove the daily limit, please update your `{preferences}` with one of the fo
                     .props('header-class="font-bold text-lg text-secondary"') as plan_expansion:
                 plan_markdown = ui.markdown().style('font-size: 1.1rem')
             master_plan_prompt = MASTER_PLAN_PROMPT_TEMPLATE.format(available_tools=list(TOOLS.keys()), tool_descriptions=TOOL_DESCRIPTIONS, user_request=user_request)
-            master_plan = await stream_response(MESSAGES, master_plan_prompt, plan_markdown, CANCEL_EVENT, system=get_system_master_plan(), scroll_area=SCROLL_AREA)
-            if not master_plan or master_plan.strip() == "[NO_CONTENT]":
-                reset_ui()
+            MASTER_PLAN = await stream_response(MESSAGES, master_plan_prompt, plan_markdown, CANCEL_EVENT, system=get_system_master_plan(), scroll_area=SCROLL_AREA)
+            if not MASTER_PLAN or MASTER_PLAN.strip() == "[NO_CONTENT]":
+                await reset_ui()
                 return None
             else:
                 # refine response
                 # apply the last fix from stream output
-                plan_markdown.content = master_plan
-                with ui.row().classes('w-full justify-center'):
-                    EDIT_MASTER_PLAN_BUTTON = ui.button(get_translation("Edit"), on_click=edit_master_plan)
+                plan_markdown.content = MASTER_PLAN
                 await asyncio.sleep(0)
                 # close prompt expansion
                 plan_expansion.close()
-            
-            MESSAGES += [
-                {"role": "user", "content": MASTER_USER_REQUEST},
-                {"role": "assistant", "content": "Let's begin!"},
-            ]
+
             # run rounds
-            await run_rounds(master_plan=master_plan)
+            await run_rounds()
 
     with ui.column().classes('w-full h-screen no-wrap gap-0') as chat_container:
 
