@@ -131,6 +131,20 @@ def page_home(
         }}
     """)
 
+    # review dialog editor
+    ui.add_css('''
+        .biblemate-editor .q-field__control {
+            height: 100% !important;
+            display: flex;
+            flex-direction: column;
+        }
+        .biblemate-editor .q-field__native {
+            flex-grow: 1;
+            height: 100% !important;
+            resize: none;
+        }
+    ''')
+
     # colors
     if pc:
         app.storage.user["primary_color"] = pc

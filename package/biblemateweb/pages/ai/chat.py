@@ -296,10 +296,6 @@ What would you like to discuss today? Enter your message below to get started.
                 ui.button(get_translation("Stop"), color='negative', on_click=stop_confirmed)
 
         if q:
-            if not q.strip().endswith("# Query"):
-                q = f'# Selected text\n\n{q}\n\n# Query\n\n'
-            elif q.endswith("# Query"):
-                q += "\n\n"
             REQUEST_INPUT.set_value(q)
         REQUEST_INPUT.run_method('focus')
         ui.run_javascript(f'''

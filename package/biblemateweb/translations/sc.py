@@ -152,6 +152,8 @@ translation_sc = {
     "Language": "语言",
     "Delete": "删除",
     "Cancel": "取消",
+    "Resume": "继续",
+    "Reset": "重置",
     "Confirm": "确认",
     "Partner Mode Review": "伙伴模式审查",
     "Cancelled!": "已取消！",
@@ -163,13 +165,14 @@ translation_sc = {
     "Scroll to the end automatically": "自动滚动到底部",
     "Improve Prompt": "优化指示",
     "Enhance": "优化指示",
+    "Enhanced Prompt": "经优化的指示",
     "Tools": "工具",
     "Tool Selection": "选择工具",
     "Semantic Searches": "语义搜索",
     "Frequently Used Resources": "常用资源",
     "User & Custom Data": "用户与自定数据",
     "Tabs Management": "标签页管理",
-    "Master Plan": "研读计划",
+    "Study Plan": "研读计划",
     "Prompt Engineering": "优化用户要求",
     "Tool Instruction": "工具指示",
     "Agent": "代理",
@@ -212,17 +215,6 @@ translation_sc = {
 * 优化 (Enhance)： 勾选此项以自动完善并厘清你的提问。
 * 代理 (Agent)： 勾选此项以启动进阶逻辑，获取更详尽的回答。
 * 工具 (Tools)： 勾选此项让我调用专属的研经工具组，以确保回覆更加精确。""",
-    "welcome_partner_mode": """**你好！我是 BibleMate AI。你已開啟「夥伴模式 (Partner Mode)」功能。
-
-在此模式下，我們將作為團隊協作。與代理模式一樣，我會處理複雜的多步驟研經任務，但你始終擁有主導權。你可以審查並調整總體計畫、核准工具選擇，並修改我執行每一步驟時的指令。
-
-今天想一起研習什麼呢？請在下方輸入你的需求，開始我們的協作。
-
----
-
-💡 提示： 勾选「优化」框，系统将自动完善并明确你的需求，以获得更理想的结果。
-
----""",
     "welcome_partner_mode": """**你好！我是 BibleMate AI。你已开启「伙伴模式 (Partner Mode)」功能。
 
 在此模式下，我们将作为团队协作。与代理模式一样，我会处理复杂的多步骤研经任务，但你始终拥有主导权。你可以审查并调整总体计画、核准工具选择，并修改我执行每一步骤时的指令。

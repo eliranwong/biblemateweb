@@ -91,6 +91,9 @@ class VerseEventObj:
         *_, b, c, v = args
         self.args = (b, c, v)
 
+def get_watermark():
+    return "\n\n---\n\n[BibleMate AI](https://github.com/eliranwong/biblemate)\n\n[Eliran Wong](https://github.com/eliranwong)\n\n© 2025-2026'"
+
 def get_translation(text: str):
     if app.storage.user["ui_language"] == "tc":
         return translation_tc.get(text, text)
