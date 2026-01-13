@@ -207,17 +207,18 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
             CANCEL_NOTIFICATION.dismiss()
             CANCEL_NOTIFICATION = None
         
-        with MESSAGE_CONTAINER:
-            with ui.row().classes('w-full justify-center') as resume_container:
-                if MESSAGES is not None and len(MESSAGES) >= 2:
-                    ui.button(get_translation("Edit Request"), on_click=edit_request)
-                if MASTER_PLAN is not None:
-                    ui.button(get_translation("Edit Plan"), on_click=edit_master_plan)
-                if MESSAGES is not None and len(MESSAGES) > 3:
-                    ui.button(get_translation("Edit Rounds"), on_click=edit_rounds)
-                    ui.button(get_translation("Trim Rounds"), on_click=trim_rounds)
-                if MESSAGES is not None and len(MESSAGES) >= 2:
-                    ui.button(get_translation("Resume"), on_click=lambda: resume_running(resume_container=resume_container, round_container=round_container))
+        if not clear_input:
+            with MESSAGE_CONTAINER:
+                with ui.row().classes('w-full justify-center') as resume_container:
+                    if MESSAGES is not None and len(MESSAGES) >= 2:
+                        ui.button(get_translation("Edit Request"), on_click=edit_request)
+                    if MASTER_PLAN is not None:
+                        ui.button(get_translation("Edit Plan"), on_click=edit_master_plan)
+                    if MESSAGES is not None and len(MESSAGES) > 3:
+                        ui.button(get_translation("Edit Rounds"), on_click=edit_rounds)
+                        ui.button(get_translation("Trim Rounds"), on_click=trim_rounds)
+                    if MESSAGES is not None and len(MESSAGES) >= 2:
+                        ui.button(get_translation("Resume"), on_click=lambda: resume_running(resume_container=resume_container, round_container=round_container))
 
     async def stop_confirmed():
         nonlocal DELETE_DIALOG, CANCEL_NOTIFICATION, CANCEL_EVENT, SEND_BUTTON
