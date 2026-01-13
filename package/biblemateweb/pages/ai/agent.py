@@ -522,9 +522,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                     .props('header-class="font-bold text-lg text-secondary"') as plan_expansion:
                 MASTER_PLAN_MARKDOWN = ui.markdown().style('font-size: 1.1rem')
             master_plan_prompt = MASTER_PLAN_PROMPT_TEMPLATE.format(available_tools=list(TOOLS.keys()), tool_descriptions=TOOL_DESCRIPTIONS, user_request=MASTER_USER_REQUEST)
-            system_master_plan = get_system_master_plan()+"""\n
--  Avoid specifying particular Bible versions (e.g., KJV, NIV) or copyrighted materials unless explicitly supported by the tool's documentation. When retrieving Bible verses or materials is required, simply prompt the tools to retrieve them and defer version selection to the tool's native configuration. To maintain a seamless experience, do not solicit version preferences from the user."""
-            MASTER_PLAN = await stream_response(MESSAGES, master_plan_prompt, MASTER_PLAN_MARKDOWN, CANCEL_EVENT, system=system_master_plan, scroll_area=SCROLL_AREA)
+            MASTER_PLAN = await stream_response(MESSAGES, master_plan_prompt, MASTER_PLAN_MARKDOWN, CANCEL_EVENT, system=get_system_master_plan(), scroll_area=SCROLL_AREA)
             if not MASTER_PLAN or MASTER_PLAN.strip() == "[NO_CONTENT]":
                 await reset_ui()
                 return None
