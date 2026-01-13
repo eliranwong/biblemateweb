@@ -13,9 +13,10 @@ def chapter2verses(request:str) -> str:
     return re.sub("[Cc][Hh][Aa][Pp][Tt][Ee][Rr] ([0-9]+?)([^0-9])", r"\1:1-180\2", request)
 
 def ai_chat(gui=None, q="", **_):
-
+    
     START = True
 
+    DOWNLOAD_CONTAINER = None
     SEND_BUTTON = None
     REQUEST_INPUT = None
     MESSAGES = None
@@ -37,7 +38,7 @@ def ai_chat(gui=None, q="", **_):
 * Do not ask me if I want to execute the instruction."""
 
     def reset_ui():
-        nonlocal SEND_BUTTON, REQUEST_INPUT, CANCEL_EVENT, CANCEL_NOTIFICATION
+        nonlocal SEND_BUTTON, REQUEST_INPUT, CANCEL_EVENT, CANCEL_NOTIFICATION, MESSAGES, DOWNLOAD_CONTAINER
         if not CANCEL_EVENT.is_set():
             CANCEL_EVENT.set()
         if CANCEL_EVENT is not None:
@@ -51,6 +52,9 @@ def ai_chat(gui=None, q="", **_):
         if CANCEL_NOTIFICATION is not None:
             CANCEL_NOTIFICATION.dismiss()
             CANCEL_NOTIFICATION = None
+        with MESSAGE_CONTAINER:
+            with ui.row().classes('w-full justify-center') as DOWNLOAD_CONTAINER:
+                ui.button(get_translation("Download the whole Conversation"), on_click=lambda: download_all_content(MESSAGES))
 
     async def stop_confirmed():
         nonlocal DELETE_DIALOG, CANCEL_NOTIFICATION, CANCEL_EVENT, SEND_BUTTON
@@ -78,7 +82,10 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
     async def handle_send_click():
 
         """Handles the logic when the Send button is pressed."""
-        nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT, START
+        nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT, START, DOWNLOAD_CONTAINER, DELETE_DIALOG
+
+        if DOWNLOAD_CONTAINER is not None:
+            DOWNLOAD_CONTAINER.clear()
 
         if START:
             START = False
@@ -177,12 +184,16 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                 answers = None
                 try:
                     if selected_tool == "get_direct_text_response":
-                        with ui.expansion(get_translation("Agent"), icon='support_agent', value=True) \
-                                .classes('w-full border rounded-lg shadow-sm') \
-                                .props('header-class="font-bold text-lg text-secondary"') as agent_expansion:
-                            agent_markdown = ui.markdown().style('font-size: 1.1rem')
-                        output_markdown = ui.markdown().style('font-size: 1.1rem')
-                        answers = await stream_response(MESSAGES, user_request, output_markdown, CANCEL_EVENT, system="auto" if app.storage.user["use_agent"] else None, scroll_area=SCROLL_AREA, agent_expansion=agent_expansion, agent_markdown=agent_markdown)
+                        if app.storage.user["use_agent"]:
+                            with ui.expansion(get_translation("Agent"), icon='support_agent', value=True) \
+                                    .classes('w-full border rounded-lg shadow-sm') \
+                                    .props('header-class="font-bold text-lg text-secondary"') as agent_expansion:
+                                agent_markdown = ui.markdown().style('font-size: 1.1rem')
+                            output_markdown = ui.markdown().style('font-size: 1.1rem')
+                            answers = await stream_response(MESSAGES, user_request, output_markdown, CANCEL_EVENT, system="auto", scroll_area=SCROLL_AREA, agent_expansion=agent_expansion, agent_markdown=agent_markdown)
+                        else:
+                            output_markdown = ui.markdown().style('font-size: 1.1rem')
+                            answers = await stream_response(MESSAGES, user_request, output_markdown, CANCEL_EVENT, system=None, scroll_area=SCROLL_AREA)
                         # update
                         if not answers or answers.strip() == "[NO_CONTENT]":
                             reset_ui()

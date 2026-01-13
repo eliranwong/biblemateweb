@@ -19,6 +19,7 @@ def chapter2verses(request:str) -> str:
 
 def ai_agent(gui=None, q="", **_):
 
+    ROUND_CONTAINERS = []
     TOOL_INSTRUCTION_CONTAINERS = []
     OUTPUT_MARKDOWNS = []
     REQUEST_CONTAINER = None
@@ -113,15 +114,23 @@ Available tools are: {available_tools}.
             traceback.print_exc()
 
     async def trim_rounds():
-        nonlocal MESSAGES
-        messages_copy = deepcopy(MESSAGES)[3:]
-        messages_copy = [i for index, i in enumerate(messages_copy) if index % 2 == 0]
-        index = await SelectionDialog(big=True).open_with_options({index: i.get("content")[:50] for index, i in enumerate(messages_copy)}, get_translation("Trim Rounds"))
-        if index is None:
-            return None
-        for i in range(2, len(TOOL_INSTRUCTION_CONTAINERS)):
-            TOOL_INSTRUCTION_CONTAINERS[i].clear()
-        MESSAGES = MESSAGES[:index*2+3]
+        try:
+            nonlocal MESSAGES, ROUND_CONTAINERS, TOOL_INSTRUCTION_CONTAINERS, OUTPUT_MARKDOWNS, ROUND
+            messages_copy = deepcopy(MESSAGES)[3:]
+            messages_copy = [i for index, i in enumerate(messages_copy) if index % 2 == 0]
+            index = await SelectionDialog(big=True).open_with_options({index: i.get("content")[:50] for index, i in enumerate(messages_copy)}, get_translation("Trim Rounds from:"))
+            if index is None:
+                return None
+            for i in range(index, len(ROUND_CONTAINERS)):
+                ROUND_CONTAINERS[i].clear()
+            await asyncio.sleep(0)
+            ROUND_CONTAINERS = ROUND_CONTAINERS[:index]
+            ROUND = index+1
+            TOOL_INSTRUCTION_CONTAINERS = TOOL_INSTRUCTION_CONTAINERS[:index]
+            OUTPUT_MARKDOWNS = OUTPUT_MARKDOWNS[:index]
+            MESSAGES = MESSAGES[:index*2+3]
+        except:
+            traceback.print_exc()
 
     def download_all_content(messages, master_plan):
         messages_copy = deepcopy(messages)
@@ -273,7 +282,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
             return "created"
 
     async def run_rounds(resume_container=None, round_container=None):
-        nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT, PROGRESS_STATUS, MASTER_USER_REQUEST, DELETE_DIALOG, FINAL_INSTRUCTION, ROUND, TOOL_INSTRUCTION_CONTAINERS, OUTPUT_MARKDOWNS, MASTER_PLAN
+        nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT, PROGRESS_STATUS, MASTER_USER_REQUEST, DELETE_DIALOG, FINAL_INSTRUCTION, ROUND, TOOL_INSTRUCTION_CONTAINERS, OUTPUT_MARKDOWNS, MASTER_PLAN, ROUND_CONTAINERS, SYSTEM_TOOL_SELECTION, TOOL_INSTRUCTION_PROMPT, TOOL_INSTRUCTION_SUFFIX
 
         if resume_container is not None:
             resume_container.clear()
@@ -288,11 +297,13 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
         SEND_BUTTON.props('color=negative')
 
         try:
+            ROUND_CONTAINERS = []
             TOOL_INSTRUCTION_CONTAINERS = []
             OUTPUT_MARKDOWNS = []
             with MESSAGE_CONTAINER:
                 while PROGRESS_STATUS is None or not ("STOP" in PROGRESS_STATUS or re.sub("^[^A-Za-z]*?([A-Za-z]+?)[^A-Za-z]*?$", r"\1", PROGRESS_STATUS).upper() == "STOP"):
                     with ui.column() as round_container:
+                        ROUND_CONTAINERS.append(round_container)
                         # display round
                         ui.markdown(f"### {get_translation('Round')} {ROUND}").style('font-size: 1.1rem')
                         # suggestion
@@ -503,14 +514,16 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
             await reset_ui()
 
     async def generate_master_plan():
-        nonlocal SCROLL_AREA, MESSAGE_CONTAINER, MESSAGES, CANCEL_EVENT, MASTER_USER_REQUEST, MASTER_PLAN, MASTER_PLAN_MARKDOWN
+        nonlocal SCROLL_AREA, MESSAGE_CONTAINER, MESSAGES, CANCEL_EVENT, MASTER_USER_REQUEST, MASTER_PLAN, MASTER_PLAN_MARKDOWN, MASTER_PLAN_PROMPT_TEMPLATE
         with MESSAGE_CONTAINER:
             with ui.expansion(get_translation("Study Plan"), icon='architecture', value=True) \
                     .classes('w-full border rounded-lg shadow-sm') \
                     .props('header-class="font-bold text-lg text-secondary"') as plan_expansion:
                 MASTER_PLAN_MARKDOWN = ui.markdown().style('font-size: 1.1rem')
             master_plan_prompt = MASTER_PLAN_PROMPT_TEMPLATE.format(available_tools=list(TOOLS.keys()), tool_descriptions=TOOL_DESCRIPTIONS, user_request=MASTER_USER_REQUEST)
-            MASTER_PLAN = await stream_response(MESSAGES, master_plan_prompt, MASTER_PLAN_MARKDOWN, CANCEL_EVENT, system=get_system_master_plan(), scroll_area=SCROLL_AREA)
+            system_master_plan = get_system_master_plan()+"""\n
+-  Avoid specifying particular Bible versions (e.g., KJV, NIV) or copyrighted materials unless explicitly supported by the tool's documentation. When retrieving Bible verses or materials is required, simply prompt the tools to retrieve them and defer version selection to the tool's native configuration. To maintain a seamless experience, do not solicit version preferences from the user."""
+            MASTER_PLAN = await stream_response(MESSAGES, master_plan_prompt, MASTER_PLAN_MARKDOWN, CANCEL_EVENT, system=system_master_plan, scroll_area=SCROLL_AREA)
             if not MASTER_PLAN or MASTER_PLAN.strip() == "[NO_CONTENT]":
                 await reset_ui()
                 return None

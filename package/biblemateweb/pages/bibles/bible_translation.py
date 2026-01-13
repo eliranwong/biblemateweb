@@ -182,73 +182,75 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
     content = content.replace("<hr>", "<br>")
 
     # Bible Selection menu
-    def additional_items():
-        nonlocal gui, bible_selector, area
-        def previous_chapter(selection):
-            selected_text, selected_b, selected_c, _ = selection
-            bookList = getBibleBookList(db)
-            chapterList = getBibleChapterList(db, selected_b)
-            if len(chapterList) == 1 or selected_c == chapterList[0]:
-                if selected_b == bookList[0]:
-                    new_b = bookList[-1]
-                    new_c = getBibleChapterList(db, new_b)[-1]
-                else:
-                    new_b = selected_b - 1
-                    for i in bookList:
-                        previous_book = None
-                        if i == selected_b and previous_book is not None:
-                            new_b = previous_book
-                            break
-                        else:
-                            previous_book = i
-                    new_c = getBibleChapterList(db, new_b)[-1]
+    def previous_chapter(selection):
+        selected_text, selected_b, selected_c, _ = selection
+        bookList = getBibleBookList(db)
+        chapterList = getBibleChapterList(db, selected_b)
+        if len(chapterList) == 1 or selected_c == chapterList[0]:
+            if selected_b == bookList[0]:
+                new_b = bookList[-1]
+                new_c = getBibleChapterList(db, new_b)[-1]
             else:
-                new_b = selected_b
-                new_c = selected_c - 1
-                for i in chapterList:
-                    previous_chapter = None
-                    if i == selected_c and previous_chapter is not None:
-                        new_c = previous_chapter
+                new_b = selected_b - 1
+                for i in bookList:
+                    previous_book = None
+                    if i == selected_b and previous_book is not None:
+                        new_b = previous_book
                         break
                     else:
-                        previous_chapter = i
-            if area == 1:
-                gui.change_area_1_bible_chapter(selected_text, new_b, new_c, 1)
-            else:
-                gui.change_area_2_bible_chapter(selected_text, new_b, new_c, 1)
-
-        def next_chapter(selection):
-            selected_text, selected_b, selected_c, _ = selection
-            bookList = getBibleBookList(db)
-            chapterList = getBibleChapterList(db, selected_b)
-            if len(chapterList) == 1 or selected_c == chapterList[-1]:
-                if selected_b == bookList[-1]:
-                    new_b = bookList[0]
-                    new_c = getBibleChapterList(db, new_b)[0]
+                        previous_book = i
+                new_c = getBibleChapterList(db, new_b)[-1]
+        else:
+            new_b = selected_b
+            new_c = selected_c - 1
+            for i in chapterList:
+                previous_chapter = None
+                if i == selected_c and previous_chapter is not None:
+                    new_c = previous_chapter
+                    break
                 else:
-                    new_b = selected_b + 1
-                    for i in bookList:
-                        previous_book = None
-                        if previous_book is not None:
-                            new_b = i
-                            break
-                        elif i == selected_b:
-                            previous_book = i
-                    new_c = getBibleChapterList(db, new_b)[0]
+                    previous_chapter = i
+        if area == 1:
+            gui.change_area_1_bible_chapter(selected_text, new_b, new_c, 1)
+        else:
+            gui.change_area_2_bible_chapter(selected_text, new_b, new_c, 1)
+
+    def next_chapter(selection):
+        selected_text, selected_b, selected_c, _ = selection
+        bookList = getBibleBookList(db)
+        chapterList = getBibleChapterList(db, selected_b)
+        if len(chapterList) == 1 or selected_c == chapterList[-1]:
+            if selected_b == bookList[-1]:
+                new_b = bookList[0]
+                new_c = getBibleChapterList(db, new_b)[0]
             else:
-                new_b = selected_b
-                new_c = selected_c + 1
-                for i in chapterList:
-                    previous_chapter = None
-                    if previous_chapter is not None:
-                        new_c = i
+                new_b = selected_b + 1
+                for i in bookList:
+                    previous_book = None
+                    if previous_book is not None:
+                        new_b = i
                         break
-                    elif i == selected_c:
-                        previous_chapter = i
-            if area == 1:
-                gui.change_area_1_bible_chapter(selected_text, new_b, new_c, 1)
-            else:
-                gui.change_area_2_bible_chapter(selected_text, new_b, new_c, 1)
+                    elif i == selected_b:
+                        previous_book = i
+                new_c = getBibleChapterList(db, new_b)[0]
+        else:
+            new_b = selected_b
+            new_c = selected_c + 1
+            for i in chapterList:
+                previous_chapter = None
+                if previous_chapter is not None:
+                    new_c = i
+                    break
+                elif i == selected_c:
+                    previous_chapter = i
+        if area == 1:
+            gui.change_area_1_bible_chapter(selected_text, new_b, new_c, 1)
+        else:
+            gui.change_area_2_bible_chapter(selected_text, new_b, new_c, 1)
+
+    def additional_items():
+        nonlocal gui, bible_selector, area
+
         def open_tool(selection, title=""):
             app.storage.user['tool_book_text'], app.storage.user['tool_book_number'], app.storage.user['tool_chapter_number'], app.storage.user['tool_verse_number'] = selection
             gui.select_empty_area2_tab()
@@ -288,8 +290,13 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
         dummy_label2 = ui.label().style(dummy_style)
     # Render the HTML inside a styled container
     chapter_label = (tab1+"_chapter") if area == 1 else (tab2+"_chapter")
-    ui.html(f'<div id="{chapter_label}" class="bible-text">{content}</div>', sanitize=False).classes(f'w-full pb-[70vh] {chapter_label}')
+    ui.html(f'<div id="{chapter_label}" class="bible-text">{content}</div>', sanitize=False).classes(f'w-full {chapter_label}')
     # Do not attach a context menu directly to ui.html, which make text unable to be selected on mobile device.
+
+    # chapter buttons
+    with ui.row().classes('w-full justify-center pb-[70vh]') as resume_container:
+        ui.button(f'◀️ {get_translation("Prev Chapter")}', on_click=lambda: previous_chapter(bible_selector.get_selection()))
+        ui.button(f'{get_translation("Next Chapter")} ▶️', on_click=lambda: next_chapter(bible_selector.get_selection()))
 
     # After the page is built and ready, run our JavaScript
     if (not area == 1) and tab1 and tab2:
