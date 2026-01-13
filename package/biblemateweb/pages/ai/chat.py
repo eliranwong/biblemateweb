@@ -1,7 +1,7 @@
 from nicegui import ui, app, run
 import asyncio, datetime, re, os
 from biblemateweb.pages.ai.stream import stream_response
-from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation, markdown2html, DEFAULT_MESSAGES
+from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation, markdown2html, get_watermark, DEFAULT_MESSAGES
 from biblemateweb.mcp_tools.elements import TOOL_ELEMENTS
 from biblemateweb.mcp_tools.tools import TOOLS
 from biblemateweb.api.api import get_api_content
@@ -60,6 +60,20 @@ def ai_chat(gui=None, q="", **_):
         if CANCEL_EVENT is not None and not CANCEL_EVENT.is_set():
             CANCEL_EVENT.set()
         await asyncio.sleep(0)
+
+    def download_all_content(messages):
+        messages_copy = deepcopy(messages)
+        content = """---
+
+I'm BibleMate AI, an autonomous agent designed to assist you with your Bible study.
+
+---
+
+"""
+        content += "\n\n---\n\n".join([("[REQUEST] "+i.get("content", "")) if index%2 == 0 else ("[RESPONSE] "+i.get("content", "")) for index, i in enumerate(messages_copy[1:])])
+        content += get_watermark()
+        ui.download(content.encode('utf-8'), 'BibleMate_AI_Conversation.txt')
+        ui.notify(get_translation("Downloaded!"), type='positive')
 
     async def handle_send_click():
 

@@ -96,6 +96,7 @@ translation_sc = {
     "Edit Tools": "编辑工具",
     "Edit Conversation": "编辑对话",
     "Edit Rounds": "编辑回合",
+    "Trim Rounds": "修剪回合",
     "Clear": "清除",
     "Download Index": "下载索引",
     "Rebuild Index": "重建索引",

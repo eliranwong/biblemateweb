@@ -95,6 +95,7 @@ translation_tc = {
     "Edit Tools": "編輯工具",
     "Edit Conversation": "編輯對話",
     "Edit Rounds": "編輯回合",
+    "Trim Rounds": "修剪回合",
     "Clear": "清除",
     "Download Index": "下載索引",
     "Rebuild Index": "重建索引",

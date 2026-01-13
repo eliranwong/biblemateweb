@@ -90,11 +90,11 @@ Available tools are: {available_tools}.
             MASTER_PLAN = edited_item
             MASTER_PLAN_MARKDOWN.content = MASTER_PLAN
 
-    async def edit_messages():
+    async def edit_rounds():
         nonlocal MESSAGES, TOOL_INSTRUCTION_CONTAINERS, OUTPUT_MARKDOWNS
         try:
             messages_copy = deepcopy(MESSAGES)[3:]
-            index = await SelectionDialog(big=True).open_with_options({index: i.get("content")[:50] for index, i in enumerate(messages_copy)}, "Edit Conversation")
+            index = await SelectionDialog(big=True).open_with_options({index: i.get("content")[:50] for index, i in enumerate(messages_copy)}, get_translation("Edit Rounds"))
             if index is None:
                 return None
             item = MESSAGES[index+3]["content"]
@@ -114,6 +114,17 @@ Available tools are: {available_tools}.
                         )
         except:
             traceback.print_exc()
+
+    async def trim_rounds():
+        nonlocal MESSAGES
+        messages_copy = deepcopy(MESSAGES)[3:]
+        messages_copy = [i for index, i in enumerate(messages_copy) if index % 2 == 0]
+        index = await SelectionDialog(big=True).open_with_options({index: i.get("content")[:50] for index, i in enumerate(messages_copy)}, get_translation("Trim Rounds"))
+        if index is None:
+            return None
+        for i in range(2, len(TOOL_INSTRUCTION_CONTAINERS)):
+            TOOL_INSTRUCTION_CONTAINERS[i].clear()
+        MESSAGES = MESSAGES[:index*2+3]
 
     def download_all_content(messages, master_plan):
         messages_copy = deepcopy(messages)
@@ -173,7 +184,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
             nonlocal MASTER_PLAN
             if MASTER_PLAN is None:
                 await generate_master_plan()
-            run_rounds(resume_container=resume_container, round_container=round_container)
+            await run_rounds(resume_container=resume_container, round_container=round_container)
 
         if not CANCEL_EVENT.is_set():
             CANCEL_EVENT.set()
@@ -196,7 +207,8 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                 if MASTER_PLAN is not None:
                     ui.button(get_translation("Edit Plan"), on_click=edit_master_plan)
                 if MESSAGES is not None and len(MESSAGES) > 3:
-                    ui.button(get_translation("Edit Rounds"), on_click=edit_messages)
+                    ui.button(get_translation("Edit Rounds"), on_click=edit_rounds)
+                    ui.button(get_translation("Trim Rounds"), on_click=trim_rounds)
                 if MESSAGES is not None and len(MESSAGES) >= 2:
                     ui.button(get_translation("Resume"), on_click=lambda: resume_running(resume_container=resume_container, round_container=round_container))
 
@@ -662,8 +674,9 @@ To remove the daily limit, please update your `{preferences}` with one of the fo
         await generate_master_plan()
 
         # run rounds
-        with MESSAGE_CONTAINER:
-            await run_rounds()
+        if MASTER_PLAN is not None:
+            with MESSAGE_CONTAINER:
+                await run_rounds()
 
     with ui.column().classes('w-full h-screen no-wrap gap-0') as chat_container:
 
