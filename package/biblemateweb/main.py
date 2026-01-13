@@ -560,7 +560,7 @@ def page_Settings(
         with ui.expansion('AI Backend', icon='memory').classes('w-full rounded-lg'):
             with ui.column().classes('w-full p-4 gap-4'):
                 ui.select(label='AI Backend',
-                          options=['googleai', 'openai', 'azure_openai', 'xai', 'custom']) \
+                          options=['googleai', 'openai', 'azure_openai', 'azure_deepseek', 'deepseek', 'custom']) \
                     .bind_value(app.storage.user, 'ai_backend') \
                     .tooltip('Select the AI service provider.')
 
