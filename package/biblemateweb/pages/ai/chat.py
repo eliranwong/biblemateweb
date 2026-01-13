@@ -91,7 +91,7 @@ def ai_chat(gui=None, q="", **_):
                 ui.chat_message(user_request,
                     #name='Eliran Wong',
                     stamp=datetime.datetime.now().strftime("%H:%M"),
-                    avatar='https://avatars.githubusercontent.com/u/25262722?s=96&v=4',
+                    avatar=app.storage.user['avatar'] if app.storage.user['avatar'].strip() else 'https://avatars.githubusercontent.com/u/25262722?s=96&v=4',
                 )
 
                 # when prompt-engineering is enabled

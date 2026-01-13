@@ -24,7 +24,10 @@ def ai_partner(gui=None, q="", **_):
 
     TOOL_INSTRUCTION_CONTAINERS = []
     OUTPUT_MARKDOWNS = []
+    REQUEST_CONTAINER = None
+    MASTER_PLAN_MARKDOWN = None
     MASTER_USER_REQUEST = None
+    MASTER_PLAN = None
     PROGRESS_STATUS = None
     ROUND =  1
     MESSAGES = None
@@ -65,6 +68,28 @@ Available tools are: {available_tools}.
 
 {user_request}"""
 
+    async def edit_request():
+        nonlocal MESSAGES, REQUEST_CONTAINER, MASTER_USER_REQUEST
+        user_request = MESSAGES[1]["content"]
+        if edited_item := await ReviewDialog().open_with_text(user_request, label=get_translation("Edit Request")):
+            MASTER_USER_REQUEST = MESSAGES[1]["content"] = edited_item
+            REQUEST_CONTAINER.clear()
+            with REQUEST_CONTAINER:
+                user_request = re.sub(r"^[#]+ (.*?)\n", r"**\1**\n", MASTER_USER_REQUEST, flags=re.MULTILINE)
+                ui.chat_message(markdown2html(user_request),
+                    name='You',
+                    stamp=datetime.datetime.now().strftime("%H:%M"),
+                    avatar=app.storage.user['avatar'] if app.storage.user['avatar'].strip() else 'https://avatars.githubusercontent.com/u/25262722?s=96&v=4',
+                    text_html=True,
+                    sanitize=False,
+                )
+
+    async def edit_master_plan():
+        nonlocal MASTER_PLAN, MASTER_PLAN_MARKDOWN
+        if edited_item := await ReviewDialog().open_with_text(MASTER_PLAN, label=get_translation("Edit Plan")):
+            MASTER_PLAN = edited_item
+            MASTER_PLAN_MARKDOWN.content = MASTER_PLAN
+
     async def edit_messages():
         nonlocal MESSAGES, TOOL_INSTRUCTION_CONTAINERS, OUTPUT_MARKDOWNS
         try:
@@ -73,8 +98,7 @@ Available tools are: {available_tools}.
             if index is None:
                 return None
             item = MESSAGES[index+3]["content"]
-            edited_item = await ReviewDialog().open_with_text(item)
-            if edited_item:
+            if edited_item := await ReviewDialog().open_with_text(item, label=get_translation("Edit Rounds")):
                 MESSAGES[index+3]["content"] = edited_item
                 if ".5" in str(index/2):
                     OUTPUT_MARKDOWNS[int((index/2)-0.5)].content = edited_item
@@ -134,15 +158,23 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
             traceback.print_exc()
 
     def reset_page():
-        nonlocal MASTER_USER_REQUEST, MESSAGES, PROGRESS_STATUS, MESSAGE_CONTAINER, ROUND
+        nonlocal MASTER_USER_REQUEST, MASTER_PLAN, MESSAGES, PROGRESS_STATUS, MESSAGE_CONTAINER, ROUND
         MASTER_USER_REQUEST = None
+        MASTER_PLAN = None
         PROGRESS_STATUS = None
         MESSAGES = None
         ROUND =  1
         MESSAGE_CONTAINER.clear()
 
-    def reset_ui(master_plan=None, clear_input=False, round_container=None):
+    async def reset_ui(clear_input=False, round_container=None):
         nonlocal SEND_BUTTON, REQUEST_INPUT, CANCEL_EVENT, CANCEL_NOTIFICATION, MESSAGE_CONTAINER, MESSAGES
+
+        async def resume_running(resume_container=None, round_container=None):
+            nonlocal MASTER_PLAN
+            if MASTER_PLAN is None:
+                await generate_master_plan()
+            run_rounds(resume_container=resume_container, round_container=round_container)
+
         if not CANCEL_EVENT.is_set():
             CANCEL_EVENT.set()
         if CANCEL_EVENT is not None:
@@ -157,12 +189,16 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
         if CANCEL_NOTIFICATION is not None:
             CANCEL_NOTIFICATION.dismiss()
             CANCEL_NOTIFICATION = None
-        if master_plan is not None:
-            with MESSAGE_CONTAINER:
-                with ui.row().classes('w-full justify-center') as resume_container:
-                    if MESSAGES is not None and len(MESSAGES) > 3:
-                        ui.button(get_translation("Edit"), on_click=edit_messages)
-                    ui.button(get_translation("Resume"), on_click=lambda: run_rounds(master_plan=master_plan, resume_container=resume_container, round_container=round_container))
+        with MESSAGE_CONTAINER:
+            with ui.row().classes('w-full justify-center') as resume_container:
+                if MESSAGES is not None and len(MESSAGES) >= 2:
+                    ui.button(get_translation("Edit Request"), on_click=edit_request)
+                if MASTER_PLAN is not None:
+                    ui.button(get_translation("Edit Plan"), on_click=edit_master_plan)
+                if MESSAGES is not None and len(MESSAGES) > 3:
+                    ui.button(get_translation("Edit Rounds"), on_click=edit_messages)
+                if MESSAGES is not None and len(MESSAGES) >= 2:
+                    ui.button(get_translation("Resume"), on_click=lambda: resume_running(resume_container=resume_container, round_container=round_container))
 
     async def stop_confirmed():
         nonlocal DELETE_DIALOG, CANCEL_NOTIFICATION, CANCEL_EVENT, SEND_BUTTON
@@ -226,8 +262,8 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
             service.files().create(body=meta, media_body=media).execute()
             return "created"
 
-    async def run_rounds(master_plan, resume_container=None, round_container=None):
-        nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT, PROGRESS_STATUS, MASTER_USER_REQUEST, DELETE_DIALOG, FINAL_INSTRUCTION, REVIEW_DIALOG, SELECTION_DIALOG, ROUND, TOOL_INSTRUCTION_CONTAINERS, OUTPUT_MARKDOWNS
+    async def run_rounds(resume_container=None, round_container=None):
+        nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT, PROGRESS_STATUS, MASTER_USER_REQUEST, DELETE_DIALOG, FINAL_INSTRUCTION, REVIEW_DIALOG, SELECTION_DIALOG, ROUND, TOOL_INSTRUCTION_CONTAINERS, OUTPUT_MARKDOWNS, MASTER_PLAN
 
         if resume_container is not None:
             resume_container.clear()
@@ -250,7 +286,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                         # display round
                         ui.markdown(f"### {get_translation('Round')} {ROUND}").style('font-size: 1.1rem')
                         # suggestion
-                        system_make_suggestion = get_system_make_suggestion(master_plan=master_plan)
+                        system_make_suggestion = get_system_make_suggestion(master_plan=MASTER_PLAN)
                         follow_up_prompt = "Please provide me with the next step suggestion, based on the action plan."
                         with ui.expansion(get_translation("Suggestion"), icon='lightbulb', value=True) \
                                 .classes('w-full border rounded-lg shadow-sm') \
@@ -258,7 +294,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                             suggestion_markdown = ui.markdown().style('font-size: 1.1rem')
                         suggestion = await stream_response(MESSAGES, follow_up_prompt, suggestion_markdown, CANCEL_EVENT, system=system_make_suggestion, scroll_area=SCROLL_AREA)
                         if not suggestion or suggestion.strip() == "[NO_CONTENT]":
-                            reset_ui(master_plan, round_container=round_container)
+                            await reset_ui(round_container=round_container)
                             return None
                         else:
                             # refine response
@@ -291,7 +327,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                         selected_tool = await SELECTION_DIALOG.open_with_options(suggested_tools)
                         if selected_tool is None:
                             tools_markdown.content = f"[{get_translation("Cancelled!")}]"
-                            reset_ui(master_plan, round_container=round_container)
+                            await reset_ui(round_container=round_container)
                             return None
 
                         if not selected_tool in TOOLS:
@@ -314,7 +350,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                             if user_request is None:
                                 tool_instruction_markdown.content = f"[{get_translation("Cancelled!")}]"
                         if not user_request or user_request.strip() == "[NO_CONTENT]":
-                            reset_ui(master_plan, round_container=round_container)
+                            await reset_ui(round_container=round_container)
                             return None
                         else:
                             tool_instruction_container.clear()
@@ -342,7 +378,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                                 answers = await stream_response(MESSAGES, user_request, output_markdown, CANCEL_EVENT, system="auto", scroll_area=SCROLL_AREA, agent_expansion=agent_expansion, agent_markdown=agent_markdown)
                                 # update
                                 if not answers or answers.strip() == "[NO_CONTENT]":
-                                    reset_ui(master_plan, round_container=round_container)
+                                    await reset_ui(round_container=round_container)
                                     return None
                                 else:
                                     # apply the last fix from stream output
@@ -376,7 +412,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                                     answers = await stream_response(MESSAGES, user_request, output_markdown, CANCEL_EVENT, system=system, scroll_area=SCROLL_AREA, agent_expansion=agent_expansion, agent_markdown=agent_markdown, **element)
                                     # update
                                     if not answers or answers.strip() == "[NO_CONTENT]":
-                                        reset_ui(master_plan, round_container=round_container)
+                                        await reset_ui(round_container=round_container)
                                         return None
                                     else:
                                         # apply the last fix from stream output
@@ -400,7 +436,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                                 ]
 
                         # check progress
-                        system_progress = get_system_progress(master_plan=master_plan)
+                        system_progress = get_system_progress(master_plan=MASTER_PLAN)
                         follow_up_prompt="Please decide either to `CONTINUE` or `STOP` the process."
                         with ui.expansion(get_translation("Progress"), icon='trending_up', value=True) \
                                 .classes('w-full border rounded-lg shadow-sm') \
@@ -409,7 +445,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                         PROGRESS_STATUS = await stream_response(MESSAGES, follow_up_prompt, progress_markdown, CANCEL_EVENT, system=system_progress, scroll_area=SCROLL_AREA)
                         if not PROGRESS_STATUS or PROGRESS_STATUS.strip() == "[NO_CONTENT]":
                             MESSAGES = MESSAGES[:-2]
-                            reset_ui(master_plan, round_container=round_container)
+                            await reset_ui(round_container=round_container)
                             return None
                         else:
                             # refine response
@@ -438,7 +474,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                         report_markdown = ui.markdown().style('font-size: 1.1rem')
                     report = await stream_response(MESSAGES, follow_up_prompt, report_markdown, CANCEL_EVENT, system=system_report, scroll_area=SCROLL_AREA)
                     if not report or report.strip() == "[NO_CONTENT]":
-                        reset_ui(master_plan, round_container=round_container)
+                        await reset_ui(round_container=round_container)
                         return None
                     else:
                         # refine response
@@ -456,20 +492,44 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
 
                         # offer downloads
                         with ui.column().classes('w-full items-center'):
-                            ui.button(get_translation("Download the whole Conversation"), on_click=lambda: download_all_content(MESSAGES, master_plan))
+                            ui.button(get_translation("Download the whole Conversation"), on_click=lambda: download_all_content(MESSAGES, MASTER_PLAN))
                             ui.button(get_translation("Download the Final Report Only"), on_click=lambda: download_report(report))
 
                 #reset
-                reset_ui(clear_input=True)
+                await reset_ui(clear_input=True)
         except Exception as e:
             ui.notify(f"Error: {e}", type='negative')
             #traceback.print_exc()
-            reset_ui(master_plan)
+            await reset_ui()
+
+    async def generate_master_plan():
+        nonlocal SCROLL_AREA, MESSAGE_CONTAINER, MESSAGES, CANCEL_EVENT, MASTER_USER_REQUEST, REVIEW_DIALOG, MASTER_PLAN, MASTER_PLAN_MARKDOWN
+        with MESSAGE_CONTAINER:
+            with ui.expansion(get_translation("Study Plan"), icon='architecture', value=True) \
+                    .classes('w-full border rounded-lg shadow-sm') \
+                    .props('header-class="font-bold text-lg text-secondary"') as plan_expansion:
+                MASTER_PLAN_MARKDOWN = ui.markdown().style('font-size: 1.1rem')
+            master_plan_prompt = MASTER_PLAN_PROMPT_TEMPLATE.format(available_tools=list(TOOLS.keys()), tool_descriptions=TOOL_DESCRIPTIONS, user_request=MASTER_USER_REQUEST)
+            MASTER_PLAN = await stream_response(MESSAGES, master_plan_prompt, MASTER_PLAN_MARKDOWN, CANCEL_EVENT, system=get_system_master_plan(), scroll_area=SCROLL_AREA)
+            if MASTER_PLAN is not None:
+                MASTER_PLAN = await REVIEW_DIALOG.open_with_text(MASTER_PLAN)
+                if MASTER_PLAN is None:
+                    MASTER_PLAN_MARKDOWN.content = f"[{get_translation("Cancelled!")}]"
+            if not MASTER_PLAN or MASTER_PLAN.strip() == "[NO_CONTENT]":
+                await reset_ui()
+                return None
+            else:
+                # refine response
+                # apply the last fix from stream output
+                MASTER_PLAN_MARKDOWN.content = MASTER_PLAN
+                await asyncio.sleep(0)
+                # close prompt expansion
+                plan_expansion.close()
 
     async def handle_send_click():
         """Handles the logic when the Send button is pressed."""
 
-        nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT, PROGRESS_STATUS, MASTER_USER_REQUEST, DELETE_DIALOG, FINAL_INSTRUCTION, REVIEW_DIALOG, SELECTION_DIALOG
+        nonlocal REQUEST_INPUT, SCROLL_AREA, MESSAGE_CONTAINER, SEND_BUTTON, MESSAGES, CANCEL_EVENT, PROGRESS_STATUS, MASTER_USER_REQUEST, DELETE_DIALOG, FINAL_INSTRUCTION, REVIEW_DIALOG, SELECTION_DIALOG, MASTER_PLAN, MASTER_PLAN_MARKDOWN
 
         if not REQUEST_INPUT.value.strip():
             return None
@@ -556,68 +616,54 @@ To remove the daily limit, please update your `{preferences}` with one of the fo
 
         MESSAGE_CONTAINER.clear()
         with MESSAGE_CONTAINER:
-            user_request = re.sub(r"^[#]+ (.*?)\n", r"**\1**\n", user_request, flags=re.MULTILINE)
-            ui.chat_message(markdown2html(user_request),
-                name='You',
-                stamp=datetime.datetime.now().strftime("%H:%M"),
-                avatar='https://avatars.githubusercontent.com/u/25262722?s=96&v=4',
-                text_html=True,
-                sanitize=False,
-            )
+            REQUEST_CONTAINER = ui.column()
+            with REQUEST_CONTAINER:
+                user_request = re.sub(r"^[#]+ (.*?)\n", r"**\1**\n", user_request, flags=re.MULTILINE)
+                ui.chat_message(markdown2html(user_request),
+                    name='You',
+                    stamp=datetime.datetime.now().strftime("%H:%M"),
+                    avatar=app.storage.user['avatar'] if app.storage.user['avatar'].strip() else 'https://avatars.githubusercontent.com/u/25262722?s=96&v=4',
+                    text_html=True,
+                    sanitize=False,
+                )
 
-            # when prompt-engineering is enabled
-            if app.storage.user["prompt_engineering"]:
-                with ui.expansion(get_translation("Prompt Engineering"), icon='tune', value=True) \
-                        .classes('w-full border rounded-lg shadow-sm') \
-                        .props('header-class="font-bold text-lg text-secondary"') as prompt_expansion:
-                    prompt_markdown = ui.markdown().style('font-size: 1.1rem')
-                user_request = await stream_response(MESSAGES, user_request, prompt_markdown, CANCEL_EVENT, system="improve_prompt_2", scroll_area=SCROLL_AREA)
-                if user_request is not None:
-                    user_request = await REVIEW_DIALOG.open_with_text(user_request)
-                    if user_request is None:
-                        prompt_markdown.content = f"[{get_translation("Cancelled!")}]"
-                if not user_request or user_request.strip() == "[NO_CONTENT]":
-                    reset_ui()
-                    return None
-                else:
-                    MASTER_USER_REQUEST = user_request
-                    # refine response
-                    if "```" in user_request:
-                        MASTER_USER_REQUEST = user_request = re.sub(r"^.*?(```improved_prompt|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
-                    # apply the last fix from stream output
-                    prompt_markdown.content = user_request
-                    await asyncio.sleep(0)
-                    # close prompt expansion
-                    prompt_expansion.close()
+                # when prompt-engineering is enabled
+                if app.storage.user["prompt_engineering"]:
+                    with ui.expansion(get_translation("Prompt Engineering"), icon='tune', value=True) \
+                            .classes('w-full border rounded-lg shadow-sm') \
+                            .props('header-class="font-bold text-lg text-secondary"') as prompt_expansion:
+                        prompt_markdown = ui.markdown().style('font-size: 1.1rem')
+                    user_request = await stream_response(MESSAGES, user_request, prompt_markdown, CANCEL_EVENT, system="improve_prompt_2", scroll_area=SCROLL_AREA)
+                    if user_request is not None:
+                        user_request = await REVIEW_DIALOG.open_with_text(user_request)
+                        if user_request is None:
+                            prompt_markdown.content = f"[{get_translation("Cancelled!")}]"
+                    if not user_request or user_request.strip() == "[NO_CONTENT]":
+                        await reset_ui()
+                        return None
+                    else:
+                        MASTER_USER_REQUEST = user_request
+                        # refine response
+                        if "```" in user_request:
+                            MASTER_USER_REQUEST = user_request = re.sub(r"^.*?(```improved_prompt|```)(.+?)```.*?$", r"\2", user_request, flags=re.DOTALL).strip()
+                        # apply the last fix from stream output
+                        prompt_markdown.content = user_request
+                        await asyncio.sleep(0)
+                        # close prompt expansion
+                        prompt_expansion.close()
 
-            # master plan
-            with ui.expansion(get_translation("Study Plan"), icon='architecture', value=True) \
-                    .classes('w-full border rounded-lg shadow-sm') \
-                    .props('header-class="font-bold text-lg text-secondary"') as plan_expansion:
-                plan_markdown = ui.markdown().style('font-size: 1.1rem')
-            master_plan_prompt = MASTER_PLAN_PROMPT_TEMPLATE.format(available_tools=list(TOOLS.keys()), tool_descriptions=TOOL_DESCRIPTIONS, user_request=user_request)
-            master_plan = await stream_response(MESSAGES, master_plan_prompt, plan_markdown, CANCEL_EVENT, system=get_system_master_plan(), scroll_area=SCROLL_AREA)
-            if master_plan is not None:
-                master_plan = await REVIEW_DIALOG.open_with_text(master_plan)
-                if master_plan is None:
-                    plan_markdown.content = f"[{get_translation("Cancelled!")}]"
-            if not master_plan or master_plan.strip() == "[NO_CONTENT]":
-                reset_ui()
-                return None
-            else:
-                # refine response
-                # apply the last fix from stream output
-                plan_markdown.content = master_plan
-                await asyncio.sleep(0)
-                # close prompt expansion
-                plan_expansion.close()
-            
+            # update
             MESSAGES += [
                 {"role": "user", "content": MASTER_USER_REQUEST},
                 {"role": "assistant", "content": "Let's begin!"},
             ]
-            # run rounds
-            await run_rounds(master_plan=master_plan)
+
+        # master plan
+        await generate_master_plan()
+
+        # run rounds
+        with MESSAGE_CONTAINER:
+            await run_rounds()
 
     with ui.column().classes('w-full h-screen no-wrap gap-0') as chat_container:
 
