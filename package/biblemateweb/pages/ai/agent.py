@@ -303,7 +303,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
             OUTPUT_MARKDOWNS = []
             with MESSAGE_CONTAINER:
                 while PROGRESS_STATUS is None or not ("STOP" in PROGRESS_STATUS or re.sub("^[^A-Za-z]*?([A-Za-z]+?)[^A-Za-z]*?$", r"\1", PROGRESS_STATUS).upper() == "STOP"):
-                    with ui.column() as round_container:
+                    with ui.column().classes('w-full') as round_container:
                         ROUND_CONTAINERS.append(round_container)
                         # display round
                         ui.markdown(f"### {get_translation('Round')} {ROUND}").style('font-size: 1.1rem')
@@ -354,7 +354,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                         selected_tool_description = TOOLS.get(selected_tool, "No description available.")
                         tool_instruction_draft = TOOL_INSTRUCTION_PROMPT + "\n\n# Suggestions\n\n"+suggestion+f"\n\n# Tool Description of `{selected_tool}`\n\n"+selected_tool_description+TOOL_INSTRUCTION_SUFFIX
                         system_tool_instruction = get_system_tool_instruction(selected_tool, selected_tool_description)
-                        tool_instruction_container = ui.column()
+                        tool_instruction_container = ui.column().classes('w-full')
                         with tool_instruction_container:
                             with ui.expansion(get_translation("Tool Instruction"), icon='handyman', value=True) \
                                     .classes('w-full border rounded-lg shadow-sm') \
@@ -469,7 +469,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                         ROUND += 1
 
                 # final report
-                with ui.column() as round_container:
+                with ui.column().classes('w-full') as round_container:
                     ui.markdown("---")
                     ui.chat_message(markdown2html(get_translation("Wrapping up...")),
                         name='BibleMate AI',
@@ -625,7 +625,7 @@ To remove the daily limit, please update your `{preferences}` with one of the fo
 
         MESSAGE_CONTAINER.clear()
         with MESSAGE_CONTAINER:
-            REQUEST_CONTAINER = ui.column()
+            REQUEST_CONTAINER = ui.column().classes('w-full')
             with REQUEST_CONTAINER:
                 user_request = re.sub(r"^[#]+ (.*?)\n", r"**\1**\n", user_request, flags=re.MULTILINE)
                 ui.chat_message(markdown2html(user_request),

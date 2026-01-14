@@ -299,7 +299,7 @@ What would you like to discuss today? Enter your message below to get started.
                     )
                     ui.markdown(f"---\n\n## {get_translation('Other AI Modes')}\n\n")
                     ui.button(get_translation("Partner Mode"), on_click=lambda: gui.load_area_2_content(title="partner"))
-                    ui.button(get_translation("Agent Mode"), on_click=lambda: gui.load_area_2_content(title="chat"))
+                    ui.button(get_translation("Agent Mode"), on_click=lambda: gui.load_area_2_content(title="agent"))
                     ui.markdown("---")
 
         with ui.row().classes('w-full flex-nowrap items-end mb-0'):

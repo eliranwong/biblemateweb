@@ -78,12 +78,12 @@ START OF MY REQUEST
         agentmake, 
         messages, 
         system=system,
-        backend=app.storage.user["ai_backend"] if app.storage.user["api_key"].strip() and app.storage.user["ai_backend"] else config.ai_backend if config.ai_backend else DEFAULT_AI_BACKEND, 
+        backend=app.storage.user["ai_backend"].strip() if app.storage.user["api_key"].strip() and app.storage.user["ai_backend"].strip() else config.ai_backend if config.ai_backend else DEFAULT_AI_BACKEND, 
         model=app.storage.user["ai_model"].strip() if app.storage.user["api_key"].strip() and app.storage.user["ai_model"].strip() else None, 
         api_key=app.storage.user["api_key"].strip() if app.storage.user["api_key"].strip() else None,
         api_endpoint=app.storage.user["api_endpoint"].strip() if app.storage.user["api_key"].strip() and app.storage.user["api_endpoint"].strip() else None,
-        max_tokens=app.storage.user["max_tokens"] if app.storage.user["max_tokens"] and app.storage.user["api_endpoint"].strip() else None,
-        temperature=app.storage.user["temperature"] if app.storage.user["temperature"] and app.storage.user["api_endpoint"].strip() else None,
+        max_tokens=int(app.storage.user["max_tokens"]) if app.storage.user["max_tokens"] and app.storage.user["api_endpoint"].strip() else None,
+        temperature=float(app.storage.user["temperature"]) if app.storage.user["temperature"] and app.storage.user["api_endpoint"].strip() else None,
         follow_up_prompt=user_request, 
         stream=True, 
         print_on_terminal=False, 
@@ -114,7 +114,7 @@ START OF MY REQUEST
                 break
 
             # --- Process the valid event below ---
-            if text_chunk := get_stream_event_text(event, openai_style=is_openai_style(config.ai_backend if config.ai_backend else DEFAULT_AI_BACKEND)):
+            if text_chunk := get_stream_event_text(event, openai_style=is_openai_style(app.storage.user["ai_backend"].strip() if app.storage.user["api_key"].strip() and app.storage.user["ai_backend"].strip() else config.ai_backend if config.ai_backend else DEFAULT_AI_BACKEND)):
                 text_chunks += text_chunk
                 response_markdown.content = text_chunks
                 await asyncio.sleep(0)
