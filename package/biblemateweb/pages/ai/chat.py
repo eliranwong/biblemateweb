@@ -5,12 +5,51 @@ from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation, markdown2html, g
 from biblemateweb.mcp_tools.elements import TOOL_ELEMENTS
 from biblemateweb.mcp_tools.tools import TOOLS
 from biblemateweb.api.api import get_api_content
+from biblemateweb.dialogs.review_dialog import ReviewDialog
+from biblemateweb.dialogs.selection_dialog import SelectionDialog
 from biblemate.core.systems import get_system_tool_instruction
 from copy import deepcopy
 from agentmake import readTextFile
+import traceback, tempfile, pypandoc
+
 
 def chapter2verses(request:str) -> str:
     return re.sub("[Cc][Hh][Aa][Pp][Tt][Ee][Rr] ([0-9]+?)([^0-9])", r"\1:1-180\2", request)
+
+def download_txt(content):
+    if content:
+        ui.download(content.encode('utf-8'), 'BibleMate_AI_content.txt')
+        ui.notify(get_translation("Downloaded!"), type='positive')
+    else:
+        ui.notify(get_translation("Nothing to download"), type='negative')
+
+def download_docx(content):
+    if content:
+        try:
+            # 1. Create a temporary file that acts as the bridge
+            # 'delete=False' is sometimes needed on Windows to close/re-open, 
+            # but in a simple flow, we can just read it back.
+            with tempfile.NamedTemporaryFile(suffix=".docx") as tmp:
+                
+                # 2. Convert Markdown -> DOCX file
+                pypandoc.convert_text(
+                    content, 
+                    'docx', 
+                    format='md', 
+                    outputfile=tmp.name
+                )
+                
+                # 3. Read bytes back into memory
+                tmp.seek(0)
+                docx_bytes = tmp.read()
+
+            # 4. Trigger download in NiceGUI (no file left on server)
+            ui.download(docx_bytes, filename='BibleMate_AI_content.docx')
+            ui.notify(get_translation("Downloaded!"), type='positive')
+        except:
+            traceback.print_exc()
+    else:
+        ui.notify(get_translation("Nothing to download"), type='negative')
 
 def ai_chat(gui=None, q="", **_):
     
@@ -36,6 +75,14 @@ def ai_chat(gui=None, q="", **_):
 * Provide me with the instructions directly.
 * Do not start your response, like, 'Here are the insturctions ...'
 * Do not ask me if I want to execute the instruction."""
+
+    async def eidt_response(index, output_markdown):
+        nonlocal MESSAGES
+        response = MESSAGES[index]["content"]
+        if edited_item := await ReviewDialog().open_with_text(response, label=get_translation("Edit")):
+            MESSAGES[index]["content"] = edited_item
+            output_markdown.content = edited_item
+            await asyncio.sleep(0)
 
     def reset_ui():
         nonlocal SEND_BUTTON, REQUEST_INPUT, CANCEL_EVENT, CANCEL_NOTIFICATION, MESSAGES, DOWNLOAD_CONTAINER
@@ -122,6 +169,10 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                             .props('header-class="font-bold text-lg text-secondary"') as prompt_expansion:
                         prompt_markdown = ui.markdown().style('font-size: 1.1rem')
                     user_request = await stream_response(MESSAGES, user_request, prompt_markdown, CANCEL_EVENT, system="improve_prompt_2", scroll_area=SCROLL_AREA)
+                    if app.storage.user["chat_mode_review"] and user_request is not None:
+                        user_request = await ReviewDialog().open_with_text(user_request)
+                        if user_request is None:
+                            prompt_markdown.content = f"[{get_translation("Cancelled!")}]"
                     if not user_request or user_request.strip() == "[NO_CONTENT]":
                         reset_ui()
                         return None
@@ -155,7 +206,21 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                         # close prompt expansion
                         tools_expansion.close()
 
-                    selected_tool = suggested_tools[0]
+                    if app.storage.user["chat_mode_review"]:
+                        # tool selection dialog
+                        suggested_tools.append(get_translation("More..."))
+                        selected_tool = await SelectionDialog().open_with_options(suggested_tools)
+                        if selected_tool is not None and selected_tool.strip() == get_translation("More..."):
+                            all_tools = sorted(list(TOOL_ELEMENTS.keys()))
+                            all_tools.insert(0, "get_direct_text_response")
+                            selected_tool = await SelectionDialog(big=True).open_with_options(all_tools)
+                        if selected_tool is None:
+                            tools_markdown.content = f"[{get_translation("Cancelled!")}]"
+                            await reset_ui()
+                            return None
+                    else:
+                        selected_tool = suggested_tools[0]
+
                     if not selected_tool in TOOLS:
                         selected_tool = "get_direct_text_response"
                     suggested_tools = "\n".join([f"{order+1}. `{i}`" for order, i in enumerate(suggested_tools)])
@@ -169,6 +234,10 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                             .props('header-class="font-bold text-lg text-secondary"') as tool_instruction_expansion:
                         tool_instruction_markdown = ui.markdown().style('font-size: 1.1rem')
                     user_request = await stream_response(MESSAGES, tool_instruction_draft, tool_instruction_markdown, CANCEL_EVENT, system=system_tool_instruction, scroll_area=SCROLL_AREA)
+                    if user_request is not None:
+                        user_request = await ReviewDialog().open_with_text(user_request)
+                        if user_request is None:
+                            tool_instruction_markdown.content = f"[{get_translation("Cancelled!")}]"
                     if not user_request or user_request.strip() == "[NO_CONTENT]":
                         reset_ui()
                         return None
@@ -251,6 +320,12 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                             {"role": "user", "content": user_request},
                             {"role": "assistant", "content": answers},
                         ]
+                        with ui.row().classes('w-full justify-center'):
+                            ui.button("📋 "+get_translation("Copy"), on_click=lambda: gui.copy_text(answers))
+                            ui.button("📥 TXT", on_click=lambda: download_txt(answers))
+                            ui.button("📥 DOCX", on_click=lambda: download_docx(answers))
+                            index = len(MESSAGES)-1
+                            ui.button("✒️ "+get_translation("Edit"), on_click=lambda: eidt_response(index, output_markdown))
 
                 #reset
                 reset_ui()
@@ -312,6 +387,7 @@ What would you like to discuss today? Enter your message below to get started.
             ui.checkbox(get_translation("Enhance")).classes('w-full').bind_value(app.storage.user, 'prompt_engineering').props('dense').tooltip(get_translation("Improve Prompt"))
             ui.checkbox(get_translation("Agent")).classes('w-full').bind_value(app.storage.user, 'use_agent').props('dense').tooltip(get_translation("Create agents to improve responses"))
             ui.checkbox(get_translation("Tools")).classes('w-full').bind_value(app.storage.user, 'auto_tool_selection').props('dense').tooltip(get_translation("Use tools to improve responses"))
+            ui.checkbox(get_translation("Review")).classes('w-full').bind_value(app.storage.user, 'chat_mode_review').props('dense').tooltip(get_translation("Review"))
 
         ui.label('BibleMate AI | © 2025-2026 | Eliran Wong')
 

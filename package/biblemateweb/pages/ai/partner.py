@@ -348,7 +348,12 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                             tools_expansion.close()
                         
                         # tool selection dialog
+                        suggested_tools.append(get_translation("More..."))
                         selected_tool = await SELECTION_DIALOG.open_with_options(suggested_tools)
+                        if selected_tool is not None and selected_tool.strip() == get_translation("More..."):
+                            all_tools = sorted(list(TOOL_ELEMENTS.keys()))
+                            all_tools.insert(0, "get_direct_text_response")
+                            selected_tool = await SelectionDialog(big=True).open_with_options(all_tools)
                         if selected_tool is None:
                             tools_markdown.content = f"[{get_translation("Cancelled!")}]"
                             await reset_ui(round_container=round_container)

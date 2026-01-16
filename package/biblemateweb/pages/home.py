@@ -636,7 +636,7 @@ class BibleMateWeb:
         def ask_biblemate():
             nonlocal self
             ref, verse_content = get_verse_content()[1:].split("] ", 1)
-            self.ask_biblemate(f"# {ref}\n\n{verse_content}\n\n# Query\n\n")
+            self.ask_biblemate(f"[{ref}] {verse_content}")
         with ui.context_menu() as menu:
             ui.menu_item(f'📋 {get_translation("Copy")}', on_click=lambda: self.copy_text(get_verse_content()))
             ui.separator()

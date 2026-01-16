@@ -230,7 +230,7 @@ def search_bible_verses(gui=None, q='', **_):
                         
                         def ask_biblemate(ref, content):
                             nonlocal gui
-                            gui.ask_biblemate(f"# {ref}\n\n{re.sub("<[^<>]+?>", "", content)}\n\n# Query\n\n")
+                            gui.ask_biblemate(f"[{ref}] {re.sub("<[^<>]+?>", "", content)}")
 
                         # --- Chip (Clickable & Removable) ---
                         with ui.element('div').classes('flex-none pt-1'): 

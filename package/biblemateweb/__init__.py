@@ -501,6 +501,7 @@ USER_DEFAULT_SETTINGS = {
     'use_agent': True,
     'auto_scroll': True,
     'auto_tool_selection': False,
+    'chat_mode_review': False,
     'max_tokens': 8192,
     'temperature': 0.3,
 }
