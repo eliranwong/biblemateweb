@@ -76,6 +76,10 @@ def ai_chat(gui=None, q="", **_):
 * Do not start your response, like, 'Here are the insturctions ...'
 * Do not ask me if I want to execute the instruction."""
 
+    AVAILABLE_TOOLS = sorted(list(TOOL_ELEMENTS.keys()))
+    AVAILABLE_TOOLS.insert(0, "get_direct_text_response")
+    AVAILABLE_TOOLS_PATTERN = "|".join(AVAILABLE_TOOLS)
+
     async def eidt_response(index, output_markdown):
         nonlocal MESSAGES
         response = MESSAGES[index]["content"]
@@ -148,7 +152,11 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
             MESSAGES = deepcopy(DEFAULT_MESSAGES)
         prompt_markdown = None
         output_markdown = None
+        specified_tool = None
         if user_request := REQUEST_INPUT.value:
+            if re.search(f"""^@({AVAILABLE_TOOLS_PATTERN}) """, user_request):
+                specified_tool = re.search(f"""^@({AVAILABLE_TOOLS_PATTERN}) """, user_request).group(1)
+                user_request = user_request[len(specified_tool)+2:]
             gui.update_active_area2_tab_records(q=user_request)
 
             REQUEST_INPUT.disable()
@@ -187,44 +195,48 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                         prompt_expansion.close()
                 
                 # tool selection
-                selected_tool = "get_direct_text_response" # default
-                if app.storage.user["auto_tool_selection"]:
+                selected_tool = specified_tool if specified_tool else "get_direct_text_response" # default
+                if app.storage.user["auto_tool_selection"] or specified_tool:
                     with ui.expansion(get_translation("Tool Selection"), icon='handyman', value=True) \
                             .classes('w-full border rounded-lg shadow-sm') \
                             .props('header-class="font-bold text-lg text-secondary"') as tools_expansion:
                         tools_markdown = ui.markdown().style('font-size: 1.1rem')
-                    suggested_tools = await stream_response(MESSAGES, user_request, tools_markdown, CANCEL_EVENT, system=SYSTEM_TOOL_SELECTION, scroll_area=SCROLL_AREA)
-                    if not suggested_tools or suggested_tools.strip() == "[NO_CONTENT]":
-                        suggested_tools = ["get_direct_text_response"]
+                    if specified_tool:
+                        suggested_tools = [specified_tool]
                     else:
-                        # refine response
-                        suggested_tools = re.sub(r"^.*?(\[.*?\]).*?$", r"\1", suggested_tools, flags=re.DOTALL)
-                        try:
-                            suggested_tools = eval(suggested_tools.replace("`", "'")) if suggested_tools.startswith("[") and suggested_tools.endswith("]") else ["get_direct_text_response"] # fallback to direct response
-                        except:
+                        suggested_tools = await stream_response(MESSAGES, user_request, tools_markdown, CANCEL_EVENT, system=SYSTEM_TOOL_SELECTION, scroll_area=SCROLL_AREA)
+                        if not suggested_tools or suggested_tools.strip() == "[NO_CONTENT]":
                             suggested_tools = ["get_direct_text_response"]
-                        # close prompt expansion
-                        tools_expansion.close()
+                        else:
+                            # refine response
+                            suggested_tools = re.sub(r"^.*?(\[.*?\]).*?$", r"\1", suggested_tools, flags=re.DOTALL)
+                            try:
+                                suggested_tools = eval(suggested_tools.replace("`", "'")) if suggested_tools.startswith("[") and suggested_tools.endswith("]") else ["get_direct_text_response"] # fallback to direct response
+                            except:
+                                suggested_tools = ["get_direct_text_response"]
+                            # close prompt expansion
+                            tools_expansion.close()
 
-                    if app.storage.user["chat_mode_review"]:
-                        # tool selection dialog
-                        suggested_tools.append(get_translation("More..."))
-                        selected_tool = await SelectionDialog().open_with_options(suggested_tools)
-                        if selected_tool is not None and selected_tool.strip() == get_translation("More..."):
-                            all_tools = sorted(list(TOOL_ELEMENTS.keys()))
-                            all_tools.insert(0, "get_direct_text_response")
-                            selected_tool = await SelectionDialog(big=True).open_with_options(all_tools)
-                        if selected_tool is None:
-                            tools_markdown.content = f"[{get_translation("Cancelled!")}]"
-                            await reset_ui()
-                            return None
-                    else:
-                        selected_tool = suggested_tools[0]
+                        if app.storage.user["chat_mode_review"]:
+                            # tool selection dialog
+                            suggested_tools.append(get_translation("More..."))
+                            selected_tool = await SelectionDialog().open_with_options(suggested_tools)
+                            if selected_tool is not None and selected_tool.strip() == get_translation("More..."):
+                                selected_tool = await SelectionDialog(big=True).open_with_options(AVAILABLE_TOOLS)
+                            if selected_tool is None:
+                                tools_markdown.content = f"[{get_translation("Cancelled!")}]"
+                                await reset_ui()
+                                return None
+                        else:
+                            selected_tool = suggested_tools[0]
 
                     if not selected_tool in TOOLS:
                         selected_tool = "get_direct_text_response"
-                    suggested_tools = "\n".join([f"{order+1}. `{i}`" for order, i in enumerate(suggested_tools)])
-                    tools_markdown.content = f"## Suggested Tools\n\n{suggested_tools}\n\n## Selected Tool:\n\n`{selected_tool}`"
+                    if specified_tool:
+                        tools_markdown.content = f"## Selected Tool:\n\n`{selected_tool}`"
+                    else:
+                        suggested_tools = "\n".join([f"{order+1}. `{i}`" for order, i in enumerate(suggested_tools)])
+                        tools_markdown.content = f"## Suggested Tools\n\n{suggested_tools}\n\n## Selected Tool:\n\n`{selected_tool}`"
                     await asyncio.sleep(0)
                     selected_tool_description = TOOLS.get(selected_tool, "No description available.")
                     tool_instruction_draft = TOOL_INSTRUCTION_PROMPT + "\n\n# Suggestions\n\n"+user_request+f"\n\n# Tool Description of `{selected_tool}`\n\n"+selected_tool_description+TOOL_INSTRUCTION_SUFFIX
@@ -234,7 +246,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                             .props('header-class="font-bold text-lg text-secondary"') as tool_instruction_expansion:
                         tool_instruction_markdown = ui.markdown().style('font-size: 1.1rem')
                     user_request = await stream_response(MESSAGES, tool_instruction_draft, tool_instruction_markdown, CANCEL_EVENT, system=system_tool_instruction, scroll_area=SCROLL_AREA)
-                    if user_request is not None:
+                    if user_request is not None and app.storage.user["chat_mode_review"]:
                         user_request = await ReviewDialog().open_with_text(user_request)
                         if user_request is None:
                             tool_instruction_markdown.content = f"[{get_translation("Cancelled!")}]"
@@ -321,10 +333,10 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                             {"role": "assistant", "content": answers},
                         ]
                         with ui.row().classes('w-full justify-center'):
-                            ui.button("📋 "+get_translation("Copy"), on_click=lambda: gui.copy_text(answers))
-                            ui.button("📥 TXT", on_click=lambda: download_txt(answers))
-                            ui.button("📥 DOCX", on_click=lambda: download_docx(answers))
                             index = len(MESSAGES)-1
+                            ui.button("📋 "+get_translation("Copy"), on_click=lambda: gui.copy_text(output_markdown.content))
+                            ui.button("📥 TXT", on_click=lambda: download_txt(output_markdown.content))
+                            ui.button("📥 DOCX", on_click=lambda: download_docx(output_markdown.content))
                             ui.button("✒️ "+get_translation("Edit"), on_click=lambda: eidt_response(index, output_markdown))
 
                 #reset

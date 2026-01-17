@@ -1048,12 +1048,16 @@ class BibleMateWeb:
 
         auto_suggestions = [BibleBooks.abbrev[app.storage.user['ui_language']][str(i)][0] for i in range(1,67)]
         auto_suggestions += [f"{i}:::" for i in self.tools.keys()]
+        auto_suggestions += getBibleVersionList(app.storage.client["custom"])
 
         parser = BibleVerseParser(False)
         def perform_quick_search(quick_search):
             app.storage.user.update(left_drawer_open=False)
             if search_item := quick_search.value.strip():
                 client_bibles = getBibleVersionList(app.storage.client["custom"])
+                if search_item in client_bibles:
+                    self.open_area_1_bible_bible(search_item)
+                    return
                 refs = parser.extractAllReferences(search_item)
                 if search_item.lower().startswith("bible:::") and refs: # open a parallel bible chapter in area 2
                     search_item = search_item[8:]
