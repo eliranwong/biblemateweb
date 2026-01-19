@@ -597,7 +597,7 @@ class BibleMateWeb:
             ui.menu_item(f'📋 {get_translation("Copy")}', on_click=lambda: self.copy_text(get_chapter_content()))
             ui.separator()
             ui.menu_item(f'📡 {get_translation("Bible Podcast")}', on_click=lambda: open_tool("Podcast"))
-            ui.menu_item(f'🔊 {get_translation("Bible Audio")}', on_click=lambda: open_tool("Audio"))
+            ui.menu_item(f'🔊 {get_translation("Bible Audio")}', on_click=self.open_sync_audio)
             ui.separator()
             ui.menu_item(f'💎 {get_translation("Chapter Summary")}', on_click=lambda: open_tool("Summary"))
             ui.menu_item(f'🗺️ {get_translation("Chapter Map")}', on_click=open_map)
@@ -640,7 +640,7 @@ class BibleMateWeb:
         with ui.context_menu() as menu:
             ui.menu_item(f'📋 {get_translation("Copy")}', on_click=lambda: self.copy_text(get_verse_content()))
             ui.separator()
-            ui.menu_item(f'🔊 {get_translation("Bible Audio")}', on_click=lambda: open_tool("Audio"))
+            ui.menu_item(f'🔊 {get_translation("Bible Audio")}', on_click=self.open_sync_audio)
             ui.separator()
             ui.menu_item(f'🔗 {get_translation("Cross-references")}', on_click=lambda: open_tool("Xrefs"))
             ui.menu_item(f'🏦 {get_translation("Treasury")}', on_click=lambda: open_tool("Treasury"))
@@ -866,6 +866,10 @@ class BibleMateWeb:
         else:
             self.load_area_1_content(title=bible)
 
+    def open_sync_audio(self):
+        app.storage.user['tool_book_text'] = self.get_area_1_bible_text()
+        self.load_area_2_content(title='Audio', sync=True)
+
     def change_area_1_bible_chapter(self, version=None, book=1, chapter=1, verse=1):
         if version is None:
             version = self.get_area_1_bible_text()
@@ -1084,6 +1088,8 @@ class BibleMateWeb:
                 else: # search for verses in area 2; when no reference or more than a reference
                     app.storage.user["tool_query"] = search_item
                     self.load_area_2_content(title='Verses', sync=app.storage.user["sync"])
+                # reset input
+                quick_search.value = ""
 
         # qr code dialog
         with ui.dialog() as dialog, ui.card().classes('items-center text-center p-6'):
@@ -1216,7 +1222,7 @@ class BibleMateWeb:
                             ui.menu_item(get_translation("Close Others"), on_click=self.close_other_area2_tabs)
                             ui.separator()
                             ui.menu_item(get_translation("Bible Podcast"), on_click=lambda: self.load_area_2_content(title='Podcast', sync=True))
-                            ui.menu_item(get_translation("Bible Audio"), on_click=lambda: self.load_area_2_content(title='Audio', sync=True))
+                            ui.menu_item(get_translation("Bible Audio"), on_click=self.open_sync_audio)
                             ui.separator()
                             ui.menu_item(get_translation("Book Analysis"), on_click=lambda: self.load_area_2_content(title='Analysis', sync=True))
                             ui.menu_item(get_translation("Chapter Summary"), on_click=lambda: self.load_area_2_content(title='Summary', sync=True))
@@ -1455,7 +1461,7 @@ class BibleMateWeb:
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.item(get_translation("Bible Audio"), on_click=lambda: (
-                    self.load_area_2_content(title='Audio', sync=True),
+                    self.open_sync_audio(),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.separator()
