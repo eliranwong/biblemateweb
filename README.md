@@ -106,7 +106,7 @@ For demo, check out https://biblemate.gospelchurch.uk
 
 Read setup notes at https://github.com/eliranwong/biblemateweb/blob/main/docs/google_drive_notes_setup.md
 
-## Support Exported Agent Mode Report in Word Document Format
+## Support Text Content in Word Document DOCX Format
 
 `pandoc` is required to export content to DOCX format.
 

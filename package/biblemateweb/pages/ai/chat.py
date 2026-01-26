@@ -1,7 +1,7 @@
 from nicegui import ui, app, run
 import asyncio, datetime, re, os
 from biblemateweb.pages.ai.stream import stream_response
-from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation, markdown2html, get_watermark, DEFAULT_MESSAGES
+from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation, markdown2html, get_watermark, chapter2verses, download_txt, download_docx, DEFAULT_MESSAGES
 from biblemateweb.mcp_tools.elements import TOOL_ELEMENTS
 from biblemateweb.mcp_tools.tools import TOOLS
 from biblemateweb.api.api import get_api_content
@@ -13,54 +13,6 @@ from copy import deepcopy
 from agentmake import readTextFile
 import traceback, tempfile, pypandoc
 
-
-def chapter2verses(request:str) -> str:
-    return re.sub("[Cc][Hh][Aa][Pp][Tt][Ee][Rr] ([0-9]+?)([^0-9])", r"\1:1-180\2", request)
-
-async def download_txt(content):
-    if content:
-        filename = await FilenameDialog().open_with_filename()
-        if filename is None or not filename.strip():
-            return
-        elif not filename.strip().endswith('.txt'):
-            filename = filename.strip() + '.txt'
-        ui.download(content.encode('utf-8'), filename=filename)
-        ui.notify(get_translation("Downloaded!"), type='positive')
-    else:
-        ui.notify(get_translation("Nothing to download"), type='negative')
-
-async def download_docx(content):
-    if content:
-        filename = await FilenameDialog().open_with_filename()
-        if filename is None or not filename.strip():
-            return
-        elif not filename.strip().endswith('.docx'):
-            filename = filename.strip() + '.docx'
-        try:
-            # 1. Create a temporary file that acts as the bridge
-            # 'delete=False' is sometimes needed on Windows to close/re-open, 
-            # but in a simple flow, we can just read it back.
-            with tempfile.NamedTemporaryFile(suffix=".docx") as tmp:
-                
-                # 2. Convert Markdown -> DOCX file
-                pypandoc.convert_text(
-                    content, 
-                    'docx', 
-                    format='md', 
-                    outputfile=tmp.name
-                )
-                
-                # 3. Read bytes back into memory
-                tmp.seek(0)
-                docx_bytes = tmp.read()
-
-            # 4. Trigger download in NiceGUI (no file left on server)
-            ui.download(docx_bytes, filename=filename)
-            ui.notify(get_translation("Downloaded!"), type='positive')
-        except:
-            traceback.print_exc()
-    else:
-        ui.notify(get_translation("Nothing to download"), type='negative')
 
 def ai_chat(gui=None, q="", **_):
     
@@ -127,7 +79,12 @@ def ai_chat(gui=None, q="", **_):
             CANCEL_EVENT.set()
         await asyncio.sleep(0)
 
-    def download_all_content(messages):
+    async def download_all_content(messages):
+        filename = await FilenameDialog().open_with_filename("BibleMate_AI_Conversation")
+        if filename is None or not filename.strip():
+            return
+        elif not filename.strip().endswith('.txt'):
+            filename = filename.strip() + '.txt'
         messages_copy = deepcopy(messages)
         content = """---
 
@@ -138,7 +95,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
 """
         content += "\n\n---\n\n".join([("[REQUEST] "+i.get("content", "")) if index%2 == 0 else ("[RESPONSE] "+i.get("content", "")) for index, i in enumerate(messages_copy[1:])])
         content += get_watermark()
-        ui.download(content.encode('utf-8'), 'BibleMate_AI_Conversation.txt')
+        ui.download(content.encode('utf-8'), filename=filename)
         ui.notify(get_translation("Downloaded!"), type='positive')
 
     async def handle_send_click():

@@ -1,5 +1,15 @@
-from nicegui import ui
-from biblemateweb import get_translation
+from nicegui import ui, app
+from biblemateweb.translations.eng import translation_eng
+from biblemateweb.translations.tc import translation_tc
+from biblemateweb.translations.sc import translation_sc
+
+
+def get_translation(text: str):
+    if app.storage.user["ui_language"] == "tc":
+        return translation_tc.get(text, text)
+    elif app.storage.user["ui_language"] == "sc":
+        return translation_sc.get(text, text)
+    return translation_eng.get(text, text)
 
 class FilenameDialog(ui.dialog):
     def __init__(self):

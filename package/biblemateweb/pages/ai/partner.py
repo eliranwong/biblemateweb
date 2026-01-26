@@ -1,7 +1,7 @@
 from nicegui import ui, app, run
 import asyncio, datetime, re, os, pypandoc, tempfile, traceback, json
 from biblemateweb.pages.ai.stream import stream_response
-from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation, markdown2html, config, DEFAULT_MESSAGES, get_watermark
+from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation, markdown2html, config, DEFAULT_MESSAGES, get_watermark, chapter2verses, download_txt, download_docx
 from biblemateweb.dialogs.review_dialog import ReviewDialog
 from biblemateweb.dialogs.selection_dialog import SelectionDialog
 from biblemateweb.dialogs.filename_dialog import FilenameDialog
@@ -14,9 +14,6 @@ from agentmake import readTextFile
 from copy import deepcopy
 from biblemateweb.fx.cloud_index_manager import get_drive_service
 
-
-def chapter2verses(request:str) -> str:
-    return re.sub("[Cc][Hh][Aa][Pp][Tt][Ee][Rr] ([0-9]+?)([^0-9])", r"\1:1-180\2", request)
 
 def ai_partner(gui=None, q="", **_):
 
@@ -458,6 +455,11 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                                         # apply the last fix from stream output
                                         output_markdown.content = answers
                                         await asyncio.sleep(0)
+                            if not output_markdown.content == f"[{get_translation("Cancelled!")}]":
+                                with ui.row().classes('w-full justify-center'):
+                                    ui.button("📋 "+get_translation("Copy"), on_click=lambda: gui.copy_text(output_markdown.content))
+                                    ui.button("📥 TXT", on_click=lambda: download_txt(output_markdown.content))
+                                    ui.button("📥 DOCX", on_click=lambda: download_docx(output_markdown.content))
                         except Exception as e:
                             output_markdown.content = f"[{get_translation('Error')}: {str(e)}]"
                             await asyncio.sleep(0)

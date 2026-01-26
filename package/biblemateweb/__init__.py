@@ -5,9 +5,10 @@ from biblemateweb import config
 from biblemateweb.translations.eng import translation_eng
 from biblemateweb.translations.tc import translation_tc
 from biblemateweb.translations.sc import translation_sc
+from biblemateweb.dialogs.filename_dialog import FilenameDialog
 from nicegui import app, ui
 from typing import List
-import os, glob, apsw, re, asyncio, json, markdown2
+import os, glob, apsw, re, asyncio, json, markdown2, traceback, tempfile, pypandoc
 import numpy as np
 
 
@@ -92,7 +93,7 @@ class VerseEventObj:
         self.args = (b, c, v)
 
 def get_watermark():
-    return "\n\n---\n\n[BibleMate AI](https://github.com/eliranwong/biblemate)\n\n[Eliran Wong](https://github.com/eliranwong)\n\n© 2025-2026'"
+    return "\n\n---\n\n[BibleMate AI](https://github.com/eliranwong/biblemate)\n\n[Eliran Wong](https://github.com/eliranwong)\n\n© 2025-2026"
 
 def get_translation(text: str):
     if app.storage.user["ui_language"] == "tc":
@@ -104,6 +105,56 @@ def get_translation(text: str):
 def markdown2html(markdown_text):
     html = markdown2.markdown(markdown_text, extras=["tables","fenced-code-blocks","toc","codelite"])
     return html.replace("<h1>", "<h2>").replace("</h1>", "</h2>")
+
+def chapter2verses(request:str) -> str:
+    return re.sub("[Cc][Hh][Aa][Pp][Tt][Ee][Rr] ([0-9]+?)([^0-9])", r"\1:1-180\2", request)
+
+async def download_txt(content):
+    if content:
+        content += get_watermark()
+        filename = await FilenameDialog().open_with_filename()
+        if filename is None or not filename.strip():
+            return
+        elif not filename.strip().endswith('.txt'):
+            filename = filename.strip() + '.txt'
+        ui.download(content.encode('utf-8'), filename=filename)
+        ui.notify(get_translation("Downloaded!"), type='positive')
+    else:
+        ui.notify(get_translation("Nothing to download"), type='negative')
+
+async def download_docx(content):
+    if content:
+        content += get_watermark()
+        filename = await FilenameDialog().open_with_filename()
+        if filename is None or not filename.strip():
+            return
+        elif not filename.strip().endswith('.docx'):
+            filename = filename.strip() + '.docx'
+        try:
+            # 1. Create a temporary file that acts as the bridge
+            # 'delete=False' is sometimes needed on Windows to close/re-open, 
+            # but in a simple flow, we can just read it back.
+            with tempfile.NamedTemporaryFile(suffix=".docx") as tmp:
+                
+                # 2. Convert Markdown -> DOCX file
+                pypandoc.convert_text(
+                    content, 
+                    'docx', 
+                    format='md', 
+                    outputfile=tmp.name
+                )
+                
+                # 3. Read bytes back into memory
+                tmp.seek(0)
+                docx_bytes = tmp.read()
+
+            # 4. Trigger download in NiceGUI (no file left on server)
+            ui.download(docx_bytes, filename=filename)
+            ui.notify(get_translation("Downloaded!"), type='positive')
+        except:
+            traceback.print_exc()
+    else:
+        ui.notify(get_translation("Nothing to download"), type='negative')
 
 async def loading(func, *args, **kwargs):
     n = ui.notification(timeout=None)
