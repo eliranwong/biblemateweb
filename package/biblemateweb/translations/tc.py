@@ -84,6 +84,7 @@ translation_tc = {
     "Add Note": "新增筆記",
     "Edit Note": "編輯筆記",
     "Save": "儲存",
+    "Please enter a name for your file:": "請輸入檔案名稱：",
     "Download": "下載",
     "Import": "匯入",
     "Delete": "刪除",
@@ -225,6 +226,7 @@ translation_tc = {
 * 優化 (Enhance)： 勾選此項以自動完善並釐清你的提問。
 * 代理 (Agent)： 勾選此項以啟動進階邏輯，獲取更詳盡的回答。
 * 工具 (Tools)： 勾選此項讓我調用專屬的研經工具組，以確保回覆更加精確。
+* 審查 (Review)： 勾選此項以在每個回合後審查並調整我的回答。
 
 ---""",
     "welcome_partner_mode": """**你好！我是 BibleMate AI。你已開啟「夥伴模式 (Partner Mode)」功能。

@@ -479,7 +479,7 @@ USER_DEFAULT_SETTINGS = {
     'favorite_lexicon': 'Morphology',
     'hebrew_lexicon': 'TBESH',
     'greek_lexicon': 'TBESG',
-    'ai_backend': 'googleai',
+    'ai_backend': 'default',
     'ai_model': '',
     'api_endpoint': '',
     'api_key': '',

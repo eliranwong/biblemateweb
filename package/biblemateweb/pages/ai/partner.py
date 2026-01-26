@@ -4,6 +4,7 @@ from biblemateweb.pages.ai.stream import stream_response
 from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation, markdown2html, config, DEFAULT_MESSAGES, get_watermark
 from biblemateweb.dialogs.review_dialog import ReviewDialog
 from biblemateweb.dialogs.selection_dialog import SelectionDialog
+from biblemateweb.dialogs.filename_dialog import FilenameDialog
 from biblemateweb.mcp_tools.elements import TOOL_ELEMENTS
 from biblemateweb.mcp_tools.tools import TOOLS
 from biblemateweb.mcp_tools.tool_descriptions import TOOL_DESCRIPTIONS
@@ -135,7 +136,12 @@ Available tools are: {available_tools}.
         except:
             traceback.print_exc()
 
-    def download_all_content(messages, master_plan):
+    async def download_all_content(messages, master_plan):
+        filename = await FilenameDialog().open_with_filename("BibleMate_AI_Conversation")
+        if filename is None or not filename.strip():
+            return
+        elif not filename.strip().endswith('.txt'):
+            filename = filename.strip() + '.txt'
         messages_copy = deepcopy(messages)
         content = """---
 
@@ -149,10 +155,15 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
 
 {master_plan}"""
         content += "\n\n---\n\n".join([i.get("content", "") for i in messages_copy[1:]])
-        ui.download(content.encode('utf-8'), 'BibleMate_AI_Conversation.txt')
+        ui.download(content.encode('utf-8'), filename=filename)
         ui.notify(get_translation("Downloaded!"), type='positive')
 
-    def download_report(markdown_content):
+    async def download_report(markdown_content):
+        filename = await FilenameDialog().open_with_filename("BibleMate_AI_Report")
+        if filename is None or not filename.strip():
+            return
+        elif not filename.strip().endswith('.docx'):
+            filename = filename.strip() + '.docx'
         try:
             # 1. Create a temporary file that acts as the bridge
             # 'delete=False' is sometimes needed on Windows to close/re-open, 
@@ -172,7 +183,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                 docx_bytes = tmp.read()
 
             # 4. Trigger download in NiceGUI (no file left on server)
-            ui.download(docx_bytes, filename='BibleMate_AI_Report.docx')
+            ui.download(docx_bytes, filename=filename)
             ui.notify(get_translation("Downloaded!"), type='positive')
         except:
             traceback.print_exc()
@@ -743,7 +754,7 @@ What shall we study together today? Enter your request below to begin our collab
             with ui.column().classes('h-full justify-between gap-2'):
                 ui.checkbox(get_translation("Auto-scroll")).classes('w-full').bind_value(app.storage.user, 'auto_scroll').props('dense').tooltip(get_translation("Scroll to the end automatically"))
                 ui.checkbox(get_translation("Enhance")).classes('w-full').bind_value(app.storage.user, 'prompt_engineering').props('dense').tooltip(get_translation("Improve Prompt"))
-                SEND_BUTTON = ui.button('Send', on_click=handle_send_click).classes('w-full')
+                SEND_BUTTON = ui.button(get_translation("Send"), on_click=handle_send_click).classes('w-full')
 
         ui.label('BibleMate AI | © 2025-2026 | Eliran Wong')
 

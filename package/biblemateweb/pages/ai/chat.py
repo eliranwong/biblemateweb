@@ -7,6 +7,7 @@ from biblemateweb.mcp_tools.tools import TOOLS
 from biblemateweb.api.api import get_api_content
 from biblemateweb.dialogs.review_dialog import ReviewDialog
 from biblemateweb.dialogs.selection_dialog import SelectionDialog
+from biblemateweb.dialogs.filename_dialog import FilenameDialog
 from biblemate.core.systems import get_system_tool_instruction
 from copy import deepcopy
 from agentmake import readTextFile
@@ -16,15 +17,25 @@ import traceback, tempfile, pypandoc
 def chapter2verses(request:str) -> str:
     return re.sub("[Cc][Hh][Aa][Pp][Tt][Ee][Rr] ([0-9]+?)([^0-9])", r"\1:1-180\2", request)
 
-def download_txt(content):
+async def download_txt(content):
     if content:
-        ui.download(content.encode('utf-8'), 'BibleMate_AI_content.txt')
+        filename = await FilenameDialog().open_with_filename()
+        if filename is None or not filename.strip():
+            return
+        elif not filename.strip().endswith('.txt'):
+            filename = filename.strip() + '.txt'
+        ui.download(content.encode('utf-8'), filename=filename)
         ui.notify(get_translation("Downloaded!"), type='positive')
     else:
         ui.notify(get_translation("Nothing to download"), type='negative')
 
-def download_docx(content):
+async def download_docx(content):
     if content:
+        filename = await FilenameDialog().open_with_filename()
+        if filename is None or not filename.strip():
+            return
+        elif not filename.strip().endswith('.docx'):
+            filename = filename.strip() + '.docx'
         try:
             # 1. Create a temporary file that acts as the bridge
             # 'delete=False' is sometimes needed on Windows to close/re-open, 
@@ -44,7 +55,7 @@ def download_docx(content):
                 docx_bytes = tmp.read()
 
             # 4. Trigger download in NiceGUI (no file left on server)
-            ui.download(docx_bytes, filename='BibleMate_AI_content.docx')
+            ui.download(docx_bytes, filename=filename)
             ui.notify(get_translation("Downloaded!"), type='positive')
         except:
             traceback.print_exc()
@@ -375,6 +386,7 @@ What would you like to discuss today? Enter your message below to get started.
 * Enhance: Check this to automatically improve and clarify your prompt.
 * Agent: Check this to engage my advanced reasoning for more detailed responses.
 * Tools: Check this to let me access my dedicated suite of Bible study tools for better accuracy.
+* Review: Check this to review and adjust my responses after each round.
 
 ---"""
                     ui.chat_message(markdown2html(get_translation(welcome_message if app.storage.user["ui_language"] == "eng" else get_translation("welcome_chat_mode"))),
@@ -393,7 +405,7 @@ What would you like to discuss today? Enter your message below to get started.
             REQUEST_INPUT = ui.textarea(placeholder=get_translation("Enter your request here...")).props('rows=4').classes('flex-grow h-full resize-none').on('keydown.shift.enter.prevent', handle_send_click)
             with ui.column().classes('h-full justify-between gap-2'):
                 ui.checkbox(get_translation("Auto-scroll")).classes('w-full').bind_value(app.storage.user, 'auto_scroll').props('dense').tooltip(get_translation("Scroll to the end automatically"))
-                SEND_BUTTON = ui.button('Send', on_click=handle_send_click).classes('w-full')
+                SEND_BUTTON = ui.button(get_translation("Send"), on_click=handle_send_click).classes('w-full')
         
         with ui.row().classes('w-full flex-nowrap items-end mb-27'):
             ui.checkbox(get_translation("Enhance")).classes('w-full').bind_value(app.storage.user, 'prompt_engineering').props('dense').tooltip(get_translation("Improve Prompt"))
