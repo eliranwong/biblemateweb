@@ -1,4 +1,5 @@
 from nicegui import ui, app, run
+from functools import partial
 import asyncio, datetime, re, os, pypandoc, tempfile, traceback, json
 from biblemateweb.pages.ai.stream import stream_response
 from biblemateweb import BIBLEMATEWEB_APP_DIR, get_translation, markdown2html, config, DEFAULT_MESSAGES, get_watermark, chapter2verses, download_txt, download_docx
@@ -457,9 +458,9 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                                         await asyncio.sleep(0)
                             if not output_markdown.content == f"[{get_translation("Cancelled!")}]":
                                 with ui.row().classes('w-full justify-center'):
-                                    ui.button("📋 "+get_translation("Copy"), on_click=lambda: gui.copy_text(output_markdown.content))
-                                    ui.button("📥 TXT", on_click=lambda: download_txt(output_markdown.content))
-                                    ui.button("📥 DOCX", on_click=lambda: download_docx(output_markdown.content))
+                                    ui.button("📋 "+get_translation("Copy"), on_click=partial(gui.copy_text, output_markdown.content))
+                                    ui.button("📥 TXT", on_click=partial(download_txt, output_markdown.content))
+                                    ui.button("📥 DOCX", on_click=partial(download_docx, output_markdown.content))
                         except Exception as e:
                             output_markdown.content = f"[{get_translation('Error')}: {str(e)}]"
                             await asyncio.sleep(0)

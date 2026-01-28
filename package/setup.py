@@ -2,7 +2,7 @@ from setuptools import setup
 from setuptools.command.install import install
 import os, shutil, platform, sys
 
-version = "0.3.45"
+version = "0.3.46"
 with open(os.path.join("biblemateweb", "version.txt"), "w", encoding="utf-8") as fileObj:
     fileObj.write(version)
 
@@ -14,7 +14,7 @@ package_name_1 = os.path.join(package, "package_name.txt") # package readme
 shutil.copy(package_name_0, package_name_1)
 
 # update package readme
-latest_readme = os.path.join("..", "README.md") # github repository readme
+latest_readme = os.path.join("..", "README_pypi.md") # github repository readme
 package_readme = os.path.join(package, "README.md") # package readme
 shutil.copy(latest_readme, package_readme)
 with open(package_readme, "r", encoding="utf-8") as fileObj:
