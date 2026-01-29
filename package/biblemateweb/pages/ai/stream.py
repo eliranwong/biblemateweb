@@ -114,7 +114,7 @@ START OF MY REQUEST
                 break
 
             # --- Process the valid event below ---
-            if text_chunk := get_stream_event_text(event, openai_style=is_openai_style(app.storage.user["ai_backend"].strip() if app.storage.user["api_key"].strip() and app.storage.user["ai_backend"].strip() else config.ai_backend if config.ai_backend else DEFAULT_AI_BACKEND)):
+            if text_chunk := get_stream_event_text(event, openai_style=is_openai_style(app.storage.user["ai_backend"].strip() if app.storage.user["api_key"].strip() and not app.storage.user["ai_backend"].strip() == "default" else config.ai_backend if config.ai_backend else DEFAULT_AI_BACKEND)):
                 text_chunks += text_chunk
                 response_markdown.content = text_chunks
                 await asyncio.sleep(0)
