@@ -100,7 +100,7 @@ def search_bible_maps(gui=None, q='', **_):
                     while marker.id is None:
                         await asyncio.sleep(0.1)
                     # 2. Add a tiny buffer for the JavaScript side to render the marker
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(0.5)
                     # 3. Bind
                     marker.run_method('bindPopup', f'''<b>{name}</b><br>[<ref onclick="emitEvent('exlbl', ['{uid}']); return false;">{uid}</ref>]''')
                 # Fire the safe async function
