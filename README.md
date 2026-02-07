@@ -301,11 +301,14 @@ For public deployments:
 
 ## Documentation
 
+Full documentation is available in the [docs](docs/) directory.
+
 - [API Query Syntax](docs/api_query.md) - Complete API reference
 - [Google Drive Setup](docs/google_drive_notes_setup.md) - OAuth configuration
 - [Custom Tokens](docs/custom_token.md) - Access control
 - [API Key Setup](docs/api_key_setup.md) - AI backend configuration
-- [Bible Search](docs/search_bible.md) - Search capabilities
+- [Study Tools](docs/search/tool/) - Study Tools
+- [Search Tools](docs/search/search/) - Search Tools
 - [CLAUDE.md](CLAUDE.md) - Developer architecture guide
 
 ## Video Tutorials
