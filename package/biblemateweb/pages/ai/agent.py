@@ -439,7 +439,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                                         # apply the last fix from stream output
                                         output_markdown.content = answers
                                         await asyncio.sleep(0)
-                            if not output_markdown.content == f"[{get_translation("Cancelled!")}]":
+                            if not output_markdown.content == f"[{get_translation('Cancelled!')}]":
                                 with ui.row().classes('w-full justify-center'):
                                     ui.button("📋 "+get_translation("Copy"), on_click=partial(gui.copy_text, output_markdown.content))
                                     ui.button("📥 TXT", on_click=partial(download_txt, output_markdown.content))

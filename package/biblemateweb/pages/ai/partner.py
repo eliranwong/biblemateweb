@@ -364,7 +364,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                             all_tools.insert(0, "get_direct_text_response")
                             selected_tool = await SelectionDialog(big=True).open_with_options(all_tools)
                         if selected_tool is None:
-                            tools_markdown.content = f"[{get_translation("Cancelled!")}]"
+                            tools_markdown.content = f"[{get_translation('Cancelled!')}]"
                             await reset_ui(round_container=round_container)
                             return None
 
@@ -386,7 +386,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                         if user_request is not None:
                             user_request = await REVIEW_DIALOG.open_with_text(user_request)
                             if user_request is None:
-                                tool_instruction_markdown.content = f"[{get_translation("Cancelled!")}]"
+                                tool_instruction_markdown.content = f"[{get_translation('Cancelled!')}]"
                         if not user_request or user_request.strip() == "[NO_CONTENT]":
                             await reset_ui(round_container=round_container)
                             return None
@@ -456,7 +456,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                                         # apply the last fix from stream output
                                         output_markdown.content = answers
                                         await asyncio.sleep(0)
-                            if not output_markdown.content == f"[{get_translation("Cancelled!")}]":
+                            if not output_markdown.content == f"[{get_translation('Cancelled!')}]":
                                 with ui.row().classes('w-full justify-center'):
                                     ui.button("📋 "+get_translation("Copy"), on_click=partial(gui.copy_text, output_markdown.content))
                                     ui.button("📥 TXT", on_click=partial(download_txt, output_markdown.content))
@@ -557,7 +557,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
             if MASTER_PLAN is not None:
                 MASTER_PLAN = await REVIEW_DIALOG.open_with_text(MASTER_PLAN)
                 if MASTER_PLAN is None:
-                    MASTER_PLAN_MARKDOWN.content = f"[{get_translation("Cancelled!")}]"
+                    MASTER_PLAN_MARKDOWN.content = f"[{get_translation('Cancelled!')}]"
             if not MASTER_PLAN or MASTER_PLAN.strip() == "[NO_CONTENT]":
                 await reset_ui()
                 return None
@@ -680,7 +680,7 @@ To remove the daily limit, please update your `{preferences}` with one of the fo
                     if user_request is not None:
                         user_request = await REVIEW_DIALOG.open_with_text(user_request)
                         if user_request is None:
-                            prompt_markdown.content = f"[{get_translation("Cancelled!")}]"
+                            prompt_markdown.content = f"[{get_translation('Cancelled!')}]"
                     if not user_request or user_request.strip() == "[NO_CONTENT]":
                         await reset_ui()
                         return None

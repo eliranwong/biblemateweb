@@ -86,7 +86,7 @@ def get_chapter_content(query, language, custom): # accept multiple chapter refe
         if not verses: continue
         chapter = f"## {parser.bcvToVerseReference(b,c,1, isChapter=True)} [{module}]\n\n"
         if verses:
-            verses = [f"({v}) {re.sub("<[^<>]*?>", "", verse_text).strip()}" for *_, v, verse_text in verses]
+            verses = [f'''({v}) {re.sub("<[^<>]*?>", "", verse_text).strip()}''' for *_, v, verse_text in verses]
             chapter += "\n".join(verses)
         chapters.append(chapter)
     return "\n---\n".join(chapters)

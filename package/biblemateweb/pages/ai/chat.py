@@ -148,7 +148,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                     if app.storage.user["chat_mode_review"] and user_request is not None:
                         user_request = await ReviewDialog().open_with_text(user_request)
                         if user_request is None:
-                            prompt_markdown.content = f"[{get_translation("Cancelled!")}]"
+                            prompt_markdown.content = f"[{get_translation('Cancelled!')}]"
                     if not user_request or user_request.strip() == "[NO_CONTENT]":
                         reset_ui()
                         return None
@@ -192,7 +192,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                             if selected_tool is not None and selected_tool.strip() == get_translation("More..."):
                                 selected_tool = await SelectionDialog(big=True).open_with_options(AVAILABLE_TOOLS)
                             if selected_tool is None:
-                                tools_markdown.content = f"[{get_translation("Cancelled!")}]"
+                                tools_markdown.content = f"[{get_translation('Cancelled!')}]"
                                 await reset_ui()
                                 return None
                         else:
@@ -217,7 +217,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                     if user_request is not None and app.storage.user["chat_mode_review"]:
                         user_request = await ReviewDialog().open_with_text(user_request)
                         if user_request is None:
-                            tool_instruction_markdown.content = f"[{get_translation("Cancelled!")}]"
+                            tool_instruction_markdown.content = f"[{get_translation('Cancelled!')}]"
                     if not user_request or user_request.strip() == "[NO_CONTENT]":
                         reset_ui()
                         return None

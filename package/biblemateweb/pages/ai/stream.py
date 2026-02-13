@@ -121,7 +121,7 @@ START OF MY REQUEST
         # when cancelled
         if cancel_event is not None and cancel_event.is_set():
             n.message = get_translation("Cancelled!")
-            response_markdown.content = f"[{get_translation("Cancelled!")}]"
+            response_markdown.content = f"[{get_translation('Cancelled!')}]"
             await asyncio.sleep(0)
         # when done
         else:

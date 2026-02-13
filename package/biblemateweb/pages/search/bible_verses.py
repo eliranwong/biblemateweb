@@ -176,7 +176,7 @@ def search_bible_verses(gui=None, q='', **_):
                     ui.notify('No verses found.', type='negative')
                     return
                 verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser)
-            elif re.search(f"^({"|".join(list(config.topics.keys()))})[0-9]+?$", query): # bible topics entries
+            elif re.search(f'''^({"|".join(list(config.topics.keys()))})[0-9]+?$''', query): # bible topics entries
                 db_file = os.path.join(BIBLEMATEWEB_DATA, "indexes2.sqlite")
                 with apsw.Connection(db_file) as connn:
                     cursor = connn.cursor()
@@ -186,7 +186,7 @@ def search_bible_verses(gui=None, q='', **_):
                     ui.notify('No verses found.', type='negative')
                     return
                 verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser)
-            elif re.search(f"^({"|".join(list(config.dictionaries.keys()))})[0-9]+?$", query): # bible dictionaries entries
+            elif re.search(f'''^({"|".join(list(config.dictionaries.keys()))})[0-9]+?$''', query): # bible dictionaries entries
                 db_file = os.path.join(BIBLEMATEWEB_DATA, "indexes2.sqlite")
                 with apsw.Connection(db_file) as connn:
                     cursor = connn.cursor()
@@ -196,7 +196,7 @@ def search_bible_verses(gui=None, q='', **_):
                     ui.notify('No verses found.', type='negative')
                     return
                 verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser)
-            elif re.search(f"^(ISBE|{"|".join(list(config.encyclopedias.keys()))})[0-9]+?$", query): # bible encyclopedia entries
+            elif re.search(f'''^(ISBE|{"|".join(list(config.encyclopedias.keys()))})[0-9]+?$''', query): # bible encyclopedia entries
                 db_file = os.path.join(BIBLEMATEWEB_DATA, "indexes2.sqlite")
                 with apsw.Connection(db_file) as connn:
                     cursor = connn.cursor()
@@ -230,7 +230,7 @@ def search_bible_verses(gui=None, q='', **_):
                         
                         def ask_biblemate(ref, content):
                             nonlocal gui
-                            gui.ask_biblemate(f"[{ref}] {re.sub("<[^<>]+?>", "", content)}")
+                            gui.ask_biblemate(f'''[{ref}] {re.sub("<[^<>]+?>", "", content)}''')
 
                         # --- Chip (Clickable & Removable) ---
                         with ui.element('div').classes('flex-none pt-1'): 
