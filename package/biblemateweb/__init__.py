@@ -45,7 +45,8 @@ config.verses_limit={config.verses_limit}
 config.disable_agent_mode={config.disable_agent_mode}
 config.disable_partner_mode={config.disable_partner_mode}
 config.limit_agent_mode_once_daily={config.limit_agent_mode_once_daily}
-config.limit_partner_mode_once_daily={config.limit_partner_mode_once_daily}"""
+config.limit_partner_mode_once_daily={config.limit_partner_mode_once_daily}
+config.disable_local_api_endpoint={config.disable_local_api_endpoint}"""
     writeTextFile(CONFIG_FILE_BACKUP, configurations)
 
 # restore config backup after upgrade
@@ -63,7 +64,8 @@ config.verses_limit=2000
 config.disable_agent_mode=False
 config.disable_partner_mode=False
 config.limit_agent_mode_once_daily=False
-config.limit_partner_mode_once_daily=False'''
+config.limit_partner_mode_once_daily=False
+config.disable_local_api_endpoint=True'''
 
 def load_config():
     """Loads the user's configuration from the config file."""

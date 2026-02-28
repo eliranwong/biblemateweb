@@ -74,6 +74,8 @@ START OF MY REQUEST
     await asyncio.sleep(0)
     # run completion
     text_chunks = ""
+    if config.config.disable_local_api_endpoint and (app.storage.user["api_endpoint"].strip().lower().startswith("http://localhost") or app.storage.user["api_endpoint"].strip().lower().startswith("http://127.0.0.1")):
+        app.storage.user["api_endpoint"] = ""
     completion = await run.io_bound(
         agentmake, 
         messages, 
