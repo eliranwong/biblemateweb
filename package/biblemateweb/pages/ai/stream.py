@@ -74,28 +74,29 @@ START OF MY REQUEST
     await asyncio.sleep(0)
     # run completion
     text_chunks = ""
-    if config.config.disable_local_api_endpoint and (app.storage.user["api_endpoint"].strip().lower().startswith("http://localhost") or app.storage.user["api_endpoint"].strip().lower().startswith("http://127.0.0.1")):
-        app.storage.user["api_endpoint"] = ""
-    completion = await run.io_bound(
-        agentmake, 
-        messages, 
-        system=system,
-        backend=app.storage.user["ai_backend"].strip() if app.storage.user["api_key"].strip() and not app.storage.user["ai_backend"].strip() == "default" else config.ai_backend if config.ai_backend else DEFAULT_AI_BACKEND, 
-        model=app.storage.user["ai_model"].strip() if app.storage.user["api_key"].strip() and app.storage.user["ai_model"].strip() and not app.storage.user["ai_backend"].strip() == "default" else None, 
-        api_key=app.storage.user["api_key"].strip() if app.storage.user["api_key"].strip() and not app.storage.user["ai_backend"].strip() == "default" else None,
-        api_endpoint=app.storage.user["api_endpoint"].strip() if app.storage.user["api_key"].strip() and app.storage.user["api_endpoint"].strip() and not app.storage.user["ai_backend"].strip() == "default" else None,
-        max_tokens=int(app.storage.user["max_tokens"]) if app.storage.user["api_key"].strip() and app.storage.user["max_tokens"] and not app.storage.user["ai_backend"].strip() == "default" else None,
-        temperature=float(app.storage.user["temperature"]) if app.storage.user["api_key"].strip() and app.storage.user["temperature"] and not app.storage.user["ai_backend"].strip() == "default" else None,
-        follow_up_prompt=user_request, 
-        stream=True, 
-        print_on_terminal=False, 
-        stream_events_only=True, 
-        #streaming_event=cancel_event, # this works only for unpacking completion text; not useful in this case
-        **kwargs,
-    )
-    n.message = get_translation("Running...")
-    await asyncio.sleep(0)
     try:
+        if config.disable_local_api_endpoint and (app.storage.user["api_endpoint"].strip().lower().startswith("http://localhost") or app.storage.user["api_endpoint"].strip().lower().startswith("http://127.0.0.1")):
+            app.storage.user["api_endpoint"] = ""
+        completion = await run.io_bound(
+            agentmake, 
+            messages, 
+            system=system,
+            backend=app.storage.user["ai_backend"].strip() if app.storage.user["api_key"].strip() and not app.storage.user["ai_backend"].strip() == "default" else config.ai_backend if config.ai_backend else DEFAULT_AI_BACKEND, 
+            model=app.storage.user["ai_model"].strip() if app.storage.user["api_key"].strip() and app.storage.user["ai_model"].strip() and not app.storage.user["ai_backend"].strip() == "default" else None, 
+            api_key=app.storage.user["api_key"].strip() if app.storage.user["api_key"].strip() and not app.storage.user["ai_backend"].strip() == "default" else None,
+            api_endpoint=app.storage.user["api_endpoint"].strip() if app.storage.user["api_key"].strip() and app.storage.user["api_endpoint"].strip() and not app.storage.user["ai_backend"].strip() == "default" else None,
+            max_tokens=int(app.storage.user["max_tokens"]) if app.storage.user["api_key"].strip() and app.storage.user["max_tokens"] and not app.storage.user["ai_backend"].strip() == "default" else None,
+            temperature=float(app.storage.user["temperature"]) if app.storage.user["api_key"].strip() and app.storage.user["temperature"] and not app.storage.user["ai_backend"].strip() == "default" else None,
+            follow_up_prompt=user_request, 
+            stream=True, 
+            print_on_terminal=False, 
+            stream_events_only=True, 
+            #streaming_event=cancel_event, # this works only for unpacking completion text; not useful in this case
+            **kwargs,
+        )
+        n.message = get_translation("Running...")
+        await asyncio.sleep(0)
+
         while cancel_event is not None and not cancel_event.is_set():
             # 0. SAFETY CHECK: Stop if user closed the tab
             if not ui.context.client.connected:
