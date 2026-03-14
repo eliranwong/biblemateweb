@@ -411,7 +411,7 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                                     output_markdown = ui.markdown().style('font-size: 1.1rem')
                                     n = ui.notification(get_translation("Loading..."), timeout=None, spinner=True)
                                     await asyncio.sleep(0)
-                                    if not selected_tool == "search_the_whole_bible":
+                                    if not selected_tool == "search_the_bible":
                                         user_request = chapter2verses(user_request)
                                     api_query = f"{element}{user_request}"
                                     answers = await run.io_bound(get_api_content, api_query, app.storage.user["ui_language"], app.storage.client["custom"])

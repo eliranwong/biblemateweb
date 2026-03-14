@@ -1,5 +1,5 @@
 TOOL_ELEMENTS = {
-    "search_the_whole_bible": "search:::",
+    "search_the_bible": "search:::",
     "compare_bible_translations": "verses:::KJV,LEB,NET,OHGB,OHGBi:::",
     "retrieve_bible_cross_references": "xrefs:::",
     "retrieve_hebrew_or_greek_bible_verses": "verses:::OHGB:::",

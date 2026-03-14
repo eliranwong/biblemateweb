@@ -585,9 +585,9 @@ TOOLS_SCHEMA = {'anyalyze_psalms': {'description': 'analyze the context and back
                                'parameters': {'properties': {'request': {'type': 'string'}},
                                               'required': ['request'],
                                               'type': 'object'}},
- 'search_the_whole_bible': {'description': 'search the whole bible; search '
+ 'search_the_bible': {'description': 'search the whole bible; search '
                                            'string must be given',
-                            'name': 'search_the_whole_bible',
+                            'name': 'search_the_bible',
                             'parameters': {'properties': {'request': {'type': 'string'}},
                                            'required': ['request'],
                                            'type': 'object'}},

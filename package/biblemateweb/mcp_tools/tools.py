@@ -191,8 +191,6 @@ TOOLS = {'anyalyze_psalms': 'analyze the context and background of the Psalms in
                      'given',
  'search_song_of_songs_only': 'search the book of Song of Songs only; search '
                               'string must be given',
- 'search_the_whole_bible': 'search the whole bible; search string must be '
-                           'given',
  'search_titus_only': 'search the book of Titus only; search string must be '
                       'given',
  'search_zechariah_only': 'search the book of Zechariah only; search string '
@@ -273,4 +271,30 @@ TOOLS = {'anyalyze_psalms': 'analyze the context and background of the Psalms in
                         'on user input',
  'write_short_bible_prayer': 'Write a short prayer, in one paragraph only, '
                              'pertaining to the user content in reference to '
-                             'the Bible'}
+                             'the Bible',
+ 'search_the_bible': '''search the bible; search string must be given as the tool instruction
+
+ATTENTION: Special notes about searching the bibles:
+
+* Search the whole English Bible
+A simple search string searches the whole English Bible by default, e.g. "love one another"
+
+* Search the whole Chinese Bible
+Prefix the search string with "CUV:::", to search the whole Chinese Bible, e.g. "CUV:::彼此相愛"
+
+* Search specific books in the Bible
+You have to use the following book abbreviations (case-sensitive) with exact spellings, e.g. use "Rom", instead of "Romans", for searching the book of Romans:
+
+['Gen', 'Exod', 'Lev', 'Num', 'Deut', 'Josh', 'Judg', 'Ruth', '1Sam', '2Sam', '1Kgs', '2Kgs', '1Chr', '2Chr', 'Ezra', 'Neh', 'Esth', 'Job', 'Ps', 'Prov', 'Eccl', 'Song', 'Isa', 'Jer', 'Lam', 'Ezek', 'Dan', 'Hos', 'Joel', 'Amos', 'Obad', 'Jonah', 'Mic', 'Nah', 'Hab', 'Zeph', 'Hag', 'Zech', 'Mal', 'Matt', 'Mark', 'Luke', 'John', 'Acts', 'Rom', '1Cor', '2Cor', 'Gal', 'Eph', 'Phil', 'Col', '1Thess', '2Thess', '1Tim', '2Tim', 'Titus', 'Phlm', 'Heb', 'Jas', '1Pet', '2Pet', '1John', '2John', '3John', 'Jude', 'Rev']
+
+For examples (use comma "," as separator when more than one condition is specified):
+
+* to search for "love one another" in the book of John in the English Bible, use the following search string: "John:::love one another"
+* to search for "彼此相愛" in the book of John in the Chinese Bible, use the following search string: "CUV,John:::彼此相愛"
+
+Multiple books search is supported, for examples (use comma "," as separator):
+
+* to search for "love one another" in the book of John and Romans in the English Bible, use the following search string: "John,Rom:::love one another"
+* to search for "彼此相愛" in the book of John and Romans in the Chinese Bible, use the following search string: "CUV,John,Rom:::彼此相愛"
+
+REMEMBER: The tool instruction for using this tool should be the search string ONLY, without any other text.'''}

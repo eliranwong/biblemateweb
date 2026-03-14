@@ -11,6 +11,7 @@ from typing import List
 import os, glob, apsw, re, asyncio, json, markdown2, traceback, tempfile, pypandoc
 import numpy as np
 
+BIBLE_BOOKS = [BibleBooks.abbrev["eng"][str(i)][0] for i in range(1,67)]
 
 BIBLEMATEWEB_APP_DIR = os.path.dirname(os.path.realpath(__file__))
 BIBLEMATEWEB_USER_DIR = os.path.join(os.path.expanduser("~"), "biblemate")
@@ -280,7 +281,6 @@ def get_default_bible(language):
     return module
 
 def resolve_verses_additional_options(q: str = None, default_bible: str = "NET", custom: bool = False):
-    BIBLE_BOOKS = [BibleBooks.abbrev["eng"][str(i)][0] for i in range(1,67)]
     OT_BOOKS = BIBLE_BOOKS[:39]
     NT_BOOKS = BIBLE_BOOKS[39:]
     client_bibles = getBibleVersionList(custom)
@@ -315,7 +315,6 @@ def resolve_verses_additional_options(q: str = None, default_bible: str = "NET",
 
 def update_verses_sql_query(selected_values):
     """Generates the SQLite query based on selection."""
-    BIBLE_BOOKS = [BibleBooks.abbrev["eng"][str(i)][0] for i in range(1,67)]
     BOOK_MAP = {book: i + 1 for i, book in enumerate(BIBLE_BOOKS)}
     OT_BOOKS = BIBLE_BOOKS[:39]
     NT_BOOKS = BIBLE_BOOKS[39:]
