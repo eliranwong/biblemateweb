@@ -28,7 +28,7 @@ def ai_chat(gui=None, q="", **_):
     CANCEL_NOTIFICATION = None
     DELETE_DIALOG = None
 
-    SYSTEM_TOOL_SELECTION = readTextFile(os.path.join(BIBLEMATEWEB_APP_DIR, "mcp_tools", "system_tool_selection_lite.md"))
+    SYSTEM_TOOL_SELECTION = readTextFile(os.path.join(BIBLEMATEWEB_APP_DIR, "mcp_tools", "system_tool_selection_mini.md"))
 
     TOOL_INSTRUCTION_PROMPT = """Please transform the following suggestions into clear, precise, and actionable instructions."""
     TOOL_INSTRUCTION_SUFFIX = """

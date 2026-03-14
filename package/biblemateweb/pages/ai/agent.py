@@ -8,7 +8,6 @@ from biblemateweb.dialogs.selection_dialog import SelectionDialog
 from biblemateweb.dialogs.filename_dialog import FilenameDialog
 from biblemateweb.mcp_tools.elements import TOOL_ELEMENTS
 from biblemateweb.mcp_tools.tools import TOOLS
-from biblemateweb.mcp_tools.tool_descriptions import TOOL_DESCRIPTIONS
 from biblemateweb.api.api import get_api_content
 from biblemate.core.systems import get_system_tool_instruction, get_system_master_plan, get_system_make_suggestion, get_system_progress
 from agentmake import readTextFile
@@ -42,7 +41,7 @@ Please provide a comprehensive response that resolves my original request, ensur
     CANCEL_NOTIFICATION = None
     DELETE_DIALOG = None
 
-    SYSTEM_TOOL_SELECTION = readTextFile(os.path.join(BIBLEMATEWEB_APP_DIR, "mcp_tools", "system_tool_selection_lite.md"))
+    SYSTEM_TOOL_SELECTION = readTextFile(os.path.join(BIBLEMATEWEB_APP_DIR, "mcp_tools", "system_tool_selection_mini.md"))
 
     TOOL_INSTRUCTION_PROMPT = """Please transform the following suggestions into clear, precise, and actionable instructions."""
     TOOL_INSTRUCTION_SUFFIX = """
@@ -535,7 +534,9 @@ I'm BibleMate AI, an autonomous agent designed to assist you with your Bible stu
                     .classes('w-full border rounded-lg shadow-sm') \
                     .props('header-class="font-bold text-lg text-secondary"') as plan_expansion:
                 MASTER_PLAN_MARKDOWN = ui.markdown().style('font-size: 1.1rem')
-            master_plan_prompt = MASTER_PLAN_PROMPT_TEMPLATE.format(available_tools=list(TOOLS.keys()), tool_descriptions=TOOL_DESCRIPTIONS, user_request=MASTER_USER_REQUEST)
+            available_tools = list(TOOL_ELEMENTS.keys())
+            available_tools_desciption = "\n\n".join([f'# TOOL DESCRIPTION: `{i}`\n'+TOOLS.get(i) for i in TOOL_ELEMENTS])
+            master_plan_prompt = MASTER_PLAN_PROMPT_TEMPLATE.format(available_tools=available_tools, tool_descriptions=available_tools_desciption, user_request=MASTER_USER_REQUEST)
             MASTER_PLAN = await stream_response(MESSAGES, master_plan_prompt, MASTER_PLAN_MARKDOWN, CANCEL_EVENT, system=get_system_master_plan(), scroll_area=SCROLL_AREA)
             if not MASTER_PLAN or MASTER_PLAN.strip() == "[NO_CONTENT]":
                 await reset_ui()

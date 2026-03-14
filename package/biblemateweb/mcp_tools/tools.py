@@ -28,6 +28,9 @@ TOOLS = {'anyalyze_psalms': 'analyze the context and background of the Psalms in
  'read_bible_commentary': 'read bible commentary on individual bible verses; '
                           'bible verse reference(s) must be given, like , like '
                           'John 3:16 or John 3:16-18',
+ 'read_chinese_bible_commentary': 'read Chinese bible commentary on individual bible verses; '
+                          'bible verse reference(s) must be given, like , like '
+                          'John 3:16 or John 3:16-18 or 約翰福音 3:16 or 約翰福音 3:16-18',
  'refine_bible_translation': 'refine the translation of a Bible verse or '
                              'passage',
  'retrieve_bible_chapter': 'retrieve a whole Bible chapter; bible chapter '
@@ -39,6 +42,10 @@ TOOLS = {'anyalyze_psalms': 'analyze the context and background of the Psalms in
                           'must be given, e.g. John 3:16-17; single or '
                           'multiple references accepted, e.g. Deut 6:4; Gen '
                           '1:26-27',
+ 'retrieve_chinese_bible_verses': 'retrieve Chinese Bible verses; bible verse reference(s) '
+                          'must be given, e.g. John 3:16-17; single or '
+                          'multiple references accepted, e.g. Deut 6:4; Gen '
+                          '1:26-27 or 申命記 6:4; 創世記 1:26-27',
  'retrieve_hebrew_or_greek_bible_verses': 'retrieve Hebrew or Greek Bible '
                                           'verses; bible verse reference(s) '
                                           'must be given, e.g. John 3:16-17; '
