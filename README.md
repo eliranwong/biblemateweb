@@ -180,7 +180,10 @@ config.disable_agent_mode=False
 config.disable_partner_mode=False
 config.limit_agent_mode_once_daily=False
 config.limit_partner_mode_once_daily=False
+config.disable_local_api_endpoint=True
 ```
+
+For a comprehensive explanation of every configuration setting and how to obtain required keys, see the [Configuration Guide](docs/configuration.md).
 
 **Restart the server after configuration changes:**
 ```bash
@@ -303,6 +306,7 @@ For public deployments:
 
 Full documentation is available in the [docs](docs/) directory.
 
+- [Configuration Guide](docs/configuration.md) - Detailed server configuration reference
 - [API Query Syntax](docs/api_query.md) - Complete API reference
 - [Google Drive Setup](docs/google_drive_notes_setup.md) - OAuth configuration
 - [Custom Tokens](docs/custom_token.md) - Access control
