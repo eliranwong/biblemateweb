@@ -560,14 +560,32 @@ def page_Settings(
         with ui.expansion('AI Backend', icon='memory').classes('w-full rounded-lg'):
             with ui.column().classes('w-full p-4 gap-4'):
                 ui.select(label='AI Backend',
-                          options=['default', 'googleai', 'openai', 'anthropic', 'cohere', 'deepseek', 'mistral', 'xai', 'azure_anthropic', 'azure_cohere', 'azure_deepseek', 'azure_mistral', 'azure_openai', 'azure_xai', 'ollamacloud', 'custom']) \
+                          options={
+                              'default': 'default',
+                              'grok': 'grok (Grok Build subscription)',
+                              'googleai': 'googleai',
+                              'openai': 'openai',
+                              'anthropic': 'anthropic',
+                              'cohere': 'cohere',
+                              'deepseek': 'deepseek',
+                              'mistral': 'mistral',
+                              'xai': 'xai',
+                              'azure_anthropic': 'azure_anthropic',
+                              'azure_cohere': 'azure_cohere',
+                              'azure_deepseek': 'azure_deepseek',
+                              'azure_mistral': 'azure_mistral',
+                              'azure_openai': 'azure_openai',
+                              'azure_xai': 'azure_xai',
+                              'ollamacloud': 'ollamacloud',
+                              'custom': 'custom',
+                          }) \
                     .bind_value(app.storage.user, 'ai_backend') \
-                    .tooltip('Select the AI service provider.')
+                    .tooltip('Select the AI service provider. grok uses the signed-in Grok Build subscription from `grok login` and does not use an API key.')
 
                 ui.input(label='AI Model') \
                     .bind_value(app.storage.user, 'ai_model') \
                     .classes('w-full') \
-                    .tooltip('Your AI model.')
+                    .tooltip('Model id. For grok, use an id such as grok-4.7. Leave this blank to use grok-4.7.')
 
                 ui.input(label='API Endpoint (Optional)', placeholder='(Optional) Custom API endpoint', password=True, password_toggle_button=True) \
                     .bind_value(app.storage.user, 'api_endpoint') \
@@ -577,7 +595,7 @@ def page_Settings(
                 ui.input(label='API Key', password=True, password_toggle_button=True) \
                     .bind_value(app.storage.user, 'api_key') \
                     .classes('w-full') \
-                    .tooltip('Your API key for the selected backend.')
+                    .tooltip('Your API key for the selected backend. The grok backend ignores this and uses the Grok Build subscription.')
 
                 DEFAULT_TOKENS = 8192
                 MIN_TOKENS = 2048

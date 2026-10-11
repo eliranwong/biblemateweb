@@ -104,7 +104,7 @@ config.disable_local_api_endpoint=True
 #### `config.ai_backend`
 * **Type**: `str`
 * **Default**: `""`
-* **Description**: Specifies the default server-side AI provider backend (e.g. `"googleai"`, `"openai"`, `"anthropic"`, `"groq"`, `"ollama"`, `"deepseek"`). If empty, the system falls back to its internal default.
+* **Description**: Specifies the default server-side AI provider backend (e.g. `"googleai"`, `"openai"`, `"anthropic"`, `"groq"`, `"ollama"`, `"deepseek"`, `"grok"`). If empty, the system falls back to its internal default. `"grok"` streams from the signed-in Grok Build CLI (`grok login`) through the `grokbuildstreaming` package and does not use an API key. A user who selects another backend and saves an API key still uses that backend.
 * **Example**:
   ```python
   config.ai_backend="googleai"

@@ -4,3 +4,4 @@ tests/.nicegui/**
 __pycache__/**
 nohup.out
 package/.nicegui/**
+package/biblemateweb/pages/.DS_Store

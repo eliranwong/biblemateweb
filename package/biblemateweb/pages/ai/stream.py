@@ -5,6 +5,82 @@ from nicegui import ui, app, run
 import asyncio
 from biblemateweb import config, get_translation, DEFAULT_MESSAGES
 
+GROK_BACKEND = "grok"
+
+
+def _use_grok_backend():
+    """True when this turn should stream from the signed-in Grok Build CLI."""
+    user_backend = (app.storage.user.get("ai_backend") or "").strip()
+    if user_backend == GROK_BACKEND:
+        return True
+    user_key = (app.storage.user.get("api_key") or "").strip()
+    if user_key and user_backend and user_backend != "default":
+        return False
+    return (getattr(config, "ai_backend", "") or "").strip() == GROK_BACKEND
+
+
+async def _stream_with_grok(messages, user_request, response_markdown, cancel_event, system=None, scroll_area=None):
+    """Stream one Grok Build subscription turn into the markdown widget.
+
+    Prompt names are already unpacked by the caller. This path does not call agentmake.
+    """
+    try:
+        from grokbuildstreaming import stream_text
+    except ImportError:
+        response_markdown.content = f"[{get_translation('Error')}: grokbuildstreaming is not installed]"
+        await asyncio.sleep(0)
+        if cancel_event is not None:
+            cancel_event.set()
+        return None
+
+    n = ui.notification(get_translation("Loading..."), timeout=None, spinner=True)
+    if app.storage.user["auto_scroll"] and scroll_area is not None:
+        await ui.run_javascript(f'getElement({scroll_area.id}).setScrollPosition("vertical", 99999, 300)')
+    await asyncio.sleep(0)
+    text_chunks = ""
+    try:
+        model = (app.storage.user.get("ai_model") or "").strip()
+        if not model.startswith("grok-"):
+            model = None
+        n.message = get_translation("Running...")
+        await asyncio.sleep(0)
+        async for text_chunk in stream_text(
+            messages,
+            follow_up=user_request,
+            system=system if isinstance(system, str) and system.strip() else None,
+            model=model,
+            cancel_event=cancel_event,
+        ):
+            if not ui.context.client.connected:
+                break
+            if cancel_event is not None and cancel_event.is_set():
+                break
+            if not text_chunk:
+                continue
+            text_chunks += text_chunk
+            response_markdown.content = text_chunks
+            await asyncio.sleep(0)
+        if cancel_event is not None and cancel_event.is_set():
+            n.message = get_translation("Cancelled!")
+            response_markdown.content = f"[{get_translation('Cancelled!')}]"
+            await asyncio.sleep(0)
+        else:
+            n.message = get_translation("Done!")
+            if app.storage.user["auto_scroll"] and scroll_area is not None:
+                await asyncio.sleep(0.1)
+                await ui.run_javascript(f'getElement({scroll_area.id}).setScrollPosition("vertical", 99999, 300)')
+    except Exception as e:
+        response_markdown.content = f"[{get_translation('Error')}: {str(e)}]"
+        await asyncio.sleep(0)
+        if cancel_event is not None:
+            cancel_event.set()
+
+    n.spinner = False
+    n.dismiss()
+    if cancel_event is not None and cancel_event.is_set():
+        return None
+    return text_chunks.replace(" ", " ").replace("‑", "-")
+
 
 async def stream_response(messages, user_request, response_markdown, cancel_event, system=None, scroll_area=None, agent_expansion=None, agent_markdown=None, **kwargs):
     def get_next_chunk(iterator):
@@ -44,11 +120,16 @@ async def stream_response(messages, user_request, response_markdown, cancel_even
                 agent_expansion.close()
     elif system is not None:
         system_content = unpack_system_content(system)
-        system = None
-        # refine user request
-        # Note: when a conversation goes long, system message placed in the beginning of the messages chain does not work properly.
-        # Embed the system message into the user request to enhance the response
-        user_request = f"""---
+        if _use_grok_backend():
+            # Grok follows --system-prompt-override. Keep the role there.
+            # Embedding it above the user request makes Grok answer the request instead.
+            system = system_content
+        else:
+            system = None
+            # refine user request
+            # Note: when a conversation goes long, system message placed in the beginning of the messages chain does not work properly.
+            # Embed the system message into the user request to enhance the response
+            user_request = f"""---
 
 START OF YOUR NEW ROLE
 
@@ -63,6 +144,9 @@ START OF MY REQUEST
 ---
 
 {user_request}"""
+
+    if _use_grok_backend():
+        return await _stream_with_grok(messages, user_request, response_markdown, cancel_event, system=system, scroll_area=scroll_area)
 
     # get streaming object
     n = ui.notification(get_translation("Loading..."), timeout=None, spinner=True)
