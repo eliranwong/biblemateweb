@@ -559,28 +559,30 @@ def page_Settings(
         # --- AI Backend Section ---
         with ui.expansion('AI Backend', icon='memory').classes('w-full rounded-lg'):
             with ui.column().classes('w-full p-4 gap-4'):
+                ai_backend_options = {'default': 'default'}
+                if config.show_grok_build:
+                    ai_backend_options['grok'] = 'grok (Grok Build subscription)'
+                ai_backend_options.update({
+                    'googleai': 'googleai',
+                    'openai': 'openai',
+                    'anthropic': 'anthropic',
+                    'cohere': 'cohere',
+                    'deepseek': 'deepseek',
+                    'mistral': 'mistral',
+                    'xai': 'xai',
+                    'azure_anthropic': 'azure_anthropic',
+                    'azure_cohere': 'azure_cohere',
+                    'azure_deepseek': 'azure_deepseek',
+                    'azure_mistral': 'azure_mistral',
+                    'azure_openai': 'azure_openai',
+                    'azure_xai': 'azure_xai',
+                    'ollamacloud': 'ollamacloud',
+                    'custom': 'custom',
+                })
                 ui.select(label='AI Backend',
-                          options={
-                              'default': 'default',
-                              'grok': 'grok (Grok Build subscription)',
-                              'googleai': 'googleai',
-                              'openai': 'openai',
-                              'anthropic': 'anthropic',
-                              'cohere': 'cohere',
-                              'deepseek': 'deepseek',
-                              'mistral': 'mistral',
-                              'xai': 'xai',
-                              'azure_anthropic': 'azure_anthropic',
-                              'azure_cohere': 'azure_cohere',
-                              'azure_deepseek': 'azure_deepseek',
-                              'azure_mistral': 'azure_mistral',
-                              'azure_openai': 'azure_openai',
-                              'azure_xai': 'azure_xai',
-                              'ollamacloud': 'ollamacloud',
-                              'custom': 'custom',
-                          }) \
+                          options=ai_backend_options) \
                     .bind_value(app.storage.user, 'ai_backend') \
-                    .tooltip('Select the AI service provider. grok uses the signed-in Grok Build subscription from `grok login` and does not use an API key.')
+                    .tooltip('Select the AI service provider. grok uses the signed-in Grok Build subscription from `grok login` and does not use an API key.' if config.show_grok_build else 'Select the AI service provider.')
 
                 ui.input(label='AI Model') \
                     .bind_value(app.storage.user, 'ai_model') \

@@ -11,7 +11,9 @@ GROK_BACKEND = "grok"
 def _use_grok_backend():
     """True when this turn should stream from the signed-in Grok Build CLI."""
     user_backend = (app.storage.user.get("ai_backend") or "").strip()
-    if user_backend == GROK_BACKEND:
+    if getattr(config, "show_grok_build", False) and user_backend == GROK_BACKEND:
+        return True
+    if user_backend in ("", "default") and getattr(config, "use_grok_build_for_default", False):
         return True
     user_key = (app.storage.user.get("api_key") or "").strip()
     if user_key and user_backend and user_backend != "default":

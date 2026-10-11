@@ -30,6 +30,8 @@ Below is a complete sample configuration file using standard defaults and sample
 config.hot_reload=False
 config.avatar=""
 config.ai_backend=""
+config.show_grok_build=False
+config.use_grok_build_for_default=False
 config.embedding_model="paraphrase-multilingual"
 config.custom_token="your-custom-access-token-12345"
 config.google_client_id="123456789012-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com"
@@ -126,6 +128,24 @@ config.disable_local_api_endpoint=True
   - **Ollama (Local AI)**:
     1. Install and run `ollama serve` on your local machine (no API key required).
   - *Note*: Individual users can also set their own personal API key in the UI under **Preferences** (BYOK model).
+
+#### `config.show_grok_build`
+* **Type**: `bool`
+* **Default**: `False`
+* **Description**: When `True`, the Preferences AI Backend list includes `grok (Grok Build subscription)`. When `False`, that choice is hidden. The subscription comes from a signed-in `grok login` session through the `grokbuildstreaming` package and does not use an API key.
+* **Example**:
+  ```python
+  config.show_grok_build=True
+  ```
+
+#### `config.use_grok_build_for_default`
+* **Type**: `bool`
+* **Default**: `False`
+* **Description**: When `True`, a user who leaves AI Backend on `default` receives streamed replies from the signed-in Grok Build subscription. When `False`, `default` keeps the server `config.ai_backend`, or the built-in backend when that value is empty. A user who selects a specific backend keeps that backend.
+* **Example**:
+  ```python
+  config.use_grok_build_for_default=True
+  ```
 
 #### `config.embedding_model`
 * **Type**: `str`

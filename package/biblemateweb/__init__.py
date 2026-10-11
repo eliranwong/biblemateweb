@@ -35,6 +35,8 @@ def write_user_config():
     configurations = f"""config.hot_reload={config.hot_reload}
 config.avatar="{config.avatar}"
 config.ai_backend="{config.ai_backend}"
+config.show_grok_build={config.show_grok_build}
+config.use_grok_build_for_default={config.use_grok_build_for_default}
 config.embedding_model="{config.embedding_model}"
 config.custom_token="{config.custom_token}"
 config.google_client_id="{config.google_client_id}"
@@ -54,6 +56,8 @@ config.disable_local_api_endpoint={config.disable_local_api_endpoint}"""
 default_config = '''config.hot_reload=False
 config.avatar=""
 config.ai_backend=""
+config.show_grok_build=False
+config.use_grok_build_for_default=False
 config.embedding_model="paraphrase-multilingual"
 config.custom_token=""
 config.google_client_id=""
