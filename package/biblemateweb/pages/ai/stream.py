@@ -3,33 +3,96 @@ from agentmake.utils.text_wrapper import get_stream_event_text
 from agentmake.utils.read_assistant_response import is_openai_style
 from nicegui import ui, app, run
 import asyncio
+import importlib
 from biblemateweb import config, get_translation, DEFAULT_MESSAGES
 
-GROK_BACKEND = "grok"
+# Signed-in CLI backends. When more than one use_*_for_default flag is on,
+# the first entry here wins: grok, then claude, then antigravity.
+_SUBSCRIPTION_BACKENDS = (
+    # id, show flag, default flag, package, model prefixes
+    ("grok", "show_grok_build", "use_grok_build_for_default", "grokbuildstreaming", ("grok-",)),
+    ("claude", "show_claude_code", "use_claude_code_for_default", "claudecodestreaming", ("claude", "sonnet", "opus", "haiku")),
+    ("antigravity", "show_antigravity", "use_antigravity_for_default", "antigravitystreaming", ("gemini",)),
+)
 
 
-def _use_grok_backend():
-    """True when this turn should stream from the signed-in Grok Build CLI."""
-    user_backend = (app.storage.user.get("ai_backend") or "").strip()
-    if getattr(config, "show_grok_build", False) and user_backend == GROK_BACKEND:
-        return True
-    if user_backend in ("", "default") and getattr(config, "use_grok_build_for_default", False):
-        return True
-    user_key = (app.storage.user.get("api_key") or "").strip()
+def _subscription_flags():
+    flags = {}
+    for _backend, show_flag, use_flag, _package, _prefixes in _SUBSCRIPTION_BACKENDS:
+        flags[show_flag] = bool(getattr(config, show_flag, False))
+        flags[use_flag] = bool(getattr(config, use_flag, False))
+    return flags
+
+
+def choose_subscription_backend(user_backend, user_key, server_backend, flags):
+    """Return the signed-in CLI backend for this turn, or None to use agentmake.
+
+    An explicit user choice counts only when that backend's show flag is on.
+    A blank or ``default`` choice uses the first use_*_for_default flag that is on.
+    A saved API key on any other backend stays with agentmake. ``config.ai_backend``
+    set to grok, claude, or antigravity is the fallback.
+    """
+    user_backend = (user_backend or "").strip()
+    user_key = (user_key or "").strip()
+    server_backend = (server_backend or "").strip()
+    for backend, show_flag, _use_flag, _package, _prefixes in _SUBSCRIPTION_BACKENDS:
+        if flags.get(show_flag) and user_backend == backend:
+            return backend
+    if user_backend in ("", "default"):
+        for backend, _show_flag, use_flag, _package, _prefixes in _SUBSCRIPTION_BACKENDS:
+            if flags.get(use_flag):
+                return backend
     if user_key and user_backend and user_backend != "default":
-        return False
-    return (getattr(config, "ai_backend", "") or "").strip() == GROK_BACKEND
+        return None
+    for backend, _show_flag, _use_flag, _package, _prefixes in _SUBSCRIPTION_BACKENDS:
+        if server_backend == backend:
+            return backend
+    return None
 
 
-async def _stream_with_grok(messages, user_request, response_markdown, cancel_event, system=None, scroll_area=None):
-    """Stream one Grok Build subscription turn into the markdown widget.
+def subscription_model(backend, model):
+    """Return ``model`` when it belongs to ``backend``, else None so the library default is used."""
+    text = (model or "").strip()
+    if not text or not backend:
+        return None
+    lowered = text.lower()
+    for name, _show_flag, _use_flag, _package, prefixes in _SUBSCRIPTION_BACKENDS:
+        if name == backend:
+            if any(lowered.startswith(prefix) for prefix in prefixes):
+                return text
+            return None
+    return None
+
+
+def _subscription_backend():
+    """Backend id when this turn should stream from a signed-in CLI, else None."""
+    return choose_subscription_backend(
+        app.storage.user.get("ai_backend"),
+        app.storage.user.get("api_key"),
+        getattr(config, "ai_backend", ""),
+        _subscription_flags(),
+    )
+
+
+def _package_for(backend):
+    for name, _show_flag, _use_flag, package, _prefixes in _SUBSCRIPTION_BACKENDS:
+        if name == backend:
+            return package
+    return None
+
+
+async def _stream_with_subscription(backend, messages, user_request, response_markdown, cancel_event, system=None, scroll_area=None):
+    """Stream one signed-in CLI turn into the markdown widget.
 
     Prompt names are already unpacked by the caller. This path does not call agentmake.
+    ``backend`` is grok (grokbuildstreaming), claude (claudecodestreaming), or
+    antigravity (antigravitystreaming).
     """
+    package = _package_for(backend)
     try:
-        from grokbuildstreaming import stream_text
+        stream_text = importlib.import_module(package).stream_text
     except ImportError:
-        response_markdown.content = f"[{get_translation('Error')}: grokbuildstreaming is not installed]"
+        response_markdown.content = f"[{get_translation('Error')}: {package} is not installed]"
         await asyncio.sleep(0)
         if cancel_event is not None:
             cancel_event.set()
@@ -41,9 +104,7 @@ async def _stream_with_grok(messages, user_request, response_markdown, cancel_ev
     await asyncio.sleep(0)
     text_chunks = ""
     try:
-        model = (app.storage.user.get("ai_model") or "").strip()
-        if not model.startswith("grok-"):
-            model = None
+        model = subscription_model(backend, app.storage.user.get("ai_model"))
         n.message = get_translation("Running...")
         await asyncio.sleep(0)
         async for text_chunk in stream_text(
@@ -103,6 +164,8 @@ async def stream_response(messages, user_request, response_markdown, cancel_even
         # refine user request
         user_request = instruction_content + "\n" + user_request
 
+    subscription = _subscription_backend()
+
     if system == "auto":
         system = await stream_response(DEFAULT_MESSAGES, user_request, agent_markdown, cancel_event, system="bible/create_agent", scroll_area=scroll_area)
         if not system or system.strip() == "[NO_CONTENT]":
@@ -122,9 +185,9 @@ async def stream_response(messages, user_request, response_markdown, cancel_even
                 agent_expansion.close()
     elif system is not None:
         system_content = unpack_system_content(system)
-        if _use_grok_backend():
-            # Grok follows --system-prompt-override. Keep the role there.
-            # Embedding it above the user request makes Grok answer the request instead.
+        if subscription:
+            # These CLIs take the unpacked role as the system prompt.
+            # Embedding it above the user request makes the model answer the request instead.
             system = system_content
         else:
             system = None
@@ -147,8 +210,8 @@ START OF MY REQUEST
 
 {user_request}"""
 
-    if _use_grok_backend():
-        return await _stream_with_grok(messages, user_request, response_markdown, cancel_event, system=system, scroll_area=scroll_area)
+    if subscription:
+        return await _stream_with_subscription(subscription, messages, user_request, response_markdown, cancel_event, system=system, scroll_area=scroll_area)
 
     # get streaming object
     n = ui.notification(get_translation("Loading..."), timeout=None, spinner=True)

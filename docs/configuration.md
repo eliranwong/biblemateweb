@@ -32,6 +32,10 @@ config.avatar=""
 config.ai_backend=""
 config.show_grok_build=False
 config.use_grok_build_for_default=False
+config.show_claude_code=False
+config.use_claude_code_for_default=False
+config.show_antigravity=False
+config.use_antigravity_for_default=False
 config.embedding_model="paraphrase-multilingual"
 config.custom_token="your-custom-access-token-12345"
 config.google_client_id="123456789012-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com"
@@ -106,7 +110,7 @@ config.disable_local_api_endpoint=True
 #### `config.ai_backend`
 * **Type**: `str`
 * **Default**: `""`
-* **Description**: Specifies the default server-side AI provider backend (e.g. `"googleai"`, `"openai"`, `"anthropic"`, `"groq"`, `"ollama"`, `"deepseek"`, `"grok"`). If empty, the system falls back to its internal default. `"grok"` streams from the signed-in Grok Build CLI (`grok login`) through the `grokbuildstreaming` package and does not use an API key. A user who selects another backend and saves an API key still uses that backend.
+* **Description**: Specifies the default server-side AI provider backend (e.g. `"googleai"`, `"openai"`, `"anthropic"`, `"groq"`, `"ollama"`, `"deepseek"`, `"grok"`, `"claude"`, `"antigravity"`). If empty, the system falls back to its internal default. `"grok"` streams from the signed-in Grok Build CLI (`grok login`) through `grokbuildstreaming`. `"claude"` streams from the signed-in Claude Code CLI (`claude auth login`) through `claudecodestreaming`. `"antigravity"` streams from the signed-in Antigravity CLI (`agy`) through `antigravitystreaming`. None of these three uses an API key. A user who selects another backend and saves an API key still uses that backend.
 * **Example**:
   ```python
   config.ai_backend="googleai"
@@ -141,10 +145,46 @@ config.disable_local_api_endpoint=True
 #### `config.use_grok_build_for_default`
 * **Type**: `bool`
 * **Default**: `False`
-* **Description**: When `True`, a user who leaves AI Backend on `default` receives streamed replies from the signed-in Grok Build subscription. When `False`, `default` keeps the server `config.ai_backend`, or the built-in backend when that value is empty. A user who selects a specific backend keeps that backend.
+* **Description**: When `True`, a user who leaves AI Backend on `default` receives streamed replies from the signed-in Grok Build subscription. When `False`, `default` keeps the server `config.ai_backend`, or the built-in backend when that value is empty. A user who selects a specific backend keeps that backend. If more than one `use_*_for_default` flag below is `True`, grok is used first, then claude, then antigravity.
 * **Example**:
   ```python
   config.use_grok_build_for_default=True
+  ```
+
+#### `config.show_claude_code`
+* **Type**: `bool`
+* **Default**: `False`
+* **Description**: When `True`, the Preferences AI Backend list includes `claude (Claude Code subscription)`. When `False`, that choice is hidden. The subscription comes from a signed-in `claude auth login` session through the `claudecodestreaming` package and does not use an API key.
+* **Example**:
+  ```python
+  config.show_claude_code=True
+  ```
+
+#### `config.use_claude_code_for_default`
+* **Type**: `bool`
+* **Default**: `False`
+* **Description**: When `True`, a user who leaves AI Backend on `default` receives streamed replies from the signed-in Claude Code subscription. When `False`, `default` keeps the server `config.ai_backend`, or the built-in backend when that value is empty. A user who selects a specific backend keeps that backend. If `config.use_grok_build_for_default` is also `True`, grok is used.
+* **Example**:
+  ```python
+  config.use_claude_code_for_default=True
+  ```
+
+#### `config.show_antigravity`
+* **Type**: `bool`
+* **Default**: `False`
+* **Description**: When `True`, the Preferences AI Backend list includes `antigravity (Antigravity subscription)`. When `False`, that choice is hidden. The subscription comes from a signed-in Antigravity CLI (`agy`) session through the `antigravitystreaming` package and does not use an API key.
+* **Example**:
+  ```python
+  config.show_antigravity=True
+  ```
+
+#### `config.use_antigravity_for_default`
+* **Type**: `bool`
+* **Default**: `False`
+* **Description**: When `True`, a user who leaves AI Backend on `default` receives streamed replies from the signed-in Antigravity CLI. When `False`, `default` keeps the server `config.ai_backend`, or the built-in backend when that value is empty. A user who selects a specific backend keeps that backend. If `config.use_grok_build_for_default` or `config.use_claude_code_for_default` is also `True`, that earlier choice is used.
+* **Example**:
+  ```python
+  config.use_antigravity_for_default=True
   ```
 
 #### `config.embedding_model`

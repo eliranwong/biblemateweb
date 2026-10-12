@@ -560,8 +560,20 @@ def page_Settings(
         with ui.expansion('AI Backend', icon='memory').classes('w-full rounded-lg'):
             with ui.column().classes('w-full p-4 gap-4'):
                 ai_backend_options = {'default': 'default'}
+                subscription_notes = []
                 if config.show_grok_build:
                     ai_backend_options['grok'] = 'grok (Grok Build subscription)'
+                    subscription_notes.append('grok uses the signed-in Grok Build subscription from `grok login`')
+                if config.show_claude_code:
+                    ai_backend_options['claude'] = 'claude (Claude Code subscription)'
+                    subscription_notes.append('claude uses the signed-in Claude Code subscription from `claude auth login`')
+                if config.show_antigravity:
+                    ai_backend_options['antigravity'] = 'antigravity (Antigravity subscription)'
+                    subscription_notes.append('antigravity uses the signed-in Antigravity CLI (`agy`)')
+                if subscription_notes:
+                    backend_tooltip = 'Select the AI service provider. ' + '. '.join(subscription_notes) + '. These do not use an API key.'
+                else:
+                    backend_tooltip = 'Select the AI service provider.'
                 ai_backend_options.update({
                     'googleai': 'googleai',
                     'openai': 'openai',
@@ -582,12 +594,12 @@ def page_Settings(
                 ui.select(label='AI Backend',
                           options=ai_backend_options) \
                     .bind_value(app.storage.user, 'ai_backend') \
-                    .tooltip('Select the AI service provider. grok uses the signed-in Grok Build subscription from `grok login` and does not use an API key.' if config.show_grok_build else 'Select the AI service provider.')
+                    .tooltip(backend_tooltip)
 
                 ui.input(label='AI Model') \
                     .bind_value(app.storage.user, 'ai_model') \
                     .classes('w-full') \
-                    .tooltip('Model id. For grok, use an id such as grok-4.7. Leave this blank to use grok-4.7.')
+                    .tooltip('Model id. For grok, use an id such as grok-4.7 (blank uses grok-4.7). For claude, use sonnet, opus, haiku, or a claude model id (blank uses the Claude Code default). For antigravity, use an id such as gemini-3.8-flash-high (blank uses the Antigravity default).')
 
                 ui.input(label='API Endpoint (Optional)', placeholder='(Optional) Custom API endpoint', password=True, password_toggle_button=True) \
                     .bind_value(app.storage.user, 'api_endpoint') \
@@ -597,7 +609,7 @@ def page_Settings(
                 ui.input(label='API Key', password=True, password_toggle_button=True) \
                     .bind_value(app.storage.user, 'api_key') \
                     .classes('w-full') \
-                    .tooltip('Your API key for the selected backend. The grok backend ignores this and uses the Grok Build subscription.')
+                    .tooltip('Your API key for the selected backend. grok, claude, and antigravity ignore this and use the signed-in CLI session.')
 
                 DEFAULT_TOKENS = 8192
                 MIN_TOKENS = 2048
