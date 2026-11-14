@@ -62,3 +62,13 @@ else
   echo "BibleMate AI WEB server is already running."
 fi
 ```
+
+## Install like an App
+
+Launch the BibleMateWeb with Chrome browser by opening:
+
+http://localhost:33355
+
+Then, in Chrome's menu (three dots), select "Install and create shortcut".
+
+This will create a home screen icon for BibleMateWeb.
