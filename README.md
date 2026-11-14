@@ -34,7 +34,7 @@ BibleMate AI Web provides a unified web interface combining the best features of
 - **Hebrew & Greek Tooltips**: Instant lexical information on hover
 - **Cross-References**: Treasury of Scripture Knowledge (TSK) integration
 - **Commentaries**: 30+ classic Bible commentaries
-- **Reference Books**: Read `.book` files (chapter-by-chapter) in a built-in reader, with clickable Bible references; add your own by dropping files into a folder ([guide](docs/tool/tool_books.md))
+- **Reference Books**: Read `.book` files (chapter-by-chapter) in a built-in reader, with clickable Bible references; add your own by dropping files into a folder ([guide](docs/tools/tool_books.md))
 - **Topical Studies**: Nave's, Thompson Chain, Torrey's topical Bibles
 - **Bible Dictionaries & Encyclopedias**: Easton's, Smith's, ISBE, and more
 
@@ -167,7 +167,7 @@ The API uses a keyword-based syntax with triple-colon delimiters:
 - And more...
 
 **Resources:**
-- [API Query Documentation](docs/api_query.md) - Complete syntax reference
+- [API Query Documentation](docs/api/api_query.md) - Complete syntax reference
 - [API Client Examples](tests/api_client.py) - Python usage examples
 
 ## Configuration
@@ -195,7 +195,7 @@ config.limit_partner_mode_once_daily=False
 config.disable_local_api_endpoint=True
 ```
 
-For a comprehensive explanation of every configuration setting and how to obtain required keys, see the [Configuration Guide](docs/configuration.md).
+For a comprehensive explanation of every configuration setting and how to obtain required keys, see the [Configuration Guide](docs/server_setup/configuration.md).
 
 **Restart the server after configuration changes:**
 ```bash
@@ -242,7 +242,7 @@ Enable personal Bible study notes synchronized across devices via Google Drive.
 **Setup:**
 
 1. **Create Google Cloud Project** and enable Google Drive API
-2. **Configure OAuth Credentials** (see [detailed setup guide](docs/google_drive_notes_setup.md))
+2. **Configure OAuth Credentials** (see [detailed setup guide](docs/server_setup/google_drive_notes_setup.md))
 3. **Add to config:**
    ```python
    config.google_client_id="your-client-id.apps.googleusercontent.com"
@@ -254,7 +254,7 @@ Enable personal Bible study notes synchronized across devices via Google Drive.
 Notes are stored in users' Google Drive AppData folder (hidden, app-specific storage).
 
 **Resources:**
-- [Google Drive Notes Setup Guide](docs/google_drive_notes_setup.md)
+- [Google Drive Notes Setup Guide](docs/server_setup/google_drive_notes_setup.md)
 - [Demo](https://biblemate.gospelchurch.uk)
 
 ### Document Export (DOCX)
@@ -318,14 +318,14 @@ For public deployments:
 
 Full documentation is available in the [docs](docs/) directory.
 
-- [Configuration Guide](docs/configuration.md) - Detailed server configuration reference
-- [API Query Syntax](docs/api_query.md) - Complete API reference
-- [Google Drive Setup](docs/google_drive_notes_setup.md) - OAuth configuration
-- [Custom Tokens](docs/custom_token.md) - Access control
-- [API Key Setup](docs/api_key_setup.md) - AI backend configuration
-- [Reference Books](docs/tool/tool_books.md) - Book reader and adding your own books
-- [Study Tools](docs/search/tool/) - Study Tools
-- [Search Tools](docs/search/search/) - Search Tools
+- [Configuration Guide](docs/server_setup/configuration.md) - Detailed server configuration reference
+- [API Query Syntax](docs/api/api_query.md) - Complete API reference
+- [Google Drive Setup](docs/server_setup/google_drive_notes_setup.md) - OAuth configuration
+- [Custom Tokens](docs/user_preferences/custom_token.md) - Access control
+- [API Key Setup](docs/user_preferences/api_key_setup.md) - AI backend configuration
+- [Reference Books](docs/tools/tool_books.md) - Book reader and adding your own books
+- [Study Tools](docs/tools/README.md) - Study Tools
+- [Search Tools](docs/search/README.md) - Search Tools
 - [CLAUDE.md](CLAUDE.md) - Developer architecture guide
 
 ## Video Tutorials

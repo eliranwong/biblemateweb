@@ -1,49 +1,29 @@
 # BibleMate AI Web Documentation
 
-Guides for setting up, configuring and using BibleMate AI Web. See the [main README](../README.md) for an overview.
+Complete documentation for **BibleMate AI Web** – an AI-powered Bible study web application. See the [main README](../README.md) for an overview.
 
-## Setup & Configuration
+## Languages / 語言 / 语言
 
-- [Configuration Guide](configuration.md)
-- [BYOK - Bring Your Own Key](api_key_setup.md)
-- [Custom Token](custom_token.md)
-- [Google Drive Notes Setup](google_drive_notes_setup.md)
-- [API Query](api_query.md)
-- [Android Termux Setup](android_termux/README.md)
+| Language | Documentation |
+|---|---|
+| **English** | [English Documentation](english/README.md) |
+| **繁體中文 (Traditional Chinese)** | [繁體中文文檔](traditional_chinese/README.md) |
+| **简体中文 (Simplified Chinese)** | [简体中文文档](simplified_chinese/README.md) |
 
-## Search Guides
+## Quick Links
 
-- [Bible Characters Search](search/search_bible_characters.md)
-- [Bible Locations Search](search/search_bible_locations.md)
-- [Bible Maps Search](search/search_bible_maps.md)
-- [Bible Names Search](search/search_bible_names.md)
-- [Bible Parallels Search](search/search_bible_parallels.md)
-- [Bible Promises Search](search/search_bible_promises.md)
-- [Bible Relationships Search](search/search_bible_relationships.md)
-- [Bible Topics Search](search/search_bible_topics.md)
-- [Bible Verse Search](search/search_bible_verses.md)
-- [Advanced Bible Search](search/search_bible_verses_examples.md)
-- [Bible Dictionary Search](search/search_dictionaries.md)
-- [Bible Encyclopedia Search](search/search_encyclopedias.md)
-- [Lexicon Search](search/search_lexicons.md)
-
-## Tool Guides
-
-- [Book Analysis](tool/tool_analysis.md)
-- [Bible Audio Player](tool/tool_audio.md)
-- [Books](tool/tool_books.md)
-- [Chapter Indexes](tool/tool_chapter_indexes.md)
-- [Bible Chronology](tool/tool_chronology.md)
-- [Bible Commentary](tool/tool_commentary.md)
-- [Verse Indexes](tool/tool_indexes.md)
-- [Word Morphology](tool/tool_morphology.md)
-- [Notepad](tool/tool_notepad.md)
-- [Cloud Notes](tool/tool_notes.md)
-- [Bible Parallels](tool/tool_parallels.md)
-- [Bible Podcast](tool/tool_podcast.md)
-- [Bible Promises](tool/tool_promises.md)
-- [Chapter Summary](tool/tool_summary.md)
-- [Bible Timelines](tool/tool_timelines.md)
-- [Treasury of Scripture Knowledge](tool/tool_treasury.md)
-- [Cross-References](tool/tool_xrefs.md)
+| Topic | English | 繁體中文 | 简体中文 |
+|---|---|---|---|
+| Basics | [Basics](english/basics/README.md) | [基礎教學](traditional_chinese/basics/README.md) | [基础教程](simplified_chinese/basics/README.md) |
+| Layout & Navigation | [Layout](english/layout/README.md) | [介面與導覽](traditional_chinese/layout/README.md) | [界面与导航](simplified_chinese/layout/README.md) |
+| Bibles | [Bibles](english/bibles/README.md) | [聖經版本](traditional_chinese/bibles/README.md) | [圣经版本](simplified_chinese/bibles/README.md) |
+| Integrations | [Integrations](english/integrations/README.md) | [資源整合](traditional_chinese/integrations/README.md) | [资源整合](simplified_chinese/integrations/README.md) |
+| AI Features | [AI Features](english/ai_features/README.md) | [AI 功能](traditional_chinese/ai_features/README.md) | [AI 功能](simplified_chinese/ai_features/README.md) |
+| Study Tools | [Tools](english/tools/README.md) | [研經工具](traditional_chinese/tools/README.md) | [研经工具](simplified_chinese/tools/README.md) |
+| Search Guides | [Search](english/search/README.md) | [搜索指南](traditional_chinese/search/README.md) | [搜索指南](simplified_chinese/search/README.md) |
+| User Preferences | [User Preferences](english/user_preferences/README.md) | [偏好設定](traditional_chinese/user_preferences/README.md) | [偏好设定](simplified_chinese/user_preferences/README.md) |
+| Server Setup | [Server Setup](english/server_setup/README.md) | [伺服器設定](traditional_chinese/server_setup/README.md) | [服务器设定](simplified_chinese/server_setup/README.md) |
+| Android (Termux) | [Android Termux](english/android_termux/README.md) | [Android Termux](traditional_chinese/android_termux/README.md) | [Android Termux](simplified_chinese/android_termux/README.md) |
+| API | [API Query](english/api/api_query.md) · [Routes](english/api/routes.md) | [API 查詢語法](traditional_chinese/api/api_query.md) · [路由與端點](traditional_chinese/api/routes.md) | [API 查询语法](simplified_chinese/api/api_query.md) · [路由与端点](simplified_chinese/api/routes.md) |
+| Development | [Development](english/development/README.md) | [開發指南](traditional_chinese/development/README.md) | [开发指南](simplified_chinese/development/README.md) |
 

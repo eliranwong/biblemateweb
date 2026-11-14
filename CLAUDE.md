@@ -110,7 +110,7 @@ The API uses a keyword-based query syntax with triple-colon delimiters (`:::`):
 - `topics:::`, `characters:::`, `locations:::`: Reference materials
 - `lexicons:::`, `dictionaries:::`, `encyclopedias:::`: Language resources
 
-See `docs/api_query.md` for complete syntax documentation.
+See `docs/api/api_query.md` for complete syntax documentation.
 
 ### AI Integration
 
