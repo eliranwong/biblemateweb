@@ -203,7 +203,7 @@ config.disable_local_api_endpoint=True
 #### `config.custom_token`
 * **Type**: `str`
 * **Default**: `""`
-* **Description**: A master access token defined by the server administrator. Users who enter this token in their app Preferences (or via URL query string `?custom_token=YOUR_TOKEN`) gain access to custom resources (stored in `~/biblemate/data_custom`) and bypass server rate limits.
+* **Description**: A master access token defined by the server administrator. Users who enter this token in their app Preferences (or via URL query string `?custom_token=YOUR_TOKEN`) gain access to custom resources (stored in `~/biblemate/data_custom`) and bypass server rate limits. Custom reference books can be placed in `~/biblemate/data_custom/books` (see [Books Guide](tool/tool_books.md)).
 * **Example**:
   ```python
   config.custom_token="my-secret-community-token-2026"

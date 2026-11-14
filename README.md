@@ -34,6 +34,7 @@ BibleMate AI Web provides a unified web interface combining the best features of
 - **Hebrew & Greek Tooltips**: Instant lexical information on hover
 - **Cross-References**: Treasury of Scripture Knowledge (TSK) integration
 - **Commentaries**: 30+ classic Bible commentaries
+- **Reference Books**: Read `.book` files (chapter-by-chapter) in a built-in reader, with clickable Bible references; add your own by dropping files into a folder ([guide](docs/tool/tool_books.md))
 - **Topical Studies**: Nave's, Thompson Chain, Torrey's topical Bibles
 - **Bible Dictionaries & Encyclopedias**: Easton's, Smith's, ISBE, and more
 
@@ -311,6 +312,7 @@ Full documentation is available in the [docs](docs/) directory.
 - [Google Drive Setup](docs/google_drive_notes_setup.md) - OAuth configuration
 - [Custom Tokens](docs/custom_token.md) - Access control
 - [API Key Setup](docs/api_key_setup.md) - AI backend configuration
+- [Reference Books](docs/tool/tool_books.md) - Book reader and adding your own books
 - [Study Tools](docs/search/tool/) - Study Tools
 - [Search Tools](docs/search/search/) - Search Tools
 - [CLAUDE.md](CLAUDE.md) - Developer architecture guide
