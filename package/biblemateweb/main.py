@@ -359,6 +359,12 @@ def page_home(
                 margin: 0;
                 padding: 0;
             }}
+            /* The scroll content's default side padding sits inside the toolbar.
+               Drop it so chapter text lines up with the toolbar's left and right edges. */
+            .book-reader-scroll .q-scrollarea__content {{
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+            }}
             .book-reader {{
                 margin: 0;
                 padding: 0;

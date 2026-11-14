@@ -477,6 +477,8 @@ def _scan_book_directory(directory: str) -> dict:
         with os.scandir(directory) as entries:
             for entry in entries:
                 name = entry.name
+                if name in ("Bible_Promises.book", "Harmonies_and_Parallels.book"):
+                    continue
                 if name.startswith(".") or not name.endswith(".book"):
                     continue
                 if not entry.is_file():

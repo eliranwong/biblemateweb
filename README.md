@@ -81,6 +81,17 @@ biblematedata
 biblemateweb
 ```
 
+### Enabling Semantic Search
+
+To enable semantic search for BibleMateWeb, we need to install Ollama server and download the embedding model `paraphrase-multilingual`.
+
+1. Download Ollama from https://ollama.com/download and install it.
+2. Download the embedding model `paraphrase-multilingual`， run:
+
+```
+ollama pull paraphrase-multilingual
+```
+
 The web UI will be available at **http://localhost:33355**
 
 ### First Run
