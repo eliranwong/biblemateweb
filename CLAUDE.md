@@ -182,9 +182,9 @@ Users can download content as TXT or DOCX:
 ## Key Dependencies
 
 - **nicegui**: Web UI framework (v3.2.0+)
-- **agentmake**: AI agent framework (v1.2.13+)
-- **biblemate**: Core Bible study engine (v0.2.63+)
-- **biblematedata**: Bible data package (v0.0.2+)
+- **agentmake**: AI agent framework (v1.2.24+)
+- **biblemate**: Core Bible study engine (v0.2.77+)
+- **biblematedata**: Bible data package (v0.0.5+)
 - **apsw**: SQLite wrapper
 - **authlib**: OAuth authentication
 - **pypandoc**: Document conversion (requires `pandoc` binary)
@@ -194,7 +194,7 @@ Users can download content as TXT or DOCX:
 
 ## Python Version
 
-Requires Python 3.10-3.12 (due to fastmcp/agentmake constraints).
+Requires Python 3.10-3.14. NiceGUI stays on 3.x (`<4`) because 4.0 requires Python 3.11 and changes input behavior. CPython 3.14 wheels for apsw start at 3.50.4, and for Pillow at 12.
 
 ## Common Patterns
 

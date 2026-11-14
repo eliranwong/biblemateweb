@@ -1,6 +1,6 @@
 # BibleMate AI Web
 
-[![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-GPLv3-green)](LICENSE)
 [![Website](https://img.shields.io/badge/demo-biblemate.gospelchurch.uk-orange)](https://biblemate.gospelchurch.uk)
 
@@ -326,7 +326,7 @@ Full documentation is available in the [docs](docs/) directory.
 ## Platform Support
 
 - **Web UI**: All modern browsers (Chrome, Firefox, Safari, Edge)
-- **Server**: Linux, macOS, Windows (Python 3.10-3.12)
+- **Server**: Linux, macOS, Windows (Python 3.10-3.14)
 - **API Access**: Platform-independent REST API
 
 ## Contributing
