@@ -1,6 +1,10 @@
 # BibleMate AI Web 文档
 
-BibleMate AI Web 的完整文档 —— 一款由 AI 驱动的圣经研读 Web 应用程序。概览请参阅[主 README](../README.md)。
+BibleMate AI Web 的完整文档 —— 一款由 AI 驱动的圣经研读 Web 应用程序。
+
+项目：[https://github.com/eliranwong/biblemateweb](https://github.com/eliranwong/biblemateweb)
+
+概览请参阅[主 README](../README.md)。
 
 > [!IMPORTANT]
 > 本项目的一个显著优势是**研经资源的深度整合**：从任何经文、全章或书卷出发，只需一次点击即可前往圣经、原文文本、原文词典、形态学分析、圣经注释、经文串珠、地图、索引、笔记、语音以及 AI。请先参阅[资源整合](integrations/README.md)。

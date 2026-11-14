@@ -365,6 +365,15 @@ class BibleMateWeb:
         # Set initial visibility
         self.update_visibility()
 
+    def open_documentation(self):
+        """Open language-specific documentation in a new browser tab."""
+        docs = {
+            "eng": "https://github.com/eliranwong/biblemateweb/tree/main/docs/english",
+            "tc": "https://github.com/eliranwong/biblemateweb/tree/main/docs/traditional_chinese",
+            "sc": "https://github.com/eliranwong/biblemateweb/tree/main/docs/simplified_chinese",
+        }
+        ui.navigate.to(docs.get(app.storage.user.get("ui_language"), docs["eng"]), new_tab=True)
+
     def swap_layout(self, layout=None):
         """Swap between three layout modes"""
         if not layout in (1, 2, 3, None):
@@ -1350,6 +1359,8 @@ class BibleMateWeb:
                             dark_mode_menu_item.on('click', lambda: toggle_dark_mode_menu_item(dark_mode_label))
                             ui.separator()
                             ui.menu_item(get_translation("Preferences"), on_click=lambda: ui.navigate.to('/settings'))
+                            ui.separator()
+                            ui.menu_item(get_translation("Documentation"), on_click=self.open_documentation)
 
         # --- Drawer (Mobile Menu) ---
         # This section is unchanged
@@ -1652,6 +1663,11 @@ class BibleMateWeb:
                 ui.separator()
                 ui.item(get_translation("Preferences"), on_click=lambda: (
                     ui.navigate.to('/settings'),
+                    app.storage.user.update(left_drawer_open=False)
+                )).props('clickable')
+                ui.separator()
+                ui.item(get_translation("Documentation"), on_click=lambda: (
+                    self.open_documentation(),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
 

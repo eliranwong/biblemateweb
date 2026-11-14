@@ -33,6 +33,7 @@ translation_tc = {
     "Cross-references": "經文串珠",
     "Dictionaries": "聖經字典",
     "Discourse Analysis": "語法分析",
+    "Documentation": "說明文件",
     "Encyclopedias": "百科全書",
     "Go": "開啓",
     "Indexes": "資源索引",

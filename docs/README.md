@@ -1,6 +1,10 @@
 # BibleMate AI Web Documentation
 
-Complete documentation for **BibleMate AI Web** – an AI-powered Bible study web application. See the [main README](../README.md) for an overview.
+Complete documentation for **BibleMate AI Web** – an AI-powered Bible study web application.
+
+Project: [https://github.com/eliranwong/biblemateweb](https://github.com/eliranwong/biblemateweb)
+
+See the [main README](../README.md) for an overview.
 
 ## Languages / 語言 / 语言
 

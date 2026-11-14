@@ -34,6 +34,7 @@ translation_sc = {
     "Cross-references": "经文串珠",
     "Dictionaries": "圣经字典",
     "Discourse Analysis": "语法分析",
+    "Documentation": "说明文档",
     "Encyclopedias": "百科全书",
     "Go": "开启",
     "Indexes": "资源索引",
