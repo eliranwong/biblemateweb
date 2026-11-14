@@ -4,7 +4,7 @@ BibleMate AI Web 的完整文檔 —— 一款由 AI 驅動的聖經研讀 Web �
 
 專案：[https://github.com/eliranwong/biblemateweb](https://github.com/eliranwong/biblemateweb)
 
-概覽請參閱[主 README](../README.md)。
+概覽請參閱[主 README](../../README.md)。
 
 > [!IMPORTANT]
 > 本專案的一個顯著優勢是**研經資源的深度整合**：從任何經文、全章或書卷出發，只需一次點擊即可前往聖經、原文文本、原文詞典、形態學分析、聖經註釋、經文串珠、地圖、索引、筆記、語音以及 AI。請先參閱[資源整合](integrations/README.md)。
