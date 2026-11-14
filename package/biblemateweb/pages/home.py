@@ -1231,7 +1231,6 @@ class BibleMateWeb:
                             ui.menu_item(get_translation("Chapter Summary"), on_click=lambda: self.load_area_2_content(title='Summary', sync=True))
                             ui.separator()
                             ui.menu_item(get_translation("Bible Commentaries"), on_click=lambda: self.load_area_2_content(title='Commentary', sync=True))
-                            ui.menu_item(get_translation("Books"), on_click=lambda: self.load_area_2_content(title='Books', sync=False))
                             ui.menu_item(get_translation("Cross-references"), on_click=lambda: self.load_area_2_content(title='Xrefs', sync=True))
                             ui.menu_item(get_translation("Treasury of Scripture Knowledge"), on_click=lambda: self.load_area_2_content(title='Treasury', sync=True))
                             #ui.menu_item(get_translation("Discourse Analysis"), on_click=lambda: self.load_area_2_content(self.work_in_progress))
@@ -1243,6 +1242,8 @@ class BibleMateWeb:
                             ui.separator()
                             ui.menu_item(get_translation("Bible Timelines"), on_click=lambda: self.load_area_2_content(title='Timelines', sync=True))
                             ui.menu_item(get_translation("Bible Chronology"), on_click=lambda: self.load_area_2_content(title='Chronology'))
+                            ui.separator()
+                            ui.menu_item(get_translation("Books"), on_click=lambda: self.load_area_2_content(title='Books', sync=False))
                             ui.separator()
                             ui.menu_item(get_translation("Morphology"), on_click=lambda: self.load_area_2_content(title='Morphology', sync=True))
                             ui.separator()
@@ -1482,10 +1483,6 @@ class BibleMateWeb:
                     self.load_area_2_content(title='Commentary', sync=True),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
-                ui.item(get_translation("Books"), on_click=lambda: (
-                    self.load_area_2_content(title='Books', sync=False),
-                    app.storage.user.update(left_drawer_open=False)
-                )).props('clickable')
                 ui.item(get_translation("Cross-references"), on_click=lambda: (
                     self.load_area_2_content(title='Xrefs', sync=True),
                     app.storage.user.update(left_drawer_open=False)
@@ -1522,6 +1519,11 @@ class BibleMateWeb:
                 )).props('clickable')
                 ui.item(get_translation("Bible Chronology"), on_click=lambda: (
                     self.load_area_2_content(title='Chronology'),
+                    app.storage.user.update(left_drawer_open=False)
+                )).props('clickable')
+                ui.separator()
+                ui.item(get_translation("Books"), on_click=lambda: (
+                    self.load_area_2_content(title='Books', sync=False),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.separator()
