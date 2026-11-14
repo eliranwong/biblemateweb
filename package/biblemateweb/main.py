@@ -314,6 +314,67 @@ def page_home(
                 padding: 0px;
                 margin: 0px;
             }}
+            /* Book reader fills the tool pane; font-size follows the html preference */
+            .book-fill .q-scrollarea__content {{
+                height: 100% !important;
+                max-height: 100% !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }}
+            .book-shell {{
+                height: 100%;
+                min-height: 100%;
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                display: flex;
+                flex-direction: column;
+                margin: 0;
+                padding: 0;
+                gap: 0;
+                overflow: hidden;
+            }}
+            .book-toolbar {{
+                flex: 0 0 auto;
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                margin: 0;
+                padding: 0;
+                gap: 0;
+                background: #fff;
+            }}
+            .book-toolbar .q-field {{
+                min-width: 0 !important;
+                width: 0;
+                flex: 1 1 0;
+            }}
+            .body--dark .book-toolbar {{
+                background: #121212;
+            }}
+            .book-reader-scroll {{
+                flex: 1 1 auto;
+                min-height: 0;
+                height: 0;
+                margin: 0;
+                padding: 0;
+            }}
+            .book-reader {{
+                margin: 0;
+                padding: 0;
+                max-width: 100%;
+                font-size: 1.1rem;
+                overflow-wrap: break-word;
+            }}
+            .book-reader :where(p, li, td, th, div, span, font, blockquote) {{
+                font-size: 1em !important;
+            }}
+            .book-reader img,
+            .book-reader table,
+            .book-reader video {{
+                max-width: 100%;
+                height: auto;
+            }}
             /* Verse ID Number */
             vid {{
                 color: {'#f2c522' if app.storage.user['dark_mode'] else 'navy'};

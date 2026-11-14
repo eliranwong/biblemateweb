@@ -1,4 +1,4 @@
-from biblemateweb import config, BIBLEMATEWEB_DATA, getBibleVersionName, getBibleVersionList, getLexiconList, getCommentaryVersionName, getCommentaryVersionList, getAudioVersionList, get_default_bible, resolve_verses_additional_options, update_verses_sql_query
+from biblemateweb import config, BIBLEMATEWEB_DATA, getBibleVersionName, getBibleVersionList, getLexiconList, getCommentaryVersionName, getCommentaryVersionList, getAudioVersionList, discover_books, get_default_bible, resolve_verses_additional_options, update_verses_sql_query
 from biblemateweb.fx.bible import getBiblePath, getBibleChapterVerses, get_bible_content
 
 from biblemateweb.pages.tools.commentary import fetch_commentary_content
@@ -36,7 +36,7 @@ def get_resources(custom):
     resources["bibleList"] = [getBibleVersionName(i) for i in client_bibles]
     resources["commentaryListAbb"] = client_commentaries
     resources["commentaryList"] = [getCommentaryVersionName(i) for i in client_commentaries]
-    resources["referenceBookList"] = [] # backward compatibility to UBA
+    resources["referenceBookList"] = list(discover_books(custom))
     resources["topicListAbb"] = list(config.topics.keys())
     resources["topicList"] = list(config.topics.values())
     resources["lexiconList"] = client_lexicons

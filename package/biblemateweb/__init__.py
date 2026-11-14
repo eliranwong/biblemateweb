@@ -464,6 +464,42 @@ def getLexiconList(custom: bool = False) -> List[str]:
         client_lexicons += list(config.lexicons_custom.keys())
     return sorted(list(set(client_lexicons)))
 
+def _scan_book_directory(directory: str) -> dict:
+    """Return {book name: file path} for *.book files currently in directory."""
+    if not os.path.isdir(directory):
+        try:
+            Path(directory).mkdir(parents=True, exist_ok=True)
+        except OSError:
+            return {}
+        return {}
+    books = {}
+    try:
+        with os.scandir(directory) as entries:
+            for entry in entries:
+                name = entry.name
+                if name.startswith(".") or not name.endswith(".book"):
+                    continue
+                if not entry.is_file():
+                    continue
+                books[name[:-5]] = entry.path
+    except OSError:
+        return {}
+    return books
+
+def discover_books(custom: bool = False) -> dict:
+    """Rescan book folders and return {book name: file path}.
+
+    Standard books come from ~/biblemate/data/books. Books in
+    ~/biblemate/data_custom/books are included only when custom is true,
+    and a custom file with the same name replaces the standard one.
+    Callers should invoke this whenever a menu is shown so additions and
+    removals are visible without restarting the server.
+    """
+    books = _scan_book_directory(os.path.join(BIBLEMATEWEB_DATA, "books"))
+    if custom:
+        books.update(_scan_book_directory(os.path.join(BIBLEMATEWEB_DATA_CUSTOM, "books")))
+    return dict(sorted(books.items(), key=lambda item: item[0].casefold()))
+
 # fonts
 app.add_static_files('/fonts', os.path.join(BIBLEMATEWEB_APP_DIR, "fonts"))
 

@@ -30,6 +30,7 @@ from biblemateweb.pages.tools.treasury import treasury
 from biblemateweb.pages.tools.audio import bibles_audio
 from biblemateweb.pages.tools.podcast import bibles_podcast
 from biblemateweb.pages.tools.commentary import bible_commentary
+from biblemateweb.pages.tools.books import bible_books
 from biblemateweb.pages.tools.chronology import bible_chronology
 from biblemateweb.pages.tools.timelines import bible_timelines
 from biblemateweb.pages.tools.indexes import resource_indexes
@@ -103,6 +104,7 @@ class BibleMateWeb:
             "verses": search_bible_verses, # API with additional options
             "treasury": treasury,
             "commentary": bible_commentary, # API with additional options
+            "books": bible_books,
             "chronology": bible_chronology,
             "timelines": bible_timelines,
             "xrefs": xrefs,
@@ -789,6 +791,7 @@ class BibleMateWeb:
             # Get the active tab's scroll area
             active_panel = self.area2_tab_panels[active_tab]
             # Clear and load new content
+            active_panel.classes(remove='book-fill')
             active_panel.clear()
             # load content
             with active_panel:
@@ -1228,6 +1231,7 @@ class BibleMateWeb:
                             ui.menu_item(get_translation("Chapter Summary"), on_click=lambda: self.load_area_2_content(title='Summary', sync=True))
                             ui.separator()
                             ui.menu_item(get_translation("Bible Commentaries"), on_click=lambda: self.load_area_2_content(title='Commentary', sync=True))
+                            ui.menu_item(get_translation("Books"), on_click=lambda: self.load_area_2_content(title='Books', sync=False))
                             ui.menu_item(get_translation("Cross-references"), on_click=lambda: self.load_area_2_content(title='Xrefs', sync=True))
                             ui.menu_item(get_translation("Treasury of Scripture Knowledge"), on_click=lambda: self.load_area_2_content(title='Treasury', sync=True))
                             #ui.menu_item(get_translation("Discourse Analysis"), on_click=lambda: self.load_area_2_content(self.work_in_progress))
@@ -1476,6 +1480,10 @@ class BibleMateWeb:
                 ui.separator()
                 ui.item(get_translation("Bible Commentaries"), on_click=lambda: (
                     self.load_area_2_content(title='Commentary', sync=True),
+                    app.storage.user.update(left_drawer_open=False)
+                )).props('clickable')
+                ui.item(get_translation("Books"), on_click=lambda: (
+                    self.load_area_2_content(title='Books', sync=False),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.item(get_translation("Cross-references"), on_click=lambda: (
