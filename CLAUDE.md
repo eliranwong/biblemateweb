@@ -14,8 +14,7 @@ This repository focuses on the web UI, HTTP and API servers. For CLI version, MC
 
 ```bash
 # Install the package in development mode
-pip install --upgrade biblemateweb
-
+pip install --upgrade --no-cache-dir biblemateweb
 # One-time data setup
 biblematedata
 

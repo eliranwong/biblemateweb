@@ -72,7 +72,7 @@ BibleMate AI Web provides a unified web interface combining the best features of
 
 ```bash
 # Install BibleMate AI Web
-pip install --upgrade biblemateweb
+pip install --upgrade --no-cache-dir biblemateweb
 
 # One-time data setup (downloads Bible databases)
 biblematedata
