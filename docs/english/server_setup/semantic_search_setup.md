@@ -11,6 +11,6 @@ Semantic (meaning-based) search compares embeddings. It needs an embedding model
 4. `config.embedding_model` defaults to `paraphrase-multilingual` (see [Configuration](configuration.md)).
 5. Vector data must be present at `~/biblemate/data/vectors/bible.db` ([Data & Resources](data_and_resources.md)).
 
-Without this setup the Literal and Regex modes still work ([Search Mode](../user_preferences/search_mode.md)).
+Without this setup the Literal and Regex modes still work ([Search Mode](../user_preferences/search_mode.md)). How to use it: [Semantic Search](../ai_features/semantic_search.md).
 
 Android: [install_ollama.md](../android_termux/install_ollama.md).

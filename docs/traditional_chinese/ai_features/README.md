@@ -1,6 +1,6 @@
 # AI 功能
 
-BibleMate AI Web 中的所有 AI 功能。您可以從導覽列中的 **AI** 選單（`auto_awesome` 圖示）、工具選單，或經文的右鍵選單中開啟它們。
+BibleMate AI Web 中的所有 AI 功能。對話、夥伴、代理以及生成的內容，可從導覽列中的 **AI** 選單（`auto_awesome` 圖示）、工具選單，或經文的右鍵選單中開啟。語義搜索從 **搜索** 選單開啟。
 
 ## 互動模式
 
@@ -28,6 +28,12 @@ BibleMate AI Web 中的所有 AI 功能。您可以從導覽列中的 **AI** 選
 | [AI 註釋](ai_commentary.md) | AI 撰寫的逐節註釋（AIC） |
 | [書卷分析](book_analysis.md) | 每卷聖經書卷的 AI 分析 |
 | [全章摘要](chapter_summary.md) | 每章聖經的 AI 摘要 |
+
+## 按含義搜索
+
+| 功能 | 說明 |
+|---|---|
+| [語義搜索](semantic_search.md) | 使用嵌入向量，按含義查找經文與條目 |
 
 ## 設定與限制
 

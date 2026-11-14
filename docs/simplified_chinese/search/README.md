@@ -22,7 +22,7 @@
 - [搜索模式](../user_preferences/search_mode.md)（字面 / 模式 / 语义）
 - [区分大小写](../user_preferences/search_case_sensitivity.md)
 - [相似条目数量](../user_preferences/top_similar_entries.md)、[相似经文数量](../user_preferences/top_similar_verses.md)
-- 语义搜索需要嵌入模型：[语义搜索设定](../server_setup/semantic_search_setup.md)
+- 语义搜索需要嵌入模型：[语义搜索](../ai_features/semantic_search.md)、[设定](../server_setup/semantic_search_setup.md)
 - `config.verses_limit` 限制结果数量上限（[设定](../server_setup/configuration.md)）
 
 程序化调用方式：[REST API](../integrations/rest_api.md)。

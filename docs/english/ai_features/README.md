@@ -1,6 +1,6 @@
 # AI Features
 
-Everything AI in BibleMate AI Web. Open them from the **AI** menu (`auto_awesome` icon) in the navigation bar, from the Tools menu, or from a verse's right-click menu.
+Everything AI in BibleMate AI Web. Chat, Partner, Agent and the generated content open from the **AI** menu (`auto_awesome` icon) in the navigation bar, from the Tools menu, or from a verse's right-click menu. Semantic search opens from the **Search** menu.
 
 ## Interactive modes
 
@@ -28,6 +28,12 @@ Everything AI in BibleMate AI Web. Open them from the **AI** menu (`auto_awesome
 | [AI Commentary](ai_commentary.md) | AI-written verse commentary (AIC) |
 | [Book Analysis](book_analysis.md) | AI analysis of each Bible book |
 | [Chapter Summary](chapter_summary.md) | AI summary of each chapter |
+
+## Meaning-based search
+
+| Feature | Description |
+|---|---|
+| [Semantic Search](semantic_search.md) | Find verses and entries by meaning, using embeddings |
 
 ## Setup and limits
 

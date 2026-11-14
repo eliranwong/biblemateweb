@@ -22,7 +22,7 @@ Open from the **Search** menu (`search` icon) or by keyword in [Quick Search](..
 - [Search Mode](../user_preferences/search_mode.md) (literal / regex / semantic)
 - [Case Sensitivity](../user_preferences/search_case_sensitivity.md)
 - [Similar Entries](../user_preferences/top_similar_entries.md), [Similar Verses](../user_preferences/top_similar_verses.md)
-- Semantic search needs an embedding model: [Semantic Search Setup](../server_setup/semantic_search_setup.md)
+- Semantic search needs an embedding model: [Semantic Search](../ai_features/semantic_search.md), [setup](../server_setup/semantic_search_setup.md)
 - `config.verses_limit` caps result size ([Configuration](../server_setup/configuration.md))
 
 Programmatic equivalents: [REST API](../integrations/rest_api.md).

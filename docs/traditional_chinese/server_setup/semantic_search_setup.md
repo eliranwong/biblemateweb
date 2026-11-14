@@ -11,6 +11,6 @@
 4. `config.embedding_model` 預設為 `paraphrase-multilingual`（請參閱[配置設定指南](configuration.md)）。
 5. 向量數據必須存在於 `~/biblemate/data/vectors/bible.db`（[數據與資源](data_and_resources.md)）。
 
-若未進行此項設定，字面與模式搜索仍然可以正常運作（[搜索模式](../user_preferences/search_mode.md)）。
+若未進行此項設定，字面與模式搜索仍然可以正常運作（[搜索模式](../user_preferences/search_mode.md)）。使用方法：[語義搜索](../ai_features/semantic_search.md)。
 
 Android：[install_ollama.md](../android_termux/install_ollama.md)。
