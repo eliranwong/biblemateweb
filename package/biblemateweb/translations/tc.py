@@ -250,4 +250,13 @@ translation_tc = {
     "Chat Mode": "對話模式",
     "Other AI Modes": "其他模式",
     "Enter your request here...": "在此輸入你的需求",
+    "Go to Character Profile": "前往人物簡介",
+    "Find Verses": "查找經文",
+    "Parents": "父母",
+    "Spouse": "配偶",
+    "Spouses": "配偶",
+    "Children": "子女",
+    "Siblings": "兄弟姊妹",
+    "Half-Siblings [same father]": "同父異母兄弟姊妹",
+    "Half-Siblings [same mother]": "同母異父兄弟姊妹",
 }

@@ -21,17 +21,65 @@ def search_bible_relationships(gui=None, q='', **_):
     # ==========================================
     db_file = os.path.join(BIBLEMATEWEB_DATA, "data", "biblePeople.data")
 
+    table_map = {
+        "tc": ("PEOPLE_TC", "PEOPLERELATIONSHIP_TC"),
+        "sc": ("PEOPLE_SC", "PEOPLERELATIONSHIP_SC"),
+    }
+    people_table, relationship_table = table_map.get(
+        app.storage.user.get("ui_language", "eng"),
+        ("PEOPLE", "PEOPLERELATIONSHIP"),
+    )
+
+    def _primary_name(name):
+        return name.split("|")[0] if name else name
+
     def get_person_details(person_id):
         with apsw.Connection(db_file) as connn:
             cursor = connn.cursor()
-            cursor.execute("SELECT Name, Sex FROM PEOPLE WHERE PersonID = ?", (person_id,))
+            cursor.execute(
+                f"""
+                SELECT Name, Sex
+                FROM {people_table}
+                WHERE PersonID = ?
+                GROUP BY Name, Sex
+                ORDER BY COUNT(*) DESC, MIN(Number) ASC
+                LIMIT 1
+                """,
+                (person_id,),
+            )
             fetch = cursor.fetchone()
+            if not fetch:
+                cursor.execute(
+                    f"SELECT Name, Sex FROM {relationship_table} WHERE PersonID = ? LIMIT 1",
+                    (person_id,),
+                )
+                fetch = cursor.fetchone()
+                if fetch:
+                    fetch = (_primary_name(fetch[0]), fetch[1])
         return fetch
 
     def get_all_people_options():
         with apsw.Connection(db_file) as connn:
             cursor = connn.cursor()
-            cursor.execute("SELECT PersonID, Name FROM PEOPLE ORDER BY Name")
+            cursor.execute(
+                f"""
+                WITH ranked AS (
+                    SELECT
+                        PersonID,
+                        Name,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY PersonID
+                            ORDER BY COUNT(*) DESC, MIN(Number) ASC
+                        ) AS rn
+                    FROM {people_table}
+                    GROUP BY PersonID, Name
+                )
+                SELECT PersonID, Name
+                FROM ranked
+                WHERE rn = 1
+                ORDER BY Name
+                """
+            )
             fetch = cursor.fetchall()
         return {row[0]: row[1] for row in fetch}
 
@@ -54,30 +102,82 @@ def search_bible_relationships(gui=None, q='', **_):
         Half-sister [same father]
         Half-sister [same mother]
         '''
-        rows = []
         with apsw.Connection(db_file) as connn:
             cursor = connn.cursor()
-            query = """
-                SELECT r.RelatedPersonID, r.Relationship, p.Name, p.Sex
-                FROM PEOPLERELATIONSHIP r
-                JOIN PEOPLE p ON r.RelatedPersonID = p.PersonID
+            query = f"""
+                WITH primary_people AS (
+                    SELECT PersonID, Name, Sex
+                    FROM (
+                        SELECT
+                            PersonID,
+                            Name,
+                            Sex,
+                            ROW_NUMBER() OVER (
+                                PARTITION BY PersonID
+                                ORDER BY COUNT(*) DESC, MIN(Number) ASC
+                            ) AS rn
+                        FROM {people_table}
+                        GROUP BY PersonID, Name, Sex
+                    )
+                    WHERE rn = 1
+                ),
+                rel_people AS (
+                    SELECT PersonID, Name, Sex
+                    FROM {relationship_table}
+                    GROUP BY PersonID
+                )
+                SELECT DISTINCT
+                    r.RelatedPersonID,
+                    r.Relationship,
+                    COALESCE(p.Name, rp.Name) AS Name,
+                    COALESCE(p.Sex, rp.Sex) AS Sex,
+                    r.RelationshipOrder
+                FROM {relationship_table} r
+                LEFT JOIN primary_people p ON r.RelatedPersonID = p.PersonID
+                LEFT JOIN rel_people rp ON r.RelatedPersonID = rp.PersonID
                 WHERE r.PersonID = ?
+                ORDER BY r.RelationshipOrder, Name
             """
             cursor.execute(query, (person_id,))
             rows = cursor.fetchall()
 
-        family = {'parents': [], 'spouses': [], 'children': [], 'siblings': [], 'siblings_same_father': [], 'siblings_same_mother': []}
-        
-        for rel_id, rel_type, rel_name, rel_sex in rows:
-            p = {'id': rel_id, 'name': rel_name, 'sex': rel_sex, 'role': rel_type}
-            rel_lower = rel_type.lower()
-            
-            if rel_lower in ('son', 'daughter') and not p in family['parents']: family['parents'].append(p)
-            elif rel_lower in ('father', 'mother') and not p in family['children']: family['children'].append(p)
-            elif rel_lower in ('husband', 'wife', 'wife / concubine', 'spouse') and not p in family['spouses']: family['spouses'].append(p)
-            elif rel_lower in ('brother', 'sister') and not p in family['siblings']: family['siblings'].append(p)
-            elif rel_lower in ('half-brother [same father]', 'half-sister [same father]') and not p in family['siblings_same_father']: family['siblings_same_father'].append(p)
-            elif rel_lower in ('half-brother [same mother]', 'half-sister [same mother]') and not p in family['siblings_same_mother']: family['siblings_same_mother'].append(p)
+        family = {
+            'parents': [],
+            'spouses': [],
+            'children': [],
+            'siblings': [],
+            'siblings_same_father': [],
+            'siblings_same_mother': [],
+        }
+        seen = {k: set() for k in family}
+        category_map = {
+            'son': 'parents',
+            'daughter': 'parents',
+            'father': 'children',
+            'mother': 'children',
+            'husband': 'spouses',
+            'wife': 'spouses',
+            'wife / concubine': 'spouses',
+            'spouse': 'spouses',
+            'brother': 'siblings',
+            'sister': 'siblings',
+            'half-brother [same father]': 'siblings_same_father',
+            'half-sister [same father]': 'siblings_same_father',
+            'half-brother [same mother]': 'siblings_same_mother',
+            'half-sister [same mother]': 'siblings_same_mother',
+        }
+
+        for rel_id, rel_type, rel_name, rel_sex, _ in rows:
+            category = category_map.get(rel_type.lower())
+            if not category or rel_id in seen[category]:
+                continue
+            seen[category].add(rel_id)
+            family[category].append({
+                'id': rel_id,
+                'name': _primary_name(rel_name),
+                'sex': rel_sex,
+                'role': rel_type,
+            })
         return family
 
     # ==========================================
@@ -113,8 +213,11 @@ def search_bible_relationships(gui=None, q='', **_):
 
     def select_person(new_id):
         nonlocal current_id
+        if new_id is None:
+            return
         current_id = new_id
-        search_dropdown.value = new_id
+        if new_id in search_dropdown.options:
+            search_dropdown.value = new_id
         view_area.refresh()
 
     # -- STICKY HEADER --
@@ -130,12 +233,12 @@ def search_bible_relationships(gui=None, q='', **_):
         # BUTTON 1: Character Search (Refresh/Profile)
         ui.button(icon='person', on_click=search_character_action) \
             .props('round flat dense text-color=white') \
-            .tooltip('Go to Character Profile')
+            .tooltip(get_translation('Go to Character Profile'))
 
         # BUTTON 2: Verse Search
         ui.button(icon='menu_book', on_click=lambda: gui.show_all_verses(f"BP{current_id}")) \
             .props('round flat dense text-color=white') \
-            .tooltip('Find Verses')
+            .tooltip(get_translation('Find Verses'))
 
     # -- MAIN CONTENT AREA --
     # max-w-md makes it look like a mobile app even on desktop
@@ -152,7 +255,7 @@ def search_bible_relationships(gui=None, q='', **_):
             # Only show if they exist
             if family['parents']:
                 with ui.column().classes('w-full gap-1'):
-                    ui.label('Parents').classes('text-xs font-bold text-gray-400 uppercase tracking-wide')
+                    ui.label(get_translation('Parents')).classes('text-xs font-bold text-gray-400 uppercase tracking-wide')
                     # flex-wrap is CRITICAL here: it prevents horizontal scrolling
                     with ui.row().classes('w-full flex-wrap gap-2'):
                         for p in family['parents']:
@@ -176,7 +279,7 @@ def search_bible_relationships(gui=None, q='', **_):
                 # Spouses usually appear "Next" to the person
                 if family['spouses']:
                     #ui.separator().classes('my-2 opacity-20')
-                    ui.label('Spouse' if len(family['spouses']) == 1 else 'Spouses').classes('text-xs opacity-60 mb-1')
+                    ui.label(get_translation('Spouse' if len(family['spouses']) == 1 else 'Spouses')).classes('text-xs opacity-60 mb-1')
                     with ui.row().classes('justify-center flex-wrap gap-2'):
                         for p in family['spouses']:
                             relation_chip(p, select_person)
@@ -184,7 +287,7 @@ def search_bible_relationships(gui=None, q='', **_):
             # 3. CHILDREN SECTION
             if family['children']:
                 with ui.column().classes('w-full gap-1 mt-2'):
-                    ui.label('Children').classes('text-xs font-bold text-gray-400 uppercase tracking-wide')
+                    ui.label(get_translation('Children')).classes('text-xs font-bold text-gray-400 uppercase tracking-wide')
                     with ui.row().classes('w-full flex-wrap gap-2'):
                         for p in family['children']:
                             relation_chip(p, select_person)
@@ -193,7 +296,7 @@ def search_bible_relationships(gui=None, q='', **_):
             # Collapsed by default to save space, solving "viewability"
             if family['siblings']:
                 count = len(family['siblings'])
-                with ui.expansion(f'Siblings ({count})', icon='group').classes('w-full rounded'+(' bg-gray-900 border border-gray-700' if app.storage.user['dark_mode'] else ' bg-gray-50 border border-gray-100')):
+                with ui.expansion(f"{get_translation('Siblings')} ({count})", icon='group').classes('w-full rounded'+(' bg-gray-900 border border-gray-700' if app.storage.user['dark_mode'] else ' bg-gray-50 border border-gray-100')):
                     with ui.row().classes('w-full flex-wrap gap-2 p-2'+(' bg-[#1a1a1a]' if app.storage.user['dark_mode'] else '')):
                         for p in family['siblings']:
                             relation_chip(p, select_person)
@@ -202,7 +305,7 @@ def search_bible_relationships(gui=None, q='', **_):
             # Collapsed by default to save space, solving "viewability"
             if family['siblings_same_father']:
                 count = len(family['siblings_same_father'])
-                with ui.expansion(f'Half-Siblings [same father] ({count})', icon='group').classes('w-full rounded'+(' bg-gray-900 border border-gray-700' if app.storage.user['dark_mode'] else ' bg-gray-50 border border-gray-100')):
+                with ui.expansion(f"{get_translation('Half-Siblings [same father]')} ({count})", icon='group').classes('w-full rounded'+(' bg-gray-900 border border-gray-700' if app.storage.user['dark_mode'] else ' bg-gray-50 border border-gray-100')):
                     with ui.row().classes('w-full flex-wrap gap-2 p-2'+(' bg-[#1a1a1a]' if app.storage.user['dark_mode'] else '')):
                         for p in family['siblings_same_father']:
                             relation_chip(p, select_person)
@@ -211,7 +314,7 @@ def search_bible_relationships(gui=None, q='', **_):
             # Collapsed by default to save space, solving "viewability"
             if family['siblings_same_mother']:
                 count = len(family['siblings_same_mother'])
-                with ui.expansion(f'Half-Siblings [same mother] ({count})', icon='group').classes('w-full rounded'+(' bg-gray-900 border border-gray-700' if app.storage.user['dark_mode'] else ' bg-gray-50 border border-gray-100')):
+                with ui.expansion(f"{get_translation('Half-Siblings [same mother]')} ({count})", icon='group').classes('w-full rounded'+(' bg-gray-900 border border-gray-700' if app.storage.user['dark_mode'] else ' bg-gray-50 border border-gray-100')):
                     with ui.row().classes('w-full flex-wrap gap-2 p-2'+(' bg-[#1a1a1a]' if app.storage.user['dark_mode'] else '')):
                         for p in family['siblings_same_mother']:
                             relation_chip(p, select_person)

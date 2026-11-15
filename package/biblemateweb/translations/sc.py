@@ -251,5 +251,13 @@ translation_sc = {
     "Chat Mode": "对话模式",
     "Other AI Modes": "其他模式",
     "Enter your request here...": "在此输入你的需求",
-
+    "Go to Character Profile": "前往人物简介",
+    "Find Verses": "查找经文",
+    "Parents": "父母",
+    "Spouse": "配偶",
+    "Spouses": "配偶",
+    "Children": "子女",
+    "Siblings": "兄弟姊妹",
+    "Half-Siblings [same father]": "同父异母兄弟姊妹",
+    "Half-Siblings [same mother]": "同母异父兄弟姊妹",
 }
