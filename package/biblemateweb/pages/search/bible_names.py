@@ -6,6 +6,11 @@ from functools import partial
 from nicegui import ui, app, run
 import re, apsw, os, json, traceback, asyncio
 
+def exlbn_table(language="eng"):
+    if language in ("tc", "sc"):
+        return f"exlbn_{language}"
+    return "exlbn"
+
 def load_names_vectors_from_db(db_file, sql_table):
     entries = []
     entry_vectors = []
@@ -32,7 +37,7 @@ async def fetch_bible_names_matches_async(search_term, spin=True):
     if spin:
         n = ui.notification("Loading ...", timeout=None, spinner=True)
     db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
-    sql_table = "exlbn"
+    sql_table = exlbn_table(app.storage.user.get("ui_language", "eng"))
     embedding_model = "paraphrase-multilingual"
     options = []
     
@@ -86,7 +91,7 @@ async def fetch_bible_names_matches_async(search_term, spin=True):
 
 def fetch_bible_names_matches(search_term):
     db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
-    sql_table = "exlbn"
+    sql_table = exlbn_table(app.storage.user.get("ui_language", "eng"))
     embedding_model="paraphrase-multilingual"
     options = []
     try:

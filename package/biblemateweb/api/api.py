@@ -230,13 +230,13 @@ def get_chronology_content(query, language, custom):
     return markdown_contents
 
 def get_locations_content(query, language, custom):
-    html, *_ = fetch_bible_locations_entry(query)
+    html, *_ = fetch_bible_locations_entry(query, language)
     html = re.sub('<ref onclick="openHtmlImage.*?<h1 class="window">', '<h1 class="window">', html)
     html = re.sub(r'''<ref onclick="website\('(.*?)'\)">Click HERE for a Live Google Map</ref>''', r'\1', html)
     return html2md(html)
 
 def get_characters_content(query, language, custom):
-    html = fetch_bible_characters_entry(query)
+    html = fetch_bible_characters_entry(query, language)
     html = html.replace('''<br><div align="center"><font color="navy">Click for more details</font></div></sm>''', "")
     return html2md(html)
 
@@ -246,7 +246,7 @@ def get_topics_content(query, language, custom):
 
 def get_names_content(query, language, custom):
     db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
-    sql_table = "exlbn"
+    sql_table = f"exlbn_{language}" if language in ("tc", "sc") else "exlbn"
     with apsw.Connection(db_file) as connn:
         cursor = connn.cursor()
         cursor.execute(f"SELECT entry FROM {sql_table} WHERE path = ?;", (query,))

@@ -5,11 +5,16 @@ import numpy as np
 import re, apsw, os, json, traceback, asyncio
 from biblemateweb.data.cr_books import cr_books
 
-def fetch_bible_locations_entry(path):
+def exlbl_table(language="eng"):
+    if language in ("tc", "sc"):
+        return f"exlbl_{language}"
+    return "exlbl"
+
+def fetch_bible_locations_entry(path, language="eng"):
     db = os.path.join(BIBLEMATEWEB_DATA, "data", "exlb3.data")
     with apsw.Connection(db) as connn:
         cursor = connn.cursor()
-        sql_query = "SELECT content FROM exlbl WHERE path=? limit 1"
+        sql_query = f"SELECT content FROM {exlbl_table(language)} WHERE path=? limit 1"
         cursor.execute(sql_query, (path,))
         fetch = cursor.fetchone()
         content = fetch[0] if fetch else ""
@@ -27,7 +32,7 @@ def fetch_bible_locations_entry(path):
 async def fetch_bible_locations_matches_async(query):
     n = ui.notification("Loading ...", timeout=None, spinner=True)
     db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
-    sql_table = "exlbl"
+    sql_table = exlbl_table(app.storage.user.get("ui_language", "eng"))
     embedding_model = "paraphrase-multilingual"
     path = ""
     options = []
@@ -79,7 +84,7 @@ async def fetch_bible_locations_matches_async(query):
 
 def fetch_bible_locations_matches(query):
     db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
-    sql_table = "exlbl"
+    sql_table = exlbl_table(app.storage.user.get("ui_language", "eng"))
     embedding_model="paraphrase-multilingual"
     path=""
     options=[]
@@ -167,7 +172,7 @@ def search_bible_locations(gui=None, q='', **_):
         nonlocal content_container, gui, dialog, input_field, last_entry
 
         n = ui.notification(get_translation('Loading...'), timeout=None, spinner=True)
-        content, location, lat, lng = await run.io_bound(fetch_bible_locations_entry, path)
+        content, location, lat, lng = await run.io_bound(fetch_bible_locations_entry, path, app.storage.user.get("ui_language", "eng"))
         n.dismiss()
 
         # Clear existing rows first

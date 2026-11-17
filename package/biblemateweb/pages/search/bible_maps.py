@@ -1,5 +1,7 @@
 from biblemateweb import get_translation
 from biblemateweb.data.bible_locations import BIBLE_LOCATIONS
+from biblemateweb.data.bible_locations_tc import BIBLE_LOCATIONS_TC
+from biblemateweb.data.bible_locations_sc import BIBLE_LOCATIONS_SC
 from biblemateweb.fx.location_finder import LocationFinder
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
@@ -11,11 +13,13 @@ import math, re, asyncio
 # --- Data: 66 Bible Books & ID Mapping ---
 BIBLE_BOOKS = [BibleBooks.abbrev["eng"][str(i)][0] for i in range(1,67)]
 
-# Create a dictionary for Dropdown options: {ID: "Name (ID)"}
-# This handles duplicate names by ensuring the value passed is the unique ID
-LOCATION_OPTIONS = {
-    uid: data[0] for uid, data in BIBLE_LOCATIONS.items()
-}
+def locations_for_ui():
+    lang = app.storage.user.get("ui_language", "eng")
+    if lang == "tc":
+        return BIBLE_LOCATIONS_TC
+    if lang == "sc":
+        return BIBLE_LOCATIONS_SC
+    return BIBLE_LOCATIONS
 
 # --- 2. HELPER FUNCTIONS ---
 
@@ -48,6 +52,8 @@ def haversine_distance(coord1, coord2, unit='km'):
 def search_bible_maps(gui=None, q='', **_):
 
     last_entry = q
+    bible_locations = locations_for_ui()
+    location_options = {uid: data[0] for uid, data in bible_locations.items()}
 
     def handle_up_arrow():
         nonlocal last_entry, search_input
@@ -89,7 +95,7 @@ def search_bible_maps(gui=None, q='', **_):
             # 2. Add new markers
             to_add = target_ids - current_ids
             for uid in to_add:
-                name, lat, lon = BIBLE_LOCATIONS[uid]
+                name, lat, lon = bible_locations[uid]
                 # Add marker with popup
                 marker = bible_map.marker(latlng=(lat, lon))
                 # The following line does not work when tool_query parameter is loaded when the page is opened
@@ -111,7 +117,7 @@ def search_bible_maps(gui=None, q='', **_):
             # If we added exactly one new marker, pan to it
             if len(to_add) == 1:
                 uid = list(to_add)[0]
-                lat, lon = BIBLE_LOCATIONS[uid][1], BIBLE_LOCATIONS[uid][2]
+                lat, lon = bible_locations[uid][1], bible_locations[uid][2]
                 bible_map.set_center((lat, lon))
                 bible_map.set_zoom(9)
             else:
@@ -132,7 +138,7 @@ def search_bible_maps(gui=None, q='', **_):
                     'CMD_ALL': 'All', 
                     'CMD_NONE': 'None'
                 }
-                multi_options.update(LOCATION_OPTIONS)
+                multi_options.update(location_options)
 
                 # Multi-select dropdown
                 location_multiselect = ui.select(
@@ -145,7 +151,7 @@ def search_bible_maps(gui=None, q='', **_):
                 # Text Input for quick search
                 search_input = ui.input(
                     #label='Search',
-                    autocomplete=list(LOCATION_OPTIONS.values())+BIBLE_BOOKS,
+                    autocomplete=list(location_options.values())+BIBLE_BOOKS,
                     placeholder=f'{get_translation("Search for location(s) or verse reference(s)")}...',
                 ).classes('flex-grow text-lg').props('outlined clearable autofocus enterkeyhint="search"')
                 
@@ -175,7 +181,7 @@ def search_bible_maps(gui=None, q='', **_):
                     
                     # when users enter location id(s)
                     if re.search("^BL[0-9BL, ]+?$", query):
-                        found_id = [i.strip() for i in query.split(",") if i.strip() in BIBLE_LOCATIONS]
+                        found_id = [i.strip() for i in query.split(",") if i.strip() in bible_locations]
                         if found_id:
                             location_multiselect.value = list(set(current_vals + found_id))
                             ui.notify(f"{len(found_id)} locations found!")
@@ -192,7 +198,7 @@ def search_bible_maps(gui=None, q='', **_):
                     for i in query.split(","):
                         i = i.strip()
                         if not i: continue
-                        for uid, data in BIBLE_LOCATIONS.items():
+                        for uid, data in bible_locations.items():
                             if i in data[0].lower():
                                 found_id.append(uid)
                                 break
@@ -218,7 +224,7 @@ def search_bible_maps(gui=None, q='', **_):
                     
                     # Handle "All"
                     if 'CMD_ALL' in selected_values:
-                        all_real_ids = list(LOCATION_OPTIONS.keys())
+                        all_real_ids = list(location_options.keys())
                         location_multiselect.value = all_real_ids
                         update_map_markers(all_real_ids)
                         return
@@ -243,8 +249,8 @@ def search_bible_maps(gui=None, q='', **_):
             
             with ui.row().classes('w-full items-center gap-4 p-0'):
                 # Location Selectors
-                loc1_select = ui.select(LOCATION_OPTIONS, label=get_translation('From'), with_input=True).classes('w-35').props('dense')
-                loc2_select = ui.select(LOCATION_OPTIONS, label=get_translation('To'), with_input=True).classes('w-35').props('dense')
+                loc1_select = ui.select(location_options, label=get_translation('From'), with_input=True).classes('w-35').props('dense')
+                loc2_select = ui.select(location_options, label=get_translation('To'), with_input=True).classes('w-35').props('dense')
                 
                 # Unit Toggle
                 unit_radio = ui.radio({'km': get_translation('km'), 'miles': get_translation('miles')}, value='km').props('dense inline')
@@ -267,8 +273,8 @@ def search_bible_maps(gui=None, q='', **_):
                     id1 = loc1_select.value
                     id2 = loc2_select.value
                     
-                    coord1 = (BIBLE_LOCATIONS[id1][1], BIBLE_LOCATIONS[id1][2])
-                    coord2 = (BIBLE_LOCATIONS[id2][1], BIBLE_LOCATIONS[id2][2])
+                    coord1 = (bible_locations[id1][1], bible_locations[id1][2])
+                    coord2 = (bible_locations[id2][1], bible_locations[id2][2])
                     
                     dist = haversine_distance(coord1, coord2, unit_radio.value)
                     unit_label = get_translation('km') if unit_radio.value == 'km' else get_translation('miles')
@@ -293,7 +299,7 @@ def search_bible_maps(gui=None, q='', **_):
                 bible_map.set_center(jerusalem) # Jerusalem
                 bible_map.set_zoom(9)
                 return
-            locations = [BIBLE_LOCATIONS[uid][1:] for uid in location_multiselect.value]
+            locations = [bible_locations[uid][1:] for uid in location_multiselect.value]
             lats = [loc[0] for loc in locations]
             lngs = [loc[1] for loc in locations]
             #center = (sum(lats)/len(lats), sum(lngs)/len(lngs))

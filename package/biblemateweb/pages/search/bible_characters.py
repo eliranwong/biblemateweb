@@ -5,11 +5,16 @@ import numpy as np
 import re, apsw, os, json, traceback
 from biblemateweb.data.cr_books import cr_books
 
-def fetch_bible_characters_entry(path):
+def exlbp_table(language="eng"):
+    if language in ("tc", "sc"):
+        return f"exlbp_{language}"
+    return "exlbp"
+
+def fetch_bible_characters_entry(path, language="eng"):
     db = os.path.join(BIBLEMATEWEB_DATA, "data", "exlb3.data")
     with apsw.Connection(db) as connn:
         cursor = connn.cursor()
-        sql_query = "SELECT content FROM exlbp WHERE path=? limit 1"
+        sql_query = f"SELECT content FROM {exlbp_table(language)} WHERE path=? limit 1"
         cursor.execute(sql_query, (path,))
         fetch = cursor.fetchone()
         content = fetch[0] if fetch else ""
@@ -18,7 +23,7 @@ def fetch_bible_characters_entry(path):
 async def fetch_bible_characters_matches_async(query):
     n = ui.notification("Loading ...", timeout=None, spinner=True)
     db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
-    sql_table = "exlbp"
+    sql_table = exlbp_table(app.storage.user.get("ui_language", "eng"))
     embedding_model = "paraphrase-multilingual"
     path = ""
     options = []
@@ -71,7 +76,7 @@ async def fetch_bible_characters_matches_async(query):
 
 def fetch_bible_characters_matches(query):
         db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
-        sql_table = "exlbp"
+        sql_table = exlbp_table(app.storage.user.get("ui_language", "eng"))
         embedding_model="paraphrase-multilingual"
         path=""
         options=[]
@@ -108,11 +113,11 @@ def fetch_bible_characters_matches(query):
             return
         return path, options
 
-def fetch_all_characters():
+def fetch_all_characters(language="eng"):
     db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
     with apsw.Connection(db_file) as connn:
         cursor = connn.cursor()
-        sql_query = "SELECT entry FROM exlbp"
+        sql_query = f"SELECT entry FROM {exlbp_table(language)}"
         cursor.execute(sql_query)
         all_characters = [i[0] for i in cursor.fetchall()]
     all_characters = list(set([i for i in all_characters if i]))
@@ -161,7 +166,7 @@ def search_bible_characters(gui=None, q='', **_):
         nonlocal content_container, gui, dialog, input_field, last_entry
 
         n = ui.notification(get_translation('Loading...'), timeout=None, spinner=True)
-        content = await run.io_bound(fetch_bible_characters_entry, path)
+        content = await run.io_bound(fetch_bible_characters_entry, path, app.storage.user.get("ui_language", "eng"))
         n.dismiss()
 
         # Clear existing rows first
@@ -272,7 +277,7 @@ def search_bible_characters(gui=None, q='', **_):
 
         # update autocomplete
         async def get_all_characters():
-            all_locations = await run.io_bound(fetch_all_characters)
+            all_locations = await run.io_bound(fetch_all_characters, app.storage.user.get("ui_language", "eng"))
             input_field.set_autocomplete(all_locations)
         n = ui.notification(get_translation('Loading...'), timeout=None, spinner=True)
         ui.timer(0, get_all_characters, once=True)

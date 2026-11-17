@@ -42,14 +42,20 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
     # --- CONFIGURATION ---
     DB_FILE = os.path.join(BIBLEMATEWEB_DATA, 'indexes2.sqlite')
 
+    def localized_exlb_table(name):
+        lang = app.storage.user.get("ui_language", "eng")
+        if lang in ("tc", "sc"):
+            return f"{name}_{lang}"
+        return name
+
     # Define your tables, their display titles, and their icons
     TABLE_CONFIG = {
         "Bible People": {
-            "table": "exlbp", 
+            "table": localized_exlb_table("exlbp"),
             "icon": "groups"        # Icon for people/groups
         },
         "Bible Locations": {
-            "table": "exlbl", 
+            "table": localized_exlb_table("exlbl"),
             "icon": "place"         # Icon for maps/locations
         },
         "Bible Topics": {
