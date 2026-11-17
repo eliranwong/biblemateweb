@@ -40,6 +40,10 @@ Open <http://localhost:33355>. See [Running the Server](running_the_server.md) a
 
 Re-run the `pip install --upgrade` command and restart the server. Run `biblematedata` again if new data is required.
 
+## Docker
+
+See [Docker Setup](docker.md).
+
 ## Android
 
 See [Android Termux Setup](../android_termux/README.md).

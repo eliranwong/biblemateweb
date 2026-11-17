@@ -76,7 +76,7 @@ All settings, including [User Data & Storage](user_preferences/user_data_and_sto
 ## For administrators
 
 ### [Server Setup](server_setup/README.md)
-[Installation](server_setup/installation.md) · [First Run](server_setup/first_run.md) · [Configuration](server_setup/configuration.md) · [Running the Server](server_setup/running_the_server.md) · [Data & Resources](server_setup/data_and_resources.md) · [Semantic Search](server_setup/semantic_search_setup.md) · [DOCX Export](server_setup/docx_export.md) · [Google Drive Notes Setup](server_setup/google_drive_notes_setup.md) · [Security](server_setup/security_and_deployment.md) · [Troubleshooting](server_setup/troubleshooting.md)
+[Installation](server_setup/installation.md) · [Docker Setup](server_setup/docker.md) · [First Run](server_setup/first_run.md) · [Configuration](server_setup/configuration.md) · [Running the Server](server_setup/running_the_server.md) · [Data & Resources](server_setup/data_and_resources.md) · [Semantic Search](server_setup/semantic_search_setup.md) · [DOCX Export](server_setup/docx_export.md) · [Google Drive Notes Setup](server_setup/google_drive_notes_setup.md) · [Security](server_setup/security_and_deployment.md) · [Troubleshooting](server_setup/troubleshooting.md)
 
 ### Android
 [Android Termux Setup](android_termux/README.md): [Termux](android_termux/install_termux.md), [Ubuntu](android_termux/install_ubuntu.md), [Ollama](android_termux/install_ollama.md), [Claude Code](android_termux/install_claude_code.md), [Codex CLI](android_termux/install_codex_cli.md), [Antigravity CLI](android_termux/install_antigravity_cli.md)

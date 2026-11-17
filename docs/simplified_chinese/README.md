@@ -80,7 +80,7 @@ BibleMate AI Web 的完整文档 —— 一款由 AI 驱动的圣经研读 Web �
 ## 管理员指南
 
 ### [服务器设定](server_setup/README.md)
-[安装指南](server_setup/installation.md) · [首次运行](server_setup/first_run.md) · [配置设定](server_setup/configuration.md) · [运行服务器](server_setup/running_the_server.md) · [数据与资源](server_setup/data_and_resources.md) · [语义搜索](server_setup/semantic_search_setup.md) · [DOCX 导出](server_setup/docx_export.md) · [Google Drive 笔记设置](server_setup/google_drive_notes_setup.md) · [安全与部署](server_setup/security_and_deployment.md) · [故障排除](server_setup/troubleshooting.md)
+[安装指南](server_setup/installation.md) · [Docker 部署](server_setup/docker.md) · [首次运行](server_setup/first_run.md) · [配置设定](server_setup/configuration.md) · [运行服务器](server_setup/running_the_server.md) · [数据与资源](server_setup/data_and_resources.md) · [语义搜索](server_setup/semantic_search_setup.md) · [DOCX 导出](server_setup/docx_export.md) · [Google Drive 笔记设置](server_setup/google_drive_notes_setup.md) · [安全与部署](server_setup/security_and_deployment.md) · [故障排除](server_setup/troubleshooting.md)
 
 ### Android
 [Android Termux 设置](android_termux/README.md)：[Termux](android_termux/install_termux.md)、[Ubuntu](android_termux/install_ubuntu.md)、[Ollama](android_termux/install_ollama.md)、[Claude Code](android_termux/install_claude_code.md)、[Codex CLI](android_termux/install_codex_cli.md)、[Antigravity CLI](android_termux/install_antigravity_cli.md)

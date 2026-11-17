@@ -40,6 +40,10 @@ biblemateweb
 
 重新執行 `pip install --upgrade` 命令並重新啟動伺服器。若需要更新數據，請再次執行 `biblematedata`。
 
+## Docker
+
+請參閱 [Docker 部署](docker.md)。
+
 ## Android
 
 請參閱 [Android Termux 設定](../android_termux/README.md)。
