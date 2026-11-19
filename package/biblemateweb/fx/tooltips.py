@@ -45,7 +45,8 @@ def get_morphology_data(word):
     result = None
     db = os.path.join(BIBLEMATEWEB_DATA, "morphology.sqlite")
     with apsw.Connection(db) as connn:
-        query = "SELECT * FROM morphology WHERE WordID=? and Book < 40" if word.startswith("wh") else "SELECT * FROM morphology WHERE WordID=? and Book > 39"
+        cols = "WordID, ClauseID, Book, Chapter, Verse, Word, LexicalEntry, MorphologyCode, Morphology, Lexeme, Transliteration, Pronunciation, Interlinear, Translation, Gloss"
+        query = f"SELECT {cols} FROM morphology WHERE WordID=? and Book < 40" if word.startswith("wh") else f"SELECT {cols} FROM morphology WHERE WordID=? and Book > 39"
         cursor = connn.cursor()
         cursor.execute(query, (int(word[2:] if word.startswith("wh") else word[1:]),))
         result = cursor.fetchone()    

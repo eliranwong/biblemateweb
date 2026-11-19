@@ -9,7 +9,7 @@ def fetch_morphology(b, c, v):
     results = []
     db = os.path.join(BIBLEMATEWEB_DATA, "morphology.sqlite")
     with apsw.Connection(db) as connn:
-        query = "SELECT * FROM morphology WHERE Book=? AND Chapter=? AND Verse=? ORDER BY WordID"
+        query = "SELECT WordID, ClauseID, Book, Chapter, Verse, Word, LexicalEntry, MorphologyCode, Morphology, Lexeme, Transliteration, Pronunciation, Interlinear, Translation, Gloss FROM morphology WHERE Book=? AND Chapter=? AND Verse=? ORDER BY WordID"
         cursor = connn.cursor()
         cursor.execute(query, (b,c,v))
         results = cursor.fetchall()
