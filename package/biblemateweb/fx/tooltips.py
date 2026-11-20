@@ -1,5 +1,5 @@
 import os, apsw, re
-from biblemateweb import BIBLEMATEWEB_DATA, config
+from biblemateweb import config, get_morphology_db
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from nicegui import app
 
@@ -43,7 +43,7 @@ def get_lexical_data(word):
 
 def get_morphology_data(word):
     result = None
-    db = os.path.join(BIBLEMATEWEB_DATA, "morphology.sqlite")
+    db = get_morphology_db()
     with apsw.Connection(db) as connn:
         cols = "WordID, ClauseID, Book, Chapter, Verse, Word, LexicalEntry, MorphologyCode, Morphology, Lexeme, Transliteration, Pronunciation, Interlinear, Translation, Gloss"
         query = f"SELECT {cols} FROM morphology WHERE WordID=? and Book < 40" if word.startswith("wh") else f"SELECT {cols} FROM morphology WHERE WordID=? and Book > 39"

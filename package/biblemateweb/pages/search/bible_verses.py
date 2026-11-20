@@ -1,7 +1,7 @@
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from biblemateweb.fx.bible import get_bible_content
-from biblemateweb import BIBLEMATEWEB_DATA, config, get_translation, resolve_verses_additional_options
+from biblemateweb import BIBLEMATEWEB_DATA, config, get_morphology_db, get_translation, resolve_verses_additional_options
 from functools import partial
 from nicegui import ui, app, run
 import re, apsw, os
@@ -146,7 +146,7 @@ def search_bible_verses(gui=None, q='', **_):
                     suffix += f"AND Morphology LIKE '{i}' "
                 if books := re.search("WHERE (Book.*?) AND", SQL_QUERY):
                     suffix += f"AND {books.group(1)} " # limit morphology search in particular books
-                db = os.path.join(BIBLEMATEWEB_DATA, "morphology.sqlite")
+                db = get_morphology_db(app.storage.client["custom"])
                 with apsw.Connection(db) as connn:
                     query = f"SELECT Book, Chapter, Verse FROM morphology WHERE LexicalEntry LIKE ? {suffix}ORDER BY Book, Chapter, Verse"
                     cursor = connn.cursor()

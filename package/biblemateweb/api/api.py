@@ -181,7 +181,7 @@ def get_morphology_content(query, language, custom): # accept multiple reference
     markdown_contents = []
     parser = BibleVerseParser(False, language=language)
     for b, c, v in parser.extractExhaustiveReferences(query):
-        if results := fetch_morphology(b,c,v):
+        if results := fetch_morphology(b,c,v, custom=custom):
             markdown_content = f"## Morphology - {parser.bcvToVerseReference(b,c,v)}\n\n"
             for wordID, clauseID, book, chapter, verse, word, lexicalEntry, morphologyCode, morphology, lexeme, transliteration, pronunciation, interlinear, translation, gloss in results:
                 markdown_content += f"- **{word}** ({lexicalEntry.split(',')[-2]}): {morphology} — {gloss}\n"

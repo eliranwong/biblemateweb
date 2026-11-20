@@ -1,13 +1,13 @@
 import os, re
-from biblemateweb import BIBLEMATEWEB_DATA, get_translation
+from biblemateweb import get_morphology_db, get_translation
 import apsw
 from nicegui import ui, app
 from biblemateweb.fx.bible import BibleSelector
 from functools import partial
 
-def fetch_morphology(b, c, v):
+def fetch_morphology(b, c, v, custom=None):
     results = []
-    db = os.path.join(BIBLEMATEWEB_DATA, "morphology.sqlite")
+    db = get_morphology_db(custom)
     with apsw.Connection(db) as connn:
         query = "SELECT WordID, ClauseID, Book, Chapter, Verse, Word, LexicalEntry, MorphologyCode, Morphology, Lexeme, Transliteration, Pronunciation, Interlinear, Translation, Gloss FROM morphology WHERE Book=? AND Chapter=? AND Verse=? ORDER BY WordID"
         cursor = connn.cursor()
@@ -73,7 +73,7 @@ def word_morphology(gui=None, b=1, c=1, v=1, area=2, **_):
                 ui.notify("Select morphology to search for first!")
 
         with ui.column().classes('w-full gap-4'):
-            if results := fetch_morphology(b,c,v):
+            if results := fetch_morphology(b,c,v, custom=app.storage.client["custom"]):
                 for wordID, clauseID, book, chapter, verse, word, lexicalEntry, morphologyCode, morphology, lexeme, transliteration, pronunciation, interlinear, translation, gloss in results:
                     morphology_data[wordID] ={}
                     lexicalEntries = lexicalEntry.split(",")[:-1]

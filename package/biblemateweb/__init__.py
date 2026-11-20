@@ -607,3 +607,16 @@ USER_DEFAULT_SETTINGS = {
     'max_tokens': 8192,
     'temperature': 0.3,
 }
+
+def get_morphology_db(custom=None):
+    """Return the path to the morphology database, preferring the custom file when authorized."""
+    if custom is None:
+        try:
+            custom = bool(app.storage.client.get("custom", False))
+        except RuntimeError:
+            custom = not config.custom_token or app.storage.user.get("custom_token", "") == config.custom_token
+    if custom:
+        custom_db = os.path.join(BIBLEMATEWEB_DATA_CUSTOM, "morphology.sqlite")
+        if os.path.isfile(custom_db):
+            return custom_db
+    return os.path.join(BIBLEMATEWEB_DATA, "morphology.sqlite")
