@@ -140,6 +140,12 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
     #elif "</grk>" in content:
     #    content = re.sub('(<grk id=")(.*?)"', r'\1\2" data-word="\2" class="tooltip-word"', content)
     content = re.sub('(<(?:heb|grk|en|zh) id=")(.*?)"', r'\1\2" data-word="\2" class="tooltip-word"', content)
+    # mutual word highlighting
+    content = re.sub(
+        r'(<(?:heb|grk|en|zh)\b[^>]*\bid="w([^"]+)"(?![^>]*\bonmouseover=))',
+        r'''\1 onmouseover="hl1('\2','','')" onmouseout="hl0('\2','','')"''',
+        content,
+    )
     # study notes
     if "<ref onclick='bn(" in content:
         content = re.sub(rf'''<ref onclick='bn\(([0-9]+?),[ ]*?([0-9]+?),[ ]*?([0-9]+?),[ ]*?"(.*?)"\)'>''', rf'<ref data-word="bn,{title},\1,\2,\3,\4" class="tooltip-word">', content)

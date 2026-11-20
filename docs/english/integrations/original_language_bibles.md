@@ -12,4 +12,4 @@ Five integrated Hebrew/Greek editions, each with the same [selectors](bible_sele
 
 Open via the Bibles or Parallel Bibles menu, or type the code in [quick search](../basics/quick_search.md).
 
-Click a word to jump to the [lexicon](word_tooltips.md); use 🧬 Morphology in the [verse menu](verse_menu.md) for full analysis.
+Click a word to jump to the [lexicon](word_tooltips.md), or hover over a word for tooltips and [mutual word & clause highlighting](word_tooltips.md#mutual-word--clause-highlighting) across parallel panes; use 🧬 Morphology in the [verse menu](verse_menu.md) for full analysis.

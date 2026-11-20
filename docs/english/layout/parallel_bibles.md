@@ -20,3 +20,5 @@ Type `bible:::John 3:16` to open that chapter in the Tool Area with your default
 ## Synchronisation
 
 With [Sync](sync.md) on (default), navigating in one Bible moves the other to the same book and chapter. Turn Sync off to read different passages in each window.
+
+When viewing original-language Bibles side by side (such as `OPB` and `OLB`), hovering over a Hebrew or Greek word also triggers cross-pane **mutual word & clause highlighting**—see [Word Tooltips & Lexicon Links](../integrations/word_tooltips.md#mutual-word--clause-highlighting).

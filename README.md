@@ -34,6 +34,7 @@ BibleMate AI Web provides a unified web interface combining the best features of
 - **Multiple Bible Versions**: 100+ translations including original Hebrew (BHS5) and Greek (OGNT)
 - **Original Language Support**: Interlinear view, morphology analysis, Strong's numbers
 - **Hebrew & Greek Tooltips**: Instant lexical information on hover
+- **Mutual Word & Clause Highlighting**: Hovering over a Hebrew or Greek word in original-language Bibles highlights its clause, matching lexical/Strong's occurrences across parallel panes (e.g., `OPB` and `OLB`), and the focal word
 - **Cross-References**: Treasury of Scripture Knowledge (TSK) integration
 - **Commentaries**: 30+ classic Bible commentaries
 - **Reference Books**: Read `.book` files (chapter-by-chapter) in a built-in reader, with clickable Bible references; add your own by dropping files into a folder ([guide](docs/english/tools/tool_books.md))

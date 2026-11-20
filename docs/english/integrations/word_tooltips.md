@@ -52,6 +52,16 @@ Hovering over a translation note marker shows the note text with clickable Bible
 
 Clicking a Hebrew/Greek manuscript word, lemma, or Strong's link opens [Lexicons](../search/search_lexicons.md) in the Tool Area with that entry as the query, using your preferred Hebrew or Greek lexicon.
 
+## Mutual Word & Clause Highlighting
+
+In the [Original-Language Bibles](original_language_bibles.md) (`ORB`, `OIB`, `OPB`, `ODB`, `OLB`), hovering over any Hebrew or Greek word also highlights related elements across all open Bible panes (for example, when reading `OPB` and `OLB` side by side in [Parallel Bibles](../layout/parallel_bibles.md)):
+
+1. **Clause highlight (`.c<cl>`):** Highlights all words belonging to the same grammatical clause (`PAPAYAWHIP` in light mode; `#d48f28` in dark mode).
+2. **Mutual lexical highlight (`.G<sn>`):** Highlights every occurrence of the same lexical / Strong's entry across all open panes (`#E7EDFF` in light mode; `#5d85fc` in dark mode).
+3. **Focal word highlight (`#w<id>`):** Highlights the hovered word (`#C9CFFF` in light mode; `#5a64b0` in dark mode).
+
+Moving the cursor away clears all three highlight layers. Because clause and lexical highlighting query the entire document (`document.querySelectorAll`), hovering a word in one pane immediately highlights corresponding words and clauses in the parallel pane.
+
 ## Programmatic Access
 
 Tooltip data is served by `GET /api/tooltip/{word}` — see [REST API](rest_api.md).

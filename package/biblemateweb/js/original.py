@@ -12,6 +12,18 @@ def get_original_js(dark_mode):
 
     // Variable used in original script for host interoperability
 
+    function getWordSelector(id) {{
+        var selector = '[id="w' + id + '"]';
+        if (/^[0-9]+$/.test(id)) {{
+            var padded = id.padStart(6, '0');
+            var unpadded = String(parseInt(id, 10));
+            if (padded !== unpadded) {{
+                selector = '[id="w' + padded + '"], [id="w' + unpadded + '"]';
+            }}
+        }}
+        return selector;
+    }}
+
     function hl0(id, cl, sn) {{
         if (cl != '') {{
             w3.addStyle('.c'+cl,'background-color','');
@@ -20,10 +32,9 @@ def get_original_js(dark_mode):
             w3.addStyle('.G'+sn,'background-color','');
         }}
         if (id != '') {{
-            var focalElement = document.getElementById('w'+id);
-            if (focalElement != null) {{
-                focalElement.style.background='';
-            }}
+            document.querySelectorAll(getWordSelector(id)).forEach(function(el) {{
+                el.style.background = '';
+            }});
         }}
     }}
 
@@ -35,10 +46,9 @@ def get_original_js(dark_mode):
             w3.addStyle('.G'+sn,'background-color','{"#5d85fc" if dark_mode else "#E7EDFF"}');
         }}
         if (id != '') {{
-            var focalElement = document.getElementById('w'+id);
-            if (focalElement != null) {{
-                focalElement.style.background='{"#5a64b0" if dark_mode else "#C9CFFF"}';
-            }}
+            document.querySelectorAll(getWordSelector(id)).forEach(function(el) {{
+                el.style.background = '{"#5a64b0" if dark_mode else "#C9CFFF"}';
+            }});
         }}
     }}
 </script>

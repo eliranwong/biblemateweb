@@ -2,7 +2,7 @@ from setuptools import setup
 from setuptools.command.install import install
 import os, shutil, platform, sys
 
-version = "1.1.4"
+version = "1.1.5"
 with open(os.path.join("biblemateweb", "version.txt"), "w", encoding="utf-8") as fileObj:
     fileObj.write(version)
 
