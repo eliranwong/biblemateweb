@@ -5,7 +5,7 @@ Any `.bible` module in `~/biblemate/data/bibles` (and, with a [custom token](../
 ## Features
 
 - Chapter display with clickable verse numbers ([verse menu](../integrations/verse_menu.md)).
-- Cross-reference and note markers embedded in the text ([text links](../integrations/text_links.md)); Strong's numbers and morphology words show [tooltips](../integrations/word_tooltips.md) where the module has them.
+- Cross-reference and note markers embedded in the text ([text links](../integrations/text_links.md)). Tagged Bibles with Strong's numbers and morphology words enable [word tooltips](../integrations/word_tooltips.md) for **direct Hebrew/Greek lexicon lookup** as well as **parallel word highlighting** between different translations and the original Hebrew/Greek text.
 - 📝 note indicators ([guide](../integrations/note_indicators.md)).
 - `◀️ Prev Chapter` / `Next Chapter ▶️` buttons at the bottom, and in the three-dot menu.
 - Version, book, chapter and verse selectors at the top ([guide](../integrations/bible_selectors.md)).

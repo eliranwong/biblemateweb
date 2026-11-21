@@ -39,7 +39,7 @@ def search_bible_lexicons(gui=None, q='', **_):
     if q:
         if q.startswith("E") and not app.storage.user['favorite_lexicon'] in ("Morphology", "ConcordanceMorphology", "ConcordanceBook"):
             app.storage.user['favorite_lexicon'] = "Morphology"
-        elif q.startswith("BDB"):
+        elif q.startswith("BDB") and not q.startswith("BDBE"):
             app.storage.user['favorite_lexicon'] = "BDB"
         elif q.startswith("H"):
             app.storage.user['favorite_lexicon'] = app.storage.user.get('hebrew_lexicon', 'Morphology')
@@ -127,7 +127,7 @@ def search_bible_lexicons(gui=None, q='', **_):
                 await change_module("Morphology")
             elif (topic.startswith("G") and lexicon_module == "BDB"):
                 await change_module(app.storage.user.get('greek_lexicon', 'Morphology'))
-            elif topic.startswith("BDB") or (topic.startswith("H") and lexicon_module in ("Morphology", "ConcordanceMorphology", "ConcordanceBook")):
+            elif (topic.startswith("BDB") and not topic.startswith("BDBE")) or (topic.startswith("H") and lexicon_module in ("Morphology", "ConcordanceMorphology", "ConcordanceBook")):
                 await change_module("BDB")
 
             n = ui.notification(get_translation('Loading...'), timeout=None, spinner=True)
@@ -192,7 +192,8 @@ def search_bible_lexicons(gui=None, q='', **_):
     if q and ":::" in q:
         additional_options, q = q.split(":::", 1)
         if additional_options.strip() in client_lexicons:
-            app.storage.user['favorite_lexicon'] = additional_options.strip()
+            lexicon_module = additional_options.strip()
+            app.storage.user['favorite_lexicon'] = lexicon_module
 
     with ui.row().classes('w-full max-w-3xl mx-auto m-0 py-0 px-4 items-center'):
         scope_select = ui.select(

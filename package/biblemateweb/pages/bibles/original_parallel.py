@@ -43,6 +43,13 @@ def original_parallel(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, **_
         app.storage.user['tool_query'] = lexical_entry
         open_tool("Lexicons")
 
+    def morph(event):
+        nonlocal gui
+        morph_query, *_ = event.args
+        app.storage.user['tool_book_text'] = gui.get_area_1_bible_text()
+        app.storage.user['tool_query'] = morph_query
+        open_tool("Verses")
+
     def note(event):
         nonlocal gui, area
         app.storage.user['tool_book_number'], app.storage.user['tool_chapter_number'], app.storage.user['tool_verse_number'], *_ = event.args
@@ -89,6 +96,7 @@ def original_parallel(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, **_
             gui.open_verse_context_menu(db, b, c, v, (str(v) in verses_with_notes))
 
     ui.on('wd', wd)
+    ui.on('morph', morph)
     ui.on('luV1', luV1)
     ui.on('luV2', luV2)
     ui.on('note', note)

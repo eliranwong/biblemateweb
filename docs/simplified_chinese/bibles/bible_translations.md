@@ -5,7 +5,7 @@
 ## 功能特点
 
 - 支持全章显示，并附有可点击的经文编号（[经文菜单](../integrations/verse_menu.md)）。
-- 内嵌于经文中的经文串珠与注解标记（[经文链接](../integrations/text_links.md)）；若模块包含 Strong 编号及形态学字词，则会显示[浮动提示](../integrations/word_tooltips.md)。
+- 内嵌于经文中的经文串珠与注解标记（[经文链接](../integrations/text_links.md)）。带有 Strong 编号及形态学字词标注的圣经支持[浮动提示](../integrations/word_tooltips.md)，不仅可**直接查阅希伯来文／希腊文词典**，还能在不同译本之间以及译本与希伯来文／希腊文原文之间进行**平行对应字词高亮**。
 - 📝 笔记指示图标（[指南](../integrations/note_indicators.md)）。
 - 底部及三点菜单中均提供 `◀️ Prev Chapter` / `Next Chapter ▶️` 按钮。
 - 顶部设有版本、书卷、章数与节数选择器（[指南](../integrations/bible_selectors.md)）。

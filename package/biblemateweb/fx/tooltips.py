@@ -1,5 +1,5 @@
 import os, apsw, re
-from biblemateweb import config, get_morphology_db
+from biblemateweb import config, get_morphology_db, getLexiconList
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from nicegui import app
 
@@ -44,27 +44,38 @@ def get_lexical_data(word):
 def get_morphology_data(word):
     result = None
     db = get_morphology_db()
+    extra_cols = ("eStrongContextSpecific", "BDAG", "LSJ", "HALOT", "CHALOT", "BDBE")
     with apsw.Connection(db) as connn:
-        cols = "WordID, ClauseID, Book, Chapter, Verse, Word, LexicalEntry, MorphologyCode, Morphology, Lexeme, Transliteration, Pronunciation, Interlinear, Translation, Gloss"
-        query = f"SELECT {cols} FROM morphology WHERE WordID=? and Book < 40" if word.startswith("wh") else f"SELECT {cols} FROM morphology WHERE WordID=? and Book > 39"
         cursor = connn.cursor()
+        cursor.execute("PRAGMA table_info(morphology)")
+        table_cols = {row[1] for row in cursor.fetchall()}
+        present_extra_cols = [col for col in extra_cols if col in table_cols]
+        base_cols = "WordID, ClauseID, Book, Chapter, Verse, Word, LexicalEntry, MorphologyCode, Morphology, Lexeme, Transliteration, Pronunciation, Interlinear, Translation, Gloss"
+        cols = f"{base_cols}, {', '.join(present_extra_cols)}" if present_extra_cols else base_cols
+        query = f"SELECT {cols} FROM morphology WHERE WordID=? and Book < 40" if word.startswith("wh") else f"SELECT {cols} FROM morphology WHERE WordID=? and Book > 39"
         cursor.execute(query, (int(word[2:] if word.startswith("wh") else word[1:]),))
         result = cursor.fetchone()    
     if result:
-        wordID, clauseID, book, chapter, verse, word, lexicalEntry, morphologyCode, morphology, lexeme, transliteration, pronunciation, interlinear, translation, gloss = result
+        wordID, clauseID, book, chapter, verse, word, lexicalEntry, morphologyCode, morphology, lexeme, transliteration, pronunciation, interlinear, translation, gloss = result[:15]
+        extra_values = dict(zip(present_extra_cols, result[15:]))
         audio_path = '/bhs5_audio' if book < 40 else '/ognt_audio'
         audio_module = 'BHS5' if book < 40 else 'OGNT'
         audio_file = f'{audio_path}/{book}_{chapter}/{audio_module}_{book}_{chapter}_{verse}_{wordID}.mp3'
         audio_file_lex = f'{audio_path}/{book}_{chapter}/lex_{audio_module}_{book}_{chapter}_{verse}_{wordID}.mp3'
-        lexicon_entry_1, lexicon_entry_2, *_ = lexicalEntry.split(',')
-        if not lexicon_entry_2:
-            lexicon_entry_2 = lexicon_entry_1
-        description = f'''<{'heb' if book < 40 else 'grk'} onclick="emitEvent('wd', ['{lexicon_entry_1}']); return false;">{word}</{'heb' if book < 40 else 'grk'}> | <wphono>{transliteration}</wphono> | <wphono>{pronunciation}</wphono><br>
+        lexicon_entry_1, *_ = lexicalEntry.split(',')
+        morph_queries = [
+            f"{element},%" if index == 0 else f"%,{element},%"
+            for index, element in enumerate(morphology.split(",")[:-1])
+            if element != "unknown"
+        ]
+        word_morph_query = "|".join([lexicon_entry_1] + morph_queries) if morph_queries else f"{lexicon_entry_1}|%"
+        lexeme_morph_query = f"{lexicon_entry_1}|%"
+        description = f'''<{'heb' if book < 40 else 'grk'} onclick="emitEvent('morph', ['{word_morph_query}']); return false;">{word}</{'heb' if book < 40 else 'grk'}> | <wphono>{transliteration}</wphono> | <wphono>{pronunciation}</wphono><br>
 <audio controls style="margin-top: 4px;">
   <source src="{audio_file}" type="audio/mpeg">
   Your browser does not support the audio element.
 </audio>
-<{'heb' if book < 40 else 'grk'} onclick="emitEvent('wd', ['{lexicon_entry_2}']); return false;">{lexeme}</{'heb' if book < 40 else 'grk'}><br>
+<{'heb' if book < 40 else 'grk'} onclick="emitEvent('morph', ['{lexeme_morph_query}']); return false;">{lexeme}</{'heb' if book < 40 else 'grk'}><br>
 <audio controls style="margin-top: 4px;">
   <source src="{audio_file_lex}" type="audio/mpeg">
   Your browser does not support the audio element.
@@ -72,6 +83,30 @@ def get_morphology_data(word):
 <clid>{morphology[:-1].replace(",", ", ")}</clid><br>
 <wgloss>{interlinear}</wgloss><br>
 <wtrans>{translation}</wtrans>'''
+        extra_lines = []
+        estrong_raw = extra_values.get("eStrongContextSpecific", "")
+        estrong_entries = [e.strip() for e in estrong_raw.split(",") if e.strip()] if estrong_raw else []
+        estrong_set = set(estrong_entries)
+        lexical_entries = [
+            e.strip() for e in lexicalEntry.split(",")
+            if e.strip() and not (e.strip()[0] in ("H", "G") and e.strip() in estrong_set)
+        ]
+        if lexical_entries:
+            extra_lines.append(", ".join(f'''<ref onclick="emitEvent('wd', ['{entry}']); return false;">{entry}</ref>''' for entry in lexical_entries))
+        if estrong_entries:
+            extra_lines.append(", ".join(f'''<ref onclick="emitEvent('wd', ['{entry}']); return false;">{entry}</ref>''' for entry in estrong_entries))
+        try:
+            custom = bool(app.storage.client.get("custom", False))
+        except RuntimeError:
+            custom = not config.custom_token or app.storage.user.get("custom_token", "") == config.custom_token
+        available_lexicons = set(getLexiconList(custom))
+        for lexicon_name in ("BDAG", "LSJ", "HALOT", "CHALOT", "BDBE"):
+            if lexicon_name in available_lexicons and (raw_entries := extra_values.get(lexicon_name, "")):
+                entries = [e.strip() for e in raw_entries.split(",") if e.strip()]
+                if entries:
+                    extra_lines.append(", ".join(f'''<ref onclick="emitEvent('wd', ['{lexicon_name}:::{entry}']); return false;">{entry}</ref>''' for entry in entries))
+        if extra_lines:
+            description += "<hr>" + ", ".join(extra_lines)
         return {'description': description, 'links': ""}
     return None
 

@@ -17,14 +17,15 @@ In the [Original-Language Bibles](../bibles/README.md) (`ORB`, `OIB`, `OPB`, `OD
 
 | Element | Description |
 |---|---|
-| **Manuscript form** | The exact inflected word as it appears in the text. **Click it** to open its lexicon entry in the Tool Area. |
+| **Manuscript form** | The exact inflected word as it appears in the text. **Click it** to search **Verses** for occurrences matching both its `E...`/`G...` lexical entry and all of its morphology tags. |
 | **Transliteration & Pronunciation** | Shown next to the manuscript form (`word \| transliteration \| pronunciation`). |
 | **Manuscript form audio** | An inline audio player (`<audio controls>`) for the pronunciation of the **manuscript (inflected) form** of the word. |
-| **Lemma form** | The dictionary / root form of the word. **Click it** to open the lemma's lexicon entry in the Tool Area. |
+| **Lemma form** | The dictionary / root form of the word. **Click it** to search **Verses** for all occurrences matching its `E...`/`G...` lexical entry across all morphology forms. |
 | **Lemma form audio** | A second inline audio player for the pronunciation of the **lemma (dictionary) form** of the word. |
 | **Morphology** | Grammatical analysis tags (e.g., part of speech, tense, voice, mood, case, gender, number, person, stem). |
 | **Interlinear gloss** | Word-for-word interlinear rendering. |
 | **Translation** | Contextual translation of the word. |
+| **Lexical & Lexicon Links** | Displayed at the bottom of the popup: `LexicalEntry` links (`E...`, and `H...`/`G...` if not duplicated in `eStrongContextSpecific`), `eStrongContextSpecific` links (when present), and direct mapping links to **BDAG**, **LSJ**, **HALOT**, **CHALOT**, and **BDBE** when those lexicons are available to the user. **Click any link** to open that entry in [Lexicons](../search/search_lexicons.md). |
 
 #### Word-Level Audio Details
 
@@ -48,13 +49,17 @@ In translation Bibles with Strong's tagging, hovering over a Strong's number (`H
 
 Hovering over a translation note marker shows the note text with clickable Bible verse references.
 
-## Click-Through to Lexicons
+## Click-Through to Morphology Search & Lexicons
 
-Clicking a Hebrew/Greek manuscript word, lemma, or Strong's link opens [Lexicons](../search/search_lexicons.md) in the Tool Area with that entry as the query, using your preferred Hebrew or Greek lexicon.
+- **Morphology Search:** In an original-language word popup, clicking the **manuscript word** opens [Verses](../search/search_bible_verses.md) with a combined `E...`/`G...` lexical entry + morphology tag query (matching that exact inflected form), while clicking the **lemma** searches [Verses](../search/search_bible_verses.md) for all morphology forms of that lexical entry (`<entry>|%`).
+- **Lexicons:** Clicking any `LexicalEntry`, `eStrongContextSpecific`, or Strong's link opens [Lexicons](../search/search_lexicons.md) in the Tool Area using your preferred Hebrew, Greek, or Morphology lexicon. Clicking a **BDAG**, **LSJ**, **HALOT**, **CHALOT**, or **BDBE** mapping link opens that specific lexicon directly on the target entry.
+
+> [!TIP]
+> **Why Tagged Bibles Shine in BibleMate Web:** Using Strong's- or morphology-tagged Bible translations lets you **parallel-highlight corresponding words** both across different translations and between translations and the original Hebrew/Greek text (`ORB`, `OIB`, `OPB`, `ODB`, `OLB`) when reading side by side in [Parallel Bibles](../layout/parallel_bibles.md), while also letting you **look up Hebrew and Greek lexicons directly** from the word tooltip.
 
 ## Mutual Word & Clause Highlighting
 
-In the [Original-Language Bibles](original_language_bibles.md) (`ORB`, `OIB`, `OPB`, `ODB`, `OLB`), hovering over any Hebrew or Greek word also highlights related elements across all open Bible panes (for example, when reading `OPB` and `OLB` side by side in [Parallel Bibles](../layout/parallel_bibles.md)):
+In both **tagged translation Bibles** and the [Original-Language Bibles](original_language_bibles.md) (`ORB`, `OIB`, `OPB`, `ODB`, `OLB`), hovering over a tagged word highlights related elements across all open Bible panes (for example, when comparing two tagged translations, a translation alongside `OIB`/`OPB`, or `OPB` and `OLB` side by side in [Parallel Bibles](../layout/parallel_bibles.md)):
 
 1. **Clause highlight (`.c<cl>`):** Highlights all words belonging to the same grammatical clause (`PAPAYAWHIP` in light mode; `#d48f28` in dark mode).
 2. **Mutual lexical highlight (`.G<sn>`):** Highlights every occurrence of the same lexical / Strong's entry across all open panes (`#E7EDFF` in light mode; `#5d85fc` in dark mode).
