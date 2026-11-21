@@ -41,6 +41,8 @@ def search_bible_lexicons(gui=None, q='', **_):
             app.storage.user['favorite_lexicon'] = "Morphology"
         elif q.startswith("BDB") and not q.startswith("BDBE"):
             app.storage.user['favorite_lexicon'] = "BDB"
+        elif prefix := next((p for p in ("BDBE", "BDAG", "HALOT", "CHALOT", "LSJ") if q.startswith(p) and p in client_lexicons), None):
+            app.storage.user['favorite_lexicon'] = prefix
         elif q.startswith("H"):
             app.storage.user['favorite_lexicon'] = app.storage.user.get('hebrew_lexicon', 'Morphology')
         elif q.startswith("G"):
@@ -78,7 +80,8 @@ def search_bible_lexicons(gui=None, q='', **_):
     ui.on('bcv', bcv)
     ui.on('cr', cr)
     ui.on('website', website)
-    ui.on('bdbid', bdbid)
+    for event_name in ('bdbid', 'bdbeid', 'bdagid', 'halotid', 'chalotid', 'lsjid'):
+        ui.on(event_name, bdbid)
     ui.on('lex', lex)
 
     lexicon_module = app.storage.user.get('favorite_lexicon', 'Morphology')
@@ -127,7 +130,12 @@ def search_bible_lexicons(gui=None, q='', **_):
                 await change_module("Morphology")
             elif (topic.startswith("G") and lexicon_module == "BDB"):
                 await change_module(app.storage.user.get('greek_lexicon', 'Morphology'))
-            elif (topic.startswith("BDB") and not topic.startswith("BDBE")) or (topic.startswith("H") and lexicon_module in ("Morphology", "ConcordanceMorphology", "ConcordanceBook")):
+            elif (topic.startswith("BDB") and not topic.startswith("BDBE")):
+                await change_module("BDB")
+            elif (target_lexicon := next((p for p in ("BDBE", "BDAG", "HALOT", "CHALOT", "LSJ") if topic.startswith(p) and p in client_lexicons), None)):
+                if lexicon_module != target_lexicon:
+                    await change_module(target_lexicon)
+            elif (topic.startswith("H") and lexicon_module in ("Morphology", "ConcordanceMorphology", "ConcordanceBook")):
                 await change_module("BDB")
 
             n = ui.notification(get_translation('Loading...'), timeout=None, spinner=True)
@@ -154,8 +162,8 @@ def search_bible_lexicons(gui=None, q='', **_):
                 content = re.sub("(</[on]tgloss>)", r"\1<br>", content)
 
             # convert links, e.g. <ref onclick="bcv(3,19,26)">
-            content = re.sub(r'''(onclick|ondblclick)="(bdbid|lex|cr|bcv|website)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
-            content = re.sub(r"""(onclick|ondblclick)='(bdbid|lex|cr|bcv|website)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
+            content = re.sub(r'''(onclick|ondblclick)="(bdbid|bdbeid|bdagid|halotid|chalotid|lsjid|lex|cr|bcv|website)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
+            content = re.sub(r"""(onclick|ondblclick)='(bdbid|bdbeid|bdagid|halotid|chalotid|lsjid|lex|cr|bcv|website)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
             # remove map
             content = content.replace('<div id="map" style="width:100%;height:500px"></div>', "")
             content = re.sub(r'<script.*?>.*?</script>', '', content, flags=re.DOTALL)

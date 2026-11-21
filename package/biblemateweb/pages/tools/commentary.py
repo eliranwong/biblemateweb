@@ -103,7 +103,7 @@ def bible_commentary(gui=None, b=1, c=1, v=1, q='', **_):
     def bdbid(event):
         nonlocal input_field
         id, *_ = event.args
-        input_field.value = bdbid
+        input_field.value = id
         handle_enter(None)
 
     def lex(event):
@@ -115,7 +115,8 @@ def bible_commentary(gui=None, b=1, c=1, v=1, q='', **_):
     ui.on('bcv', bcv)
     ui.on('cr', cr)
     ui.on('website', website)
-    ui.on('bdbid', bdbid)
+    for event_name in ('bdbid', 'bdbeid', 'bdagid', 'halotid', 'chalotid', 'lsjid'):
+        ui.on(event_name, bdbid)
     ui.on('lex', lex)
 
     def change_module(new_module):
@@ -162,8 +163,8 @@ def bible_commentary(gui=None, b=1, c=1, v=1, q='', **_):
 
         with content_container:
             # convert links, e.g. <ref onclick="bcv(3,19,26)">
-            content = re.sub(r'''(onclick|ondblclick)="(bdbid|lex|cr|bcv|website)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
-            content = re.sub(r"""(onclick|ondblclick)='(bdbid|lex|cr|bcv|website)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
+            content = re.sub(r'''(onclick|ondblclick)="(bdbid|bdbeid|bdagid|halotid|chalotid|lsjid|lex|cr|bcv|website)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
+            content = re.sub(r"""(onclick|ondblclick)='(bdbid|bdbeid|bdagid|halotid|chalotid|lsjid|lex|cr|bcv|website)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
             # convert colors for dark mode, e.g. <font color="brown">
             content = content.replace("<font color='3'>", "<font color='pink'>" if app.storage.user['dark_mode'] else "<font color='brown'>")
             content = content.replace("<font color='4'>", "<font color='lightskyblue'>" if app.storage.user['dark_mode'] else "<font color='navy'>")

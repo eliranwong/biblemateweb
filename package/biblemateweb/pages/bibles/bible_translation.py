@@ -185,8 +185,8 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
         content = re.sub(f">({'|'.join(verses_with_notes)})</vid>", rf'''>\1</vid> <ref onclick="note({b},{c},\1)">📝</ref>''', content)
     # Convert onclick and ondblclick links
     content = content.replace("luV(", "luV1(" if area == 1 else "luV2(")
-    content = re.sub(r'''(onclick|ondblclick)="(note|cr|bcv|luV1|luV2|luW|lex|bdbid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
-    content = re.sub(r"""(onclick|ondblclick)='(note|cr|bcv|luV1|luV2|luW|lex|bdbid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
+    content = re.sub(r'''(onclick|ondblclick)="(note|cr|bcv|luV1|luV2|luW|lex|bdbid|bdbeid|bdagid|halotid|chalotid|lsjid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
+    content = re.sub(r"""(onclick|ondblclick)='(note|cr|bcv|luV1|luV2|luW|lex|bdbid|bdbeid|bdagid|halotid|chalotid|lsjid|etcbcmorph|rmac|searchLexicalEntry|searchWord)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
 
     # adjust spacing
     content = content.replace("</vid> <pb/><br>", "</vid> ")

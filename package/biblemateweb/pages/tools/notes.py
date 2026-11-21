@@ -48,8 +48,8 @@ class CloudNotepad:
                 extras=["tables", "fenced-code-blocks", "toc", "cuddled-lists"]
             )
             html_content = self.parser.parseText(html_content)
-            html_content = re.sub(r'''(onclick|ondblclick)="(bdbid|lex|cr|bcv|website)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', html_content)
-            html_content = re.sub(r"""(onclick|ondblclick)='(bdbid|lex|cr|bcv|website)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", html_content)
+            html_content = re.sub(r'''(onclick|ondblclick)="(bdbid|bdbeid|bdagid|halotid|chalotid|lsjid|lex|cr|bcv|website)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', html_content)
+            html_content = re.sub(r"""(onclick|ondblclick)='(bdbid|bdbeid|bdagid|halotid|chalotid|lsjid|lex|cr|bcv|website)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", html_content)
             self.html_view.content = html_content
         except Exception as e:
             self.html_view.content = f"<p class='text-red-500'>Error: {str(e)}</p>"

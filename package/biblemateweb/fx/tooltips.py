@@ -44,7 +44,7 @@ def get_lexical_data(word):
 def get_morphology_data(word):
     result = None
     db = get_morphology_db()
-    extra_cols = ("eStrongContextSpecific", "BDAG", "LSJ", "HALOT", "CHALOT", "BDBE")
+    extra_cols = ("eStrongContextSpecific", "BDAGContextSpecific", "LSJContextSpecific", "HALOTContextSpecific", "CHALOTContextSpecific", "BDBEContextSpecific")
     with apsw.Connection(db) as connn:
         cursor = connn.cursor()
         cursor.execute("PRAGMA table_info(morphology)")
@@ -101,7 +101,8 @@ def get_morphology_data(word):
             custom = not config.custom_token or app.storage.user.get("custom_token", "") == config.custom_token
         available_lexicons = set(getLexiconList(custom))
         for lexicon_name in ("BDAG", "LSJ", "HALOT", "CHALOT", "BDBE"):
-            if lexicon_name in available_lexicons and (raw_entries := extra_values.get(lexicon_name, "")):
+            col_name = f"{lexicon_name}ContextSpecific"
+            if lexicon_name in available_lexicons and (raw_entries := extra_values.get(col_name, "")):
                 entries = [e.strip() for e in raw_entries.split(",") if e.strip()]
                 if entries:
                     extra_lines.append(", ".join(f'''<ref onclick="emitEvent('wd', ['{lexicon_name}:::{entry}']); return false;">{entry}</ref>''' for entry in entries))
