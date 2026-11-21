@@ -126,7 +126,8 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
         else:
             gui.change_area_2_bible_chapter(None, b, c, v) if area == 1 else gui.change_area_1_bible_chapter(None, b, c, v)
 
-    ui.on('lex', lex)
+    for event_name in ('lex', 'bdbid', 'bdbeid', 'bdagid', 'halotid', 'chalotid', 'lsjid'):
+        ui.on(event_name, lex)
     ui.on('note', note)
     ui.on('luV1', luV1)
     ui.on('luV2', luV2)

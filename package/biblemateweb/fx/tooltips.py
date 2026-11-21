@@ -36,8 +36,8 @@ def get_lexical_data(word):
     if fetch:
         content = fetch[0]
         content = f'''<ref onclick='lex("{word}")'>[{lexicon}] {word}</ref><hr>{content}'''
-        content = re.sub(r'''(onclick|ondblclick)="(lex|cr|bcv)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
-        content = re.sub(r"""(onclick|ondblclick)='(lex|cr|bcv)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
+        content = re.sub(r'''(onclick|ondblclick)="(bdbid|bdbeid|bdagid|halotid|chalotid|lsjid|lex|cr|bcv)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
+        content = re.sub(r"""(onclick|ondblclick)='(bdbid|bdbeid|bdagid|halotid|chalotid|lsjid|lex|cr|bcv)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
         return {'description': content, 'links': ""}
     return None
 
