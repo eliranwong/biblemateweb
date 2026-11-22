@@ -1,11 +1,11 @@
 from nicegui import ui, app
 from biblemateweb import get_translation, VerseEventObj
-from biblemateweb import BIBLEMATEWEB_DATA
+from biblemateweb import BIBLEMATEWEB_DATA, config
 from biblemateweb.fx.bible import *
 from biblemateweb.fx.original import *
 from biblemateweb.fx.cloud_index_manager import get_drive_service, CloudIndexManager
 from biblemateweb.js.sync_scrolling import *
-import re, os
+import apsw, re, os
 
 
 def original_discourse(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, **_):
@@ -113,6 +113,38 @@ def original_discourse(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, **
         return None
     content = getBibleChapter(db, b, c)
 
+    # Dynamically inject Bible translation into <trans></trans>
+    if "<trans></trans>" in content:
+        custom = bool(app.storage.client.get("custom", False))
+        default_trans = "NET"
+        trans_name = app.storage.user.get("odb_ot_trans" if b < 40 else "odb_nt_trans", default_trans)
+
+        def get_bible_db(abb: str) -> str:
+            if custom and abb in config.bibles_custom:
+                return config.bibles_custom[abb][-1]
+            if abb in config.bibles:
+                return config.bibles[abb][-1]
+            return ""
+
+        trans_db = get_bible_db(trans_name) or get_bible_db(default_trans)
+        verse_map = {}
+        if trans_db and os.path.isfile(trans_db):
+            with apsw.Connection(trans_db) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT Verse, Scripture FROM Verses WHERE Book=? AND Chapter=?", (b, c))
+                verse_map = {row[0]: row[1] for row in cursor.fetchall()}
+
+        def replace_verse_trans(match):
+            v_num = int(match.group(2))
+            return f"{match.group(1)}<trans>{verse_map.get(v_num, '')}</trans>"
+
+        content = re.sub(
+            r'(<vid id="v\d+\.\d+\.(\d+)"[^>]*>.*?</vid>\s*)<trans></trans>',
+            replace_verse_trans,
+            content,
+            flags=re.DOTALL,
+        )
+
     # Fix known issues
     content = content.replace("<br<", "<br><")
     content = content.replace("<heb> </heb>", "<heb>&nbsp;</heb>")
@@ -122,6 +154,11 @@ def original_discourse(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, **
         content = re.sub('(<heb id=")(.*?)"(.*?)class="', r'\1\2" data-word="\2" \3class="tooltip-word ', content)
     else:
         content = re.sub('(<grk id=")(.*?)"(.*?)class="', r'\1\2" data-word="\2" \3class="tooltip-word ', content)
+    content = re.sub(
+        r'''<(en|zh)\s+id=["']w(h?\d+)["']''',
+        r'''<\1 id="w\2" data-word="w\2" class="tooltip-word" onmouseover="hl1('\2','','')" onmouseout="hl0('\2','','')"''',
+        content,
+    )
 
     # add new tags
     content = content.replace("</vid> ", "</vid> <txt>")

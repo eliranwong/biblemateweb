@@ -11,7 +11,8 @@
 
 - 与其他圣经相同，具备[选择器](../integrations/bible_selectors.md)、[三点菜单](../integrations/three_dot_menu.md)（提供书卷／全章／单节工具的 💡 图标）以及[经文菜单](../integrations/verse_menu.md)。
 - 原文字词支持交互操作：将鼠标悬停于（或轻触）任何希伯来文或希腊文字词，即可打开[弹出窗口](../integrations/word_tooltips.md)，显示其**手抄本形式**（包含音译、发音及内嵌**手抄本形式音频播放器**）、**词元形式**（包含内嵌**词元形式音频播放器**）、**形态学分析**、**逐字对照释义**与**翻译**。在弹出窗口内点击手抄本字词或词元，可打开[原文词典](../search/search_lexicons.md)。
+- 平行子句译文（`<trans1>`、`<trans2>`）会从 `~/biblemate/data/clauses/`（以及启用有效[自定义令牌](../user_preferences/custom_token.md)时的 `~/biblemate/data_custom/clauses/`）动态加载。可在[偏好设定](../user_preferences/README.md)中分别设定旧约与新约的子句译本（`OPB OT Translation 1` 默认 `KJV`、`OPB OT Translation 2` 默认 `NET`、`OPB NT Translation 1` 默认 `KJV`、`OPB NT Translation 2` 默认 `NET`）。带有标注的译文字词支持与原文之间的双向悬停高亮，并在悬停时显示字词提示框。
 - 内置希伯来文和希腊文字体，以确保正确显示。
 - 支持[同步](../layout/sync.md)与同步滚动。
 
-数据文件：`~/biblemate/data/original/OPB.bible`（[数据与资源](../server_setup/data_and_resources.md)）。另请参见[形态学分析](../tools/tool_morphology.md)。
+数据文件：`~/biblemate/data/original/OPB.bible` 与 `~/biblemate/data/clauses/*.clause`（[数据与资源](../server_setup/data_and_resources.md)）。另请参见[形态学分析](../tools/tool_morphology.md)。

@@ -18,6 +18,12 @@
 | [次要聖經](secondary_bible.md) | 常用資源 | `secondary_bible` |
 | [希伯來語原文詞典](hebrew_lexicon.md) | 常用資源 | `hebrew_lexicon` |
 | [希臘語原文詞典](greek_lexicon.md) | 常用資源 | `greek_lexicon` |
+| [OPB OT Translation 1](opb_ot_trans1.md) | 常用資源 | `opb_ot_trans1` |
+| [OPB OT Translation 2](opb_ot_trans2.md) | 常用資源 | `opb_ot_trans2` |
+| [OPB NT Translation 1](opb_nt_trans1.md) | 常用資源 | `opb_nt_trans1` |
+| [OPB NT Translation 2](opb_nt_trans2.md) | 常用資源 | `opb_nt_trans2` |
+| [ODB OT Translation](odb_ot_trans.md) | 常用資源 | `odb_ot_trans` |
+| [ODB NT Translation](odb_nt_trans.md) | 常用資源 | `odb_nt_trans` |
 | [相似詞條](top_similar_entries.md) | 語義搜索 | `top_similar_entries` |
 | [相似經文](top_similar_verses.md) | 語義搜索 | `top_similar_verses` |
 | [AI 後端](ai_backend.md) | AI Backend | `ai_backend` |

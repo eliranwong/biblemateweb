@@ -276,12 +276,47 @@ def getBibleVersionList(custom: bool = False) -> List[str]:
         bibleVersionList = list(set(bibleVersionList))
     return sorted(bibleVersionList)
 
+def getTranslationBibleVersionList(custom: bool = False) -> List[str]:
+    """Returns a list of available Bible translation modules."""
+    return [v for v in getBibleVersionList(custom) if v not in ("ORB", "OIB", "OPB", "ODB", "OLB")]
+
 def getBibleVersionName(abb):
     if abb in config.bibles_custom:
         return config.bibles_custom[abb][0]
     elif abb in config.bibles:
         return config.bibles[abb][0]
     return abb
+
+# clauses resources
+
+clauses_dir = os.path.join(BIBLEMATEWEB_DATA, "clauses")
+if os.path.isdir(clauses_dir):
+    config.clauses = dict(sorted({os.path.basename(i)[:-7]: i for i in glob.glob(os.path.join(clauses_dir, "*.clause"))}.items()))
+else:
+    Path(clauses_dir).mkdir(parents=True, exist_ok=True)
+    config.clauses = {}
+clauses_dir_custom = os.path.join(BIBLEMATEWEB_DATA_CUSTOM, "clauses")
+if os.path.isdir(clauses_dir_custom):
+    config.clauses_custom = dict(sorted({os.path.basename(i)[:-7]: i for i in glob.glob(os.path.join(clauses_dir_custom, "*.clause"))}.items()))
+else:
+    Path(clauses_dir_custom).mkdir(parents=True, exist_ok=True)
+    config.clauses_custom = {}
+
+def getClauseVersionList(custom: bool = False) -> List[str]:
+    """Returns a list of available clause translation modules."""
+    clauseVersionList = list(config.clauses.keys())
+    if custom: # app.storage.client["custom"]
+        clauseVersionList += list(config.clauses_custom.keys())
+        clauseVersionList = list(set(clauseVersionList))
+    return sorted(clauseVersionList)
+
+def getClauseDb(abb: str, custom: bool = False) -> str:
+    """Returns the database path for a clause module, respecting custom access."""
+    if custom and abb in config.clauses_custom:
+        return config.clauses_custom[abb]
+    if abb in config.clauses:
+        return config.clauses[abb]
+    return ""
 
 def get_default_bible(language):
     if language == 'tc':
@@ -581,6 +616,12 @@ USER_DEFAULT_SETTINGS = {
     'favorite_lexicon': 'Morphology',
     'hebrew_lexicon': 'TBESH',
     'greek_lexicon': 'TBESG',
+    'opb_ot_trans1': 'KJV',
+    'opb_ot_trans2': 'NET',
+    'opb_nt_trans1': 'KJV',
+    'opb_nt_trans2': 'NET',
+    'odb_ot_trans': 'NET',
+    'odb_nt_trans': 'NET',
     'ai_backend': 'default',
     'ai_model': '',
     'api_endpoint': '',

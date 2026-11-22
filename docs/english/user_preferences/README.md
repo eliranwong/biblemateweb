@@ -18,6 +18,12 @@ Each user setting has its own document. The first table lists settings on the `P
 | [Secondary Bible](secondary_bible.md) | Frequently Used Resources | `secondary_bible` |
 | [Hebrew Lexicon](hebrew_lexicon.md) | Frequently Used Resources | `hebrew_lexicon` |
 | [Greek Lexicon](greek_lexicon.md) | Frequently Used Resources | `greek_lexicon` |
+| [OPB OT Translation 1](opb_ot_trans1.md) | Frequently Used Resources | `opb_ot_trans1` |
+| [OPB OT Translation 2](opb_ot_trans2.md) | Frequently Used Resources | `opb_ot_trans2` |
+| [OPB NT Translation 1](opb_nt_trans1.md) | Frequently Used Resources | `opb_nt_trans1` |
+| [OPB NT Translation 2](opb_nt_trans2.md) | Frequently Used Resources | `opb_nt_trans2` |
+| [ODB OT Translation](odb_ot_trans.md) | Frequently Used Resources | `odb_ot_trans` |
+| [ODB NT Translation](odb_nt_trans.md) | Frequently Used Resources | `odb_nt_trans` |
 | [Similar Entries](top_similar_entries.md) | Semantic Searches | `top_similar_entries` |
 | [Similar Verses](top_similar_verses.md) | Semantic Searches | `top_similar_verses` |
 | [AI Backend](ai_backend.md) | AI Backend | `ai_backend` |

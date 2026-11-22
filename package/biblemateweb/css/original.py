@@ -270,17 +270,20 @@ def get_original_css(dark_mode):
         font-size: 0.8rem;
         color: gray;
     }}
-    cit, clt, cst, cbhs, cbsb, cleb {{
+    cit, clt, cst, cbhs, cbsb, cleb, trans1, trans2 {{
         display: block;
     }}
-    clt, cbsb {{
+    clt, cbsb, trans1, trans {{
         color: {'#7ce6d4' if dark_mode else '#3498DB'};
     }}
-    cst, cleb {{
+    cst, cleb, trans2 {{
         color: {'#f5e798' if dark_mode else '#00008B'};
     }}
-    cbsb, cleb {{
+    cbsb, cleb, trans1, trans2 {{
         direction: ltr;
+    }}
+    trans, trans1, trans2 {{
+        font-size: 1.3rem;
     }}
     div.cltrans {{
         margin-left: 10px;

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from nicegui import ui, app
-from biblemateweb import config, BIBLEMATEWEB_APP_DIR, USER_DEFAULT_SETTINGS, getBibleVersionList, getLexiconList
+from biblemateweb import config, BIBLEMATEWEB_APP_DIR, USER_DEFAULT_SETTINGS, getBibleVersionList, getTranslationBibleVersionList, getLexiconList, getClauseVersionList
 from biblemateweb.pages.home import *
 from biblemateweb.js.tooltip import TOOLTIP_JS
 from biblemateweb.css.original import get_original_css
@@ -598,6 +598,26 @@ def page_Settings(
                 ui.select(label='Greek Lexicon',
                           options=getLexiconList(app.storage.client["custom"])) \
                     .bind_value(app.storage.user, 'greek_lexicon')
+                clause_options = getClauseVersionList(app.storage.client["custom"])
+                ui.select(label='OPB OT Translation 1',
+                          options=clause_options) \
+                    .bind_value(app.storage.user, 'opb_ot_trans1')
+                ui.select(label='OPB OT Translation 2',
+                          options=clause_options) \
+                    .bind_value(app.storage.user, 'opb_ot_trans2')
+                ui.select(label='OPB NT Translation 1',
+                          options=clause_options) \
+                    .bind_value(app.storage.user, 'opb_nt_trans1')
+                ui.select(label='OPB NT Translation 2',
+                          options=clause_options) \
+                    .bind_value(app.storage.user, 'opb_nt_trans2')
+                bible_trans_options = getTranslationBibleVersionList(app.storage.client["custom"])
+                ui.select(label='ODB OT Translation',
+                          options=bible_trans_options) \
+                    .bind_value(app.storage.user, 'odb_ot_trans')
+                ui.select(label='ODB NT Translation',
+                          options=bible_trans_options) \
+                    .bind_value(app.storage.user, 'odb_nt_trans')
 
         # --- Semantic Searches ---
         with ui.expansion(get_translation("Semantic Searches"), icon='search').classes('w-full rounded-lg'):

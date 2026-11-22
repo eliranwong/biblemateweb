@@ -1,11 +1,11 @@
 from nicegui import ui, app
 from biblemateweb import get_translation, VerseEventObj
-from biblemateweb import BIBLEMATEWEB_DATA
+from biblemateweb import BIBLEMATEWEB_DATA, getClauseDb
 from biblemateweb.fx.bible import *
 from biblemateweb.fx.original import *
 from biblemateweb.fx.cloud_index_manager import get_drive_service, CloudIndexManager
 from biblemateweb.js.sync_scrolling import *
-import re, os
+import apsw, re, os
 
 
 def original_parallel(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, **_):
@@ -113,6 +113,49 @@ def original_parallel(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, **_
         return None
     content = getBibleChapter(db, b, c)
 
+    # Dynamically inject parallel clause translations into <trans1></trans1><trans2></trans2>
+    if "<trans1></trans1><trans2></trans2>" in content:
+        custom = bool(app.storage.client.get("custom", False))
+        if b < 40:
+            trans1_name = app.storage.user.get("opb_ot_trans1", "KJV")
+            trans2_name = app.storage.user.get("opb_ot_trans2", "NET")
+        else:
+            trans1_name = app.storage.user.get("opb_nt_trans1", "KJV")
+            trans2_name = app.storage.user.get("opb_nt_trans2", "NET")
+
+        trans1_db = getClauseDb(trans1_name, custom) or getClauseDb("KJV", custom)
+        trans2_db = getClauseDb(trans2_name, custom) or getClauseDb("NET", custom)
+
+        def get_clause_map(clause_db: str) -> dict[int, str]:
+            if not clause_db or not os.path.isfile(clause_db):
+                return {}
+            with apsw.Connection(clause_db) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT ClauseID, Translation FROM clauses WHERE Book=? AND Chapter=?",
+                    (b, c),
+                )
+                return {row[0]: row[1] for row in cursor.fetchall()}
+
+        trans1_map = get_clause_map(trans1_db)
+        trans2_map = trans1_map if trans2_db == trans1_db else get_clause_map(trans2_db)
+        cid_pattern = re.compile(r'class="ch(\d+)\b') if b < 40 else re.compile(r'<cl id="c(\d+)"')
+
+        def replace_cl_translations(match):
+            block = match.group(0)
+            cid_match = cid_pattern.search(block)
+            if not cid_match:
+                return block
+            cid = int(cid_match.group(1))
+            t1 = trans1_map.get(cid, "")
+            t2 = trans2_map.get(cid, "")
+            return block.replace(
+                "<trans1></trans1><trans2></trans2>",
+                f"<trans1>{t1}</trans1><trans2>{t2}</trans2>",
+            )
+
+        content = re.sub(r"<cl[^>]*>.*?</cl>", replace_cl_translations, content, flags=re.DOTALL)
+
     # Fix known issues
     content = content.replace("<br<", "<br><")
     content = content.replace("<heb> </heb>", "<heb>&nbsp;</heb>")
@@ -122,6 +165,11 @@ def original_parallel(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, **_
         content = re.sub('(<heb id=")(.*?)"(.*?)class="', r'\1\2" data-word="\2" \3class="tooltip-word ', content)
     else:
         content = re.sub('(<grk id=")(.*?)"(.*?)class="', r'\1\2" data-word="\2" \3class="tooltip-word ', content)
+    content = re.sub(
+        r'''<(en|zh)\s+id=["']w(h?\d+)["']''',
+        r'''<\1 id="w\2" data-word="w\2" class="tooltip-word" onmouseover="hl1('\2','','')" onmouseout="hl0('\2','','')"''',
+        content,
+    )
 
     # convert verse link, like '<vid id="v19.117.1" onclick="luV(1)">'
     content = re.sub(r'<vid id="v([0-9]+?)\.([0-9]+?)\.([0-9]+?)" onclick="luV\(([0-9]+?)\)">', r'<vid id="v\1.\2.\3" onclick="luV(\1, \2, \3)">', content)
