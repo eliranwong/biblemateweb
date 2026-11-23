@@ -1,5 +1,5 @@
 import apsw
-import re, os, asyncio
+import re, os, asyncio, html as html_lib
 from nicegui import ui, app, run
 from biblemateweb import BIBLEMATEWEB_DATA, get_translation, download_txt, get_morphology_db
 from functools import partial
@@ -125,69 +125,93 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
 
             # --- RENDER EXPANSIONS ---
             found_any = False
-            
-            for title, config in TABLE_CONFIG.items():
-                content = results.get(title)
-                
-                # Check if this should be open by default
-                is_open = (title == "Bible Topics")
-                
-                # Create the Expansion with specific icon
-                with ui.expansion(title, icon=config['icon'], value=is_open) \
+
+            # --- CHAPTER PEOPLE RELATIONSHIP GRAPH (lazy-loaded on expand, before Bible People) ---
+            people_html = results.get("Bible People") or ""
+            if re.search(r"BP\d+", people_html):
+                people_loaded = {'done': False}
+                async def load_people_graph(e):
+                    if not e.value or people_loaded['done']:
+                        return
+                    people_loaded['done'] = True
+                    people_graph_container.clear()
+                    lang = app.storage.user.get("ui_language", "eng")
+                    p_tbl = f"PEOPLE_{lang.upper()}" if lang in ("tc", "sc") else "PEOPLE"
+                    r_tbl = f"PEOPLERELATIONSHIP_{lang.upper()}" if lang in ("tc", "sc") else "PEOPLERELATIONSHIP"
+                    db_people = os.path.join(BIBLEMATEWEB_DATA, "data", "biblePeople.data")
+                    nodes, links = [], []
+                    try:
+                        with apsw.Connection(db_people) as connn:
+                            cur = connn.cursor()
+                            cur.execute(f"SELECT DISTINCT PersonID, Name, Sex FROM {p_tbl} WHERE Book=? AND Chapter=?", (book_id, chapter))
+                            chapter_people = cur.fetchall()
+                            if chapter_people:
+                                id_set = {r[0] for r in chapter_people}
+                                for pid, pname, psex in chapter_people:
+                                    clean_name = re.sub(r'\s*\[.*?\]', '', str(pname)).strip() or str(pname)
+                                    nodes.append({
+                                        'id': str(pid),
+                                        'name': clean_name,
+                                        'value': pid,
+                                        'symbolSize': 28,
+                                        'itemStyle': {'color': '#3b82f6' if psex == 'M' else '#ec4899'},
+                                    })
+                                placeholders = ",".join("?" for _ in id_set)
+                                cur.execute(
+                                    f"SELECT PersonID, RelatedPersonID, Relationship FROM {r_tbl} WHERE PersonID IN ({placeholders}) AND RelatedPersonID IN ({placeholders})",
+                                    list(id_set) + list(id_set),
+                                )
+                                seen_edges = set()
+                                for pid1, pid2, rel in cur.fetchall():
+                                    edge_key = (min(pid1, pid2), max(pid1, pid2), rel)
+                                    if edge_key not in seen_edges:
+                                        seen_edges.add(edge_key)
+                                        links.append({'source': str(pid1), 'target': str(pid2), 'value': rel, 'label': {'show': True, 'formatter': rel}})
+                    except Exception:
+                        pass
+
+                    with people_graph_container:
+                        if not nodes:
+                            ui.label(get_translation('No people found in this chapter.')).classes('italic p-2')
+                            return
+                        dark = app.storage.user.get('dark_mode', False)
+                        text_color = '#e5e7eb' if dark else '#1f2937'
+
+                        def on_chapter_node_click(ev):
+                            args = ev.args if isinstance(ev.args, dict) else {}
+                            if args.get('dataType') == 'edge':
+                                return
+                            idx = args.get('dataIndex')
+                            if idx is None or idx < 0 or idx >= len(nodes):
+                                return
+                            app.storage.user['tool_query'] = f"BP{nodes[idx]['id']}"
+                            gui.select_next_area2_tab()
+                            gui.load_area_2_content(title='Characters', sync=False)
+
+                        ch_graph = ui.echart({
+                            'tooltip': {'trigger': 'item'},
+                            'series': [{
+                                'type': 'graph',
+                                'layout': 'force',
+                                'roam': True,
+                                'draggable': True,
+                                'label': {'show': True, 'position': 'right', 'color': text_color},
+                                'edgeSymbol': ['none', 'arrow'],
+                                'edgeSymbolSize': [4, 8],
+                                'edgeLabel': {'fontSize': 10, 'color': text_color},
+                                'force': {'repulsion': 180, 'edgeLength': 90},
+                                'data': nodes,
+                                'links': links,
+                            }],
+                        }).classes('w-full h-96 cursor-pointer')
+                        ch_graph.on('chart:click', on_chapter_node_click, ['dataType', 'dataIndex'])
+
+                with ui.expansion(get_translation('People Relationship Graph'), icon='hub', value=False, on_value_change=load_people_graph) \
                         .classes('w-full border rounded-lg shadow-sm') \
                         .props('header-class="font-bold text-lg text-secondary"'):
-                    
-                    if content:
-                        # convert links, e.g. <ref onclick="bcv(3,19,26)">
-                        content = content.replace("<table><tr>", "<tr>")
-                        content = content.replace("<tr>", "<table><tr>")
-                        content = content.replace("</tr></table>", "</tr>")
-                        content = content.replace("</tr>", "</tr></table>")
-                        content = re.sub(r'''<ref onclick="(searchEncyc|searchDict)\('.*?'\)">(.*?)</ref>''', r"\2", content)
-                        content = re.sub(r'''(onclick|ondblclick)="(cr|bcv|website|exlbl|exlbp|exlbt|bibleDict|encyclopedia)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
-                        content = re.sub(r"""(onclick|ondblclick)='(cr|bcv|website|exlbl|exlbp|exlbt|bibleDict|encyclopedia)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
-                        ui.html(f'<div class="content-text">{content}</div>', sanitize=False).classes('p-4')
-                        found_any = True
-                    else:
-                        ui.label('No entries found for this category.') \
-                            .classes('p-4 italic')
+                    people_graph_container = ui.column().classes('w-full p-2')
 
-            def open_collection(collection, tool, number):
-                nonlocal gui
-                app.storage.user['tool_query'] = f"{tool}.{number}"
-                gui.select_empty_area2_tab()
-                gui.load_area_2_content(title=collection)
-
-            for i in ("PROMISES_INDEXES", "PARALLEL_INDEXES"):
-
-                # Create the Expansion with specific icon
-                with ui.expansion("Bible Promises" if i == "PROMISES_INDEXES" else "Bible Parallels", icon="redeem" if i == "PROMISES_INDEXES" else "link", value=is_open) \
-                        .classes('w-full border rounded-lg shadow-sm') \
-                        .props('header-class="font-bold text-lg text-secondary"'):
-
-                    DB_FILE2 = os.path.join(BIBLEMATEWEB_DATA, "collections3.sqlite")
-                    sql_query = "SELECT Tool, Number, Topic FROM " + i + " WHERE Passages LIKE ?"
-                    with apsw.Connection(DB_FILE2) as connn:
-                        cursor = connn.cursor()
-                        cursor.execute(sql_query, (f"%({book_id}, {chapter},%",))
-                        fetches = cursor.fetchall()
-                    
-                    if fetches:
-                        for tool, number, topic in fetches:
-                            ui.chip(
-                                topic,
-                                icon='book',
-                                color='primary',
-                                on_click=partial(open_collection, "Promises" if i == "PROMISES_INDEXES" else "Parallels", tool, number),
-                            ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm')
-                    else:
-                        ui.label('No entries found for this category.') \
-                            .classes('p-4 italic')
-
-            if not found_any:
-                ui.notify('No data found in any index for this verse.', type='info')
-
-            # --- CHAPTER MAP (lazy-loaded on expand) ---
+            # --- CHAPTER MAP (lazy-loaded on expand, before Bible People) ---
             loc_html = results.get("Bible Locations") or ""
             loc_ids = list(dict.fromkeys(re.findall(r"BL\d+", loc_html)))
             if loc_ids:
@@ -223,89 +247,88 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                         avg_lat = sum(m[2] for m in markers_data) / len(markers_data)
                         avg_lng = sum(m[3] for m in markers_data) / len(markers_data)
                         m = ui.leaflet(center=(avg_lat, avg_lng), zoom=7).classes('w-full h-96')
+                        def open_location_next_tab(path):
+                            app.storage.user['tool_query'] = path
+                            gui.select_next_area2_tab()
+                            gui.load_area_2_content(title='Locations', sync=False)
+
                         created_markers = []
                         for p, loc_name, lat_f, lng_f in markers_data:
                             mk = m.marker(latlng=(lat_f, lng_f))
-                            created_markers.append((mk, loc_name, p))
+                            mk.on('click', lambda _, path=p: open_location_next_tab(path))
+                            created_markers.append((mk, loc_name))
                         async def bind_all():
                             await asyncio.sleep(0.2)
-                            for mk, loc_name, p in created_markers:
+                            for mk, loc_name in created_markers:
                                 if mk.id is not None:
-                                    mk.run_method('bindPopup', f"<b>{loc_name}</b><br>{p}")
+                                    mk.run_method('bindTooltip', html_lib.escape(str(loc_name)))
                         ui.timer(0.1, bind_all, once=True)
 
                 with ui.expansion(f"{get_translation('Chapter Map')} ({len(loc_ids)})", icon='map', value=False, on_value_change=load_chapter_map) \
                         .classes('w-full border rounded-lg shadow-sm') \
                         .props('header-class="font-bold text-lg text-secondary"'):
                     map_container = ui.column().classes('w-full p-2')
+            
+            for title, config in TABLE_CONFIG.items():
+                content = results.get(title)
+                
+                # Check if this should be open by default
+                is_open = (title == "Bible Topics")
+                
+                # Create the Expansion with specific icon
+                with ui.expansion(get_translation(title), icon=config['icon'], value=is_open) \
+                        .classes('w-full border rounded-lg shadow-sm') \
+                        .props('header-class="font-bold text-lg text-secondary"'):
+                    
+                    if content:
+                        # convert links, e.g. <ref onclick="bcv(3,19,26)">
+                        content = content.replace("<table><tr>", "<tr>")
+                        content = content.replace("<tr>", "<table><tr>")
+                        content = content.replace("</tr></table>", "</tr>")
+                        content = content.replace("</tr>", "</tr></table>")
+                        content = re.sub(r'''<ref onclick="(searchEncyc|searchDict)\('.*?'\)">(.*?)</ref>''', r"\2", content)
+                        content = re.sub(r'''(onclick|ondblclick)="(cr|bcv|website|exlbl|exlbp|exlbt|bibleDict|encyclopedia)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
+                        content = re.sub(r"""(onclick|ondblclick)='(cr|bcv|website|exlbl|exlbp|exlbt|bibleDict|encyclopedia)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
+                        ui.html(f'<div class="content-text">{content}</div>', sanitize=False).classes('p-4')
+                        found_any = True
+                    else:
+                        ui.label(get_translation('No entries found for this category.')) \
+                            .classes('p-4 italic')
 
-            # --- CHAPTER PEOPLE RELATIONSHIP GRAPH (lazy-loaded on expand) ---
-            people_loaded = {'done': False}
-            async def load_people_graph(e):
-                if not e.value or people_loaded['done']:
-                    return
-                people_loaded['done'] = True
-                people_graph_container.clear()
-                lang = app.storage.user.get("ui_language", "eng")
-                p_tbl = f"PEOPLE_{lang.upper()}" if lang in ("tc", "sc") else "PEOPLE"
-                r_tbl = f"PEOPLERELATIONSHIP_{lang.upper()}" if lang in ("tc", "sc") else "PEOPLERELATIONSHIP"
-                db_people = os.path.join(BIBLEMATEWEB_DATA, "data", "biblePeople.data")
-                nodes, links = [], []
-                try:
-                    with apsw.Connection(db_people) as connn:
-                        cur = connn.cursor()
-                        cur.execute(f"SELECT DISTINCT PersonID, Name, Sex FROM {p_tbl} WHERE Book=? AND Chapter=?", (book_id, chapter))
-                        chapter_people = cur.fetchall()
-                        if chapter_people:
-                            id_set = {r[0] for r in chapter_people}
-                            for pid, pname, psex in chapter_people:
-                                nodes.append({
-                                    'id': str(pid),
-                                    'name': pname,
-                                    'symbolSize': 28,
-                                    'itemStyle': {'color': '#3b82f6' if psex == 'M' else '#ec4899'},
-                                })
-                            placeholders = ",".join("?" for _ in id_set)
-                            cur.execute(
-                                f"SELECT PersonID, RelatedPersonID, Relationship FROM {r_tbl} WHERE PersonID IN ({placeholders}) AND RelatedPersonID IN ({placeholders})",
-                                list(id_set) + list(id_set),
-                            )
-                            seen_edges = set()
-                            for pid1, pid2, rel in cur.fetchall():
-                                edge_key = (min(pid1, pid2), max(pid1, pid2), rel)
-                                if edge_key not in seen_edges:
-                                    seen_edges.add(edge_key)
-                                    links.append({'source': str(pid1), 'target': str(pid2), 'value': rel, 'label': {'show': True, 'formatter': rel}})
-                except Exception:
-                    pass
+            def open_collection(collection, tool, number):
+                nonlocal gui
+                app.storage.user['tool_query'] = f"{tool}.{number}"
+                gui.select_empty_area2_tab()
+                gui.load_area_2_content(title=collection)
 
-                with people_graph_container:
-                    if not nodes:
-                        ui.label(get_translation('No people found in this chapter.')).classes('italic p-2')
-                        return
-                    dark = app.storage.user.get('dark_mode', False)
-                    text_color = '#e5e7eb' if dark else '#1f2937'
-                    ui.echart({
-                        'tooltip': {'trigger': 'item'},
-                        'series': [{
-                            'type': 'graph',
-                            'layout': 'force',
-                            'roam': True,
-                            'draggable': True,
-                            'label': {'show': True, 'position': 'right', 'color': text_color},
-                            'edgeSymbol': ['none', 'arrow'],
-                            'edgeSymbolSize': [4, 8],
-                            'edgeLabel': {'fontSize': 10, 'color': text_color},
-                            'force': {'repulsion': 180, 'edgeLength': 90},
-                            'data': nodes,
-                            'links': links,
-                        }],
-                    }).classes('w-full h-96')
+            for i in ("PROMISES_INDEXES", "PARALLEL_INDEXES"):
 
-            with ui.expansion(get_translation('People Relationship Graph'), icon='hub', value=False, on_value_change=load_people_graph) \
-                    .classes('w-full border rounded-lg shadow-sm') \
-                    .props('header-class="font-bold text-lg text-secondary"'):
-                people_graph_container = ui.column().classes('w-full p-2')
+                # Create the Expansion with specific icon
+                with ui.expansion(get_translation("Bible Promises" if i == "PROMISES_INDEXES" else "Bible Parallels"), icon="redeem" if i == "PROMISES_INDEXES" else "link", value=is_open) \
+                        .classes('w-full border rounded-lg shadow-sm') \
+                        .props('header-class="font-bold text-lg text-secondary"'):
+
+                    DB_FILE2 = os.path.join(BIBLEMATEWEB_DATA, "collections3.sqlite")
+                    sql_query = "SELECT Tool, Number, Topic FROM " + i + " WHERE Passages LIKE ?"
+                    with apsw.Connection(DB_FILE2) as connn:
+                        cursor = connn.cursor()
+                        cursor.execute(sql_query, (f"%({book_id}, {chapter},%",))
+                        fetches = cursor.fetchall()
+                    
+                    if fetches:
+                        for tool, number, topic in fetches:
+                            ui.chip(
+                                topic,
+                                icon='book',
+                                color='primary',
+                                on_click=partial(open_collection, "Promises" if i == "PROMISES_INDEXES" else "Parallels", tool, number),
+                            ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm')
+                    else:
+                        ui.label(get_translation('No entries found for this category.')) \
+                            .classes('p-4 italic')
+
+            if not found_any:
+                ui.notify('No data found in any index for this verse.', type='info')
 
             # --- EXPORT UNIFIED CHAPTER STUDY SHEET ---
             async def export_study_sheet():
@@ -318,7 +341,7 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                     clean = re.sub(r"<[^>]+?>", " ", raw)
                     clean = re.sub(r"[ \t]+", " ", clean).strip()
                     if clean:
-                        lines.append(f"## {title}")
+                        lines.append(f"## {get_translation(title)}")
                         lines.append(clean)
                         lines.append("")
                 try:

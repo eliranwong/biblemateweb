@@ -278,4 +278,10 @@ translation_sc = {
     "No people found in this chapter.": "本章暂无人物数据。",
     "No data found.": "找不到数据。",
     "Close": "关闭",
+    "Bible People": "圣经人物",
+    "Bible Locations": "圣经地点",
+    "Bible Topics": "圣经主题",
+    "Bible Dictionaries": "圣经词典",
+    "Bible Encyclopedia": "圣经百科",
+    "No entries found for this category.": "此类别暂无条目。",
 }

@@ -354,13 +354,24 @@ def search_bible_relationships(gui=None, q='', **_):
                 text_color = '#e5e7eb' if dark else '#1f2937'
                 graph_loaded = {'done': False}
 
+                def on_rel_node_click(ev):
+                    args = ev.args if isinstance(ev.args, dict) else {}
+                    if args.get('dataType') == 'edge':
+                        return
+                    idx = args.get('dataIndex')
+                    if idx is None or idx < 0 or idx >= len(graph_nodes):
+                        return
+                    app.storage.user['tool_query'] = f"BP{graph_nodes[idx]['id']}"
+                    gui.select_next_area2_tab()
+                    gui.load_area_2_content(title='Characters', sync=False)
+
                 def load_rel_graph(e):
                     if not e.value or graph_loaded['done']:
                         return
                     graph_loaded['done'] = True
                     rel_graph_container.clear()
                     with rel_graph_container:
-                        ui.echart({
+                        rel_graph = ui.echart({
                             'tooltip': {'trigger': 'item'},
                             'series': [{
                                 'type': 'graph',
@@ -375,7 +386,8 @@ def search_bible_relationships(gui=None, q='', **_):
                                 'data': graph_nodes,
                                 'links': graph_links,
                             }],
-                        }).classes('w-full h-80')
+                        }).classes('w-full h-80 cursor-pointer')
+                        rel_graph.on('chart:click', on_rel_node_click, ['dataType', 'dataIndex'])
 
                 with ui.expansion(get_translation('Relationship Graph'), icon='hub', value=False, on_value_change=load_rel_graph).classes('w-full rounded'+(' bg-gray-900 border border-gray-700' if dark else ' bg-gray-50 border border-gray-100')):
                     rel_graph_container = ui.column().classes('w-full p-2')

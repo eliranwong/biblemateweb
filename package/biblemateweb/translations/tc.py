@@ -277,4 +277,10 @@ translation_tc = {
     "No people found in this chapter.": "本章暫無人物資料。",
     "No data found.": "找不到資料。",
     "Close": "關閉",
+    "Bible People": "聖經人物",
+    "Bible Locations": "聖經地點",
+    "Bible Topics": "聖經主題",
+    "Bible Dictionaries": "聖經詞典",
+    "Bible Encyclopedia": "聖經百科",
+    "No entries found for this category.": "此類別暫無條目。",
 }

@@ -132,7 +132,7 @@ def resource_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                 is_open = (title == "Bible Topics")
                 
                 # Create the Expansion with specific icon
-                with ui.expansion(title, icon=config['icon'], value=is_open) \
+                with ui.expansion(get_translation(title), icon=config['icon'], value=is_open) \
                         .classes('w-full border rounded-lg shadow-sm') \
                         .props('header-class="font-bold text-lg text-secondary"'):
                     
@@ -148,7 +148,7 @@ def resource_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                         ui.html(f'<div class="content-text">{content}</div>', sanitize=False).classes('p-4')
                         found_any = True
                     else:
-                        ui.label('No entries found for this category.') \
+                        ui.label(get_translation('No entries found for this category.')) \
                             .classes('p-4 italic')
 
             def open_collection(collection, tool, number):
@@ -160,7 +160,7 @@ def resource_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
             for i in ("PROMISES_INDEXES", "PARALLEL_INDEXES"):
 
                 # Create the Expansion with specific icon
-                with ui.expansion("Bible Promises" if i == "PROMISES_INDEXES" else "Bible Parallels", icon="redeem" if i == "PROMISES_INDEXES" else "link", value=is_open) \
+                with ui.expansion(get_translation("Bible Promises" if i == "PROMISES_INDEXES" else "Bible Parallels"), icon="redeem" if i == "PROMISES_INDEXES" else "link", value=is_open) \
                         .classes('w-full border rounded-lg shadow-sm') \
                         .props('header-class="font-bold text-lg text-secondary"'):
 
@@ -180,7 +180,7 @@ def resource_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                                 on_click=partial(open_collection, "Promises" if i == "PROMISES_INDEXES" else "Parallels", tool, number),
                             ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm')
                     else:
-                        ui.label('No entries found for this category.') \
+                        ui.label(get_translation('No entries found for this category.')) \
                             .classes('p-4 italic')
 
             if not found_any:

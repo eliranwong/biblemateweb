@@ -2,7 +2,7 @@ from biblemateweb import BIBLEMATEWEB_DATA, load_vectors_from_db, get_translatio
 from nicegui import ui, app, run
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 import numpy as np
-import re, apsw, os, json, traceback, asyncio
+import re, apsw, os, json, traceback, asyncio, html as html_lib
 from biblemateweb.data.cr_books import cr_books
 
 def exlbl_table(language="eng"):
@@ -149,9 +149,17 @@ def search_bible_locations(gui=None, q='', **_):
         url, *_ = event.args
         ui.navigate.to(url, new_tab=True)
 
+    def open_map(event):
+        nonlocal gui
+        entry, *_ = event.args
+        app.storage.user["tool_query"] = entry
+        gui.select_next_area2_tab()
+        gui.load_area_2_content(title='Maps', sync=False)
+
     ui.on('bcv', bcv)
     ui.on('cr', cr)
     ui.on('website', website)
+    ui.on('open_map', open_map)
 
     # --- Fuzzy Match Dialog ---
     with ui.dialog() as dialog, ui.card().classes('w-full max-w-md'):
@@ -211,7 +219,9 @@ def search_bible_locations(gui=None, q='', **_):
                     # 2. Add a tiny buffer for the JavaScript side to render the marker
                     await asyncio.sleep(0.1)
                     # 3. Bind
-                    marker.run_method('bindPopup', f"<b>{location}</b><br>{path}")
+                    safe_loc = html_lib.escape(str(location))
+                    safe_path = html_lib.escape(str(path))
+                    marker.run_method('bindPopup', f'''<a href="#" onclick="emitEvent('open_map', ['{safe_path}']); return false;" style="text-decoration: underline; cursor: pointer;"><b>{safe_loc}</b></a>''')
                 # Fire the safe async function
                 ui.timer(0.1, bind_marker, once=True)
             # convert colors for dark mode, e.g. <font color="brown">
