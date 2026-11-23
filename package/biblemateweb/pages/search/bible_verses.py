@@ -2,6 +2,7 @@ from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from biblemateweb.fx.bible import get_bible_content
 from biblemateweb import BIBLEMATEWEB_DATA, config, get_morphology_db, get_translation, resolve_verses_additional_options
+from collections import Counter
 from functools import partial
 from nicegui import ui, app, run
 import re, apsw, os
@@ -37,61 +38,246 @@ def search_bible_verses(gui=None, q='', **_):
     
     state = {'previous': initial_books}
 
+    PAGE_SIZE = 100
+    results_state = {
+        'all_verses': [],
+        'filtered_verses': [],
+        'rendered_count': 0,
+        'highlights': False,
+        'query': '',
+    }
+
+    def get_verse_content(ref, content):
+        content = re.sub("<[^<>]+?>", "", content)
+        return f"[{ref}] {content}"
+
+    def ask_biblemate(ref, content):
+        nonlocal gui
+        gui.ask_biblemate(f'''[{ref}] {re.sub("<[^<>]+?>", "", content)}''')
+
+    def update_load_more_button():
+        remaining = len(results_state['filtered_verses']) - results_state['rendered_count']
+        if remaining > 0:
+            next_batch = min(PAGE_SIZE, remaining)
+            load_more_btn.text = f"{get_translation('Load more')} ({next_batch} / {remaining} {get_translation('remaining')})"
+            load_more_btn.set_visibility(True)
+        else:
+            load_more_btn.set_visibility(False)
+
+    def render_verse_batch():
+        start = results_state['rendered_count']
+        end = start + PAGE_SIZE
+        batch = results_state['filtered_verses'][start:end]
+        if not batch:
+            update_load_more_button()
+            return
+
+        highlights = results_state['highlights']
+        search_query = results_state['query']
+
+        with verses_container:
+            for v in batch:
+                with ui.column().classes('w-full shadow-sm rounded-lg items-start no-wrap border border-gray-200 !gap-0') as row:
+                    row.verse_data = v
+
+                    with ui.element('div').classes('flex-none pt-1'):
+                        with ui.chip(
+                            v['ref'],
+                            removable=True,
+                            icon='book',
+                        ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm') as chip:
+                            with ui.menu():
+                                ui.menu_item('📋 Copy', on_click=partial(gui.copy_text, get_verse_content(v['ref'], v['content'])))
+                                ui.separator()
+                                ui.menu_item('📜 Open in Bible Area', on_click=partial(gui.change_area_1_bible_chapter, v['bible'], v['b'], v['c'], v['v']))
+                                ui.menu_item('📜 Open Here', on_click=partial(gui.change_area_2_bible_chapter, v['bible'], v['b'], v['c'], v['v'], sync=False))
+                                ui.menu_item('📜 Open in Next Tab', on_click=partial(open_chapter_next_area2_tab, v['bible'], v['b'], v['c'], v['v']))
+                                ui.menu_item('📜 Open in New Tab', on_click=partial(open_chapter_empty_area2_tab, v['bible'], v['b'], v['c'], v['v']))
+                                ui.separator()
+                                ui.menu_item('💬 Ask BibleMate', on_click=partial(ask_biblemate, v['ref'], v['content']))
+                        chip.on('remove', lambda _, r=row, verse=v: remove_verse_row(r, verse['ref'], verse))
+
+                    content = v['content']
+                    if "</heb>" in content:
+                        content = re.sub('(<heb id=")(.*?)"', r'\1\2" data-word="\2" class="tooltip-word"', content)
+                        content = content.replace("<heb> </heb>", "<heb>&nbsp;</heb>")
+                        content = f"<div style='display: inline-block; direction: rtl;'>{content}</div>"
+                    elif "</grk>" in content:
+                        content = re.sub('(<grk id=")(.*?)"', r'\1\2" data-word="\2" class="tooltip-word"', content)
+                    if highlights and search_query:
+                        if app.storage.user["dark_mode"]:
+                            content = re.sub(f"({search_query})", r"<font color='orange'>\1</font>", content, flags=0 if app.storage.user['search_case_sensitivity'] else re.IGNORECASE)
+                        else:
+                            content = re.sub(f"({search_query})", r"<span style='background-color: orange;'>\1</span>", content, flags=0 if app.storage.user['search_case_sensitivity'] else re.IGNORECASE)
+                    ui.html(content, sanitize=False).classes('grow min-w-0 leading-relaxed pl-2 text-base break-words')
+
+        results_state['rendered_count'] += len(batch)
+        update_load_more_button()
+
     # ----------------------------------------------------------
     # Helper: Filter Logic
     # ----------------------------------------------------------
     def filter_verses(e=None):
         """
-        Filters visibility based on input.
-        Iterates over default_slot.children to find rows.
+        Filters cached search results based on input and renders the first page.
         """
-        total_matches = 0
-        # Robustly determine the search text
-        text = ""
+        if not results_state['all_verses']:
+            return
+
         if e is not None and hasattr(e, 'value'):
-            text = e.value 
+            text = e.value
         else:
-            text = input_field.value 
-            
+            text = input_field.value
+
         search_term = text if text else ""
-        if not app.storage.user['search_case_sensitivity']:
+        case_sensitive = app.storage.user['search_case_sensitivity']
+        if not case_sensitive:
             search_term = search_term.lower()
-        
-        # Iterate over the actual children of the container
-        for row in verses_container.default_slot.children:
-            # Skip elements that aren't our verse rows (if any)
-            if not hasattr(row, 'verse_data'):
-                continue
 
-            # Explicitly show all if search is empty
-            if not search_term:
-                row.set_visibility(True)
-                continue
+        if not search_term:
+            if len(results_state['filtered_verses']) == len(results_state['all_verses']) and results_state['rendered_count'] > 0:
+                update_load_more_button()
+                return
+            results_state['filtered_verses'] = list(results_state['all_verses'])
+            verses_container.clear()
+            results_state['rendered_count'] = 0
+            render_verse_batch()
+            if analysis_expansion.value:
+                update_distribution_chart()
+            return
 
-            data = row.verse_data
-            ref_text = data['ref']
-            if not app.storage.user['search_case_sensitivity']:
-                ref_text = ref_text.lower()
+        matched = []
+        use_regex = not (app.storage.user['search_mode'] == 2)
+        for data in results_state['all_verses']:
+            ref_text = data['ref'] if case_sensitive else data['ref'].lower()
             clean_content = re.sub('<[^<]+?>', '', data['content'])
-            if not app.storage.user['search_case_sensitivity']:
+            if not case_sensitive:
                 clean_content = clean_content.lower()
 
-            if not app.storage.user['search_mode'] == 2:
-                is_match = (re.search(search_term, ref_text)) or (re.search(search_term, clean_content))
+            if use_regex:
+                try:
+                    is_match = bool(re.search(search_term, ref_text) or re.search(search_term, clean_content))
+                except re.error:
+                    is_match = (search_term in ref_text) or (search_term in clean_content)
             else:
                 is_match = (search_term in ref_text) or (search_term in clean_content)
-            row.set_visibility(is_match)
+
             if is_match:
-                total_matches += 1
-        if total_matches:
-            ui.notify(f"{total_matches} {'match' if total_matches == 1 else 'matches'} found!")
+                matched.append(data)
+
+        results_state['filtered_verses'] = matched
+        verses_container.clear()
+        results_state['rendered_count'] = 0
+        render_verse_batch()
+        if analysis_expansion.value:
+            update_distribution_chart()
+
+        if matched:
+            ui.notify(f"{len(matched)} {'match' if len(matched) == 1 else 'matches'} found!")
+
+    def update_distribution_chart():
+        verses = results_state['filtered_verses']
+        counts = Counter(v['b'] for v in verses if v.get('b'))
+        book_ids = sorted(counts.keys())
+
+        lang = app.storage.user.get('ui_language', 'eng')
+        abbrev_map = BibleBooks.abbrev.get(lang, BibleBooks.abbrev['eng'])
+        labels = [abbrev_map[str(b)][0] if str(b) in abbrev_map else str(b) for b in book_ids]
+        values = [counts[b] for b in book_ids]
+
+        dark = app.storage.user.get('dark_mode', False)
+        text_color = '#e5e7eb' if dark else '#1f2937'
+        split_color = '#374151' if dark else '#e5e7eb'
+        bg_color = '#1f2937' if dark else '#ffffff'
+
+        search_label = last_entry or results_state['query'] or ''
+        total_count = sum(values)
+        chart_title = f"{search_label} ({total_count})" if search_label else f"{total_count}"
+        safe_filename = re.sub(r'[^\w\-]+', '_', search_label).strip('_') or 'bible_search_distribution'
+
+        chart_height = max(240, len(book_ids) * 28 + 90)
+        analysis_chart.style(f'height: {chart_height}px;')
+
+        options = {
+            'backgroundColor': bg_color,
+            'title': {
+                'text': chart_title,
+                'left': 'center',
+                'top': 8,
+                'textStyle': {'color': text_color, 'fontSize': 15},
+            },
+            'tooltip': {
+                'trigger': 'axis',
+                'axisPointer': {'type': 'shadow'},
+            },
+            'toolbox': {
+                'right': 16,
+                'top': 4,
+                'feature': {
+                    'saveAsImage': {
+                        'show': True,
+                        'title': get_translation('Download'),
+                        'name': safe_filename,
+                        'pixelRatio': 3,
+                        'backgroundColor': bg_color,
+                    }
+                },
+            },
+            'grid': {
+                'left': 20,
+                'right': 50,
+                'top': 52,
+                'bottom': 24,
+                'containLabel': True,
+            },
+            'xAxis': {
+                'type': 'value',
+                'minInterval': 1,
+                'axisLabel': {'color': text_color},
+                'splitLine': {'lineStyle': {'color': split_color}},
+            },
+            'yAxis': {
+                'type': 'category',
+                'data': labels,
+                'inverse': True,
+                'axisLabel': {'color': text_color, 'interval': 0},
+            },
+            'series': [
+                {
+                    'type': 'bar',
+                    'data': values,
+                    'barMaxWidth': 22,
+                    'itemStyle': {
+                        'color': '#3b82f6',
+                        'borderRadius': [0, 4, 4, 0],
+                    },
+                    'label': {
+                        'show': True,
+                        'position': 'right',
+                        'color': text_color,
+                    },
+                }
+            ],
+        }
+        analysis_chart.options.clear()
+        analysis_chart.options.update(options)
+        analysis_chart.update()
 
     # ----------------------------------------------------------
     # Helper: Remove Verse
     # ----------------------------------------------------------
-    def remove_verse_row(row_element, reference):
+    def remove_verse_row(row_element, reference, verse_data=None):
         try:
             verses_container.remove(row_element)
+            if verse_data is not None:
+                if verse_data in results_state['all_verses']:
+                    results_state['all_verses'].remove(verse_data)
+                if verse_data in results_state['filtered_verses']:
+                    results_state['filtered_verses'].remove(verse_data)
+                    results_state['rendered_count'] = max(0, results_state['rendered_count'] - 1)
+                update_load_more_button()
+                if analysis_expansion.value:
+                    update_distribution_chart()
             ui.notify(f'Removed: {reference}', type='warning', position='top')
         except Exception as e:
             print(f"Error removing row: {e}")
@@ -119,8 +305,15 @@ def search_bible_verses(gui=None, q='', **_):
         nonlocal SQL_QUERY, last_entry
         query = input_field.value.strip()
     
-        # Clear existing rows first
+        # Clear existing rows and cached results first
         verses_container.clear()
+        results_state['all_verses'] = []
+        results_state['filtered_verses'] = []
+        results_state['rendered_count'] = 0
+        results_state['highlights'] = False
+        results_state['query'] = ''
+        update_load_more_button()
+        analysis_expansion.set_visibility(False)
 
         if not query:
             ui.notify('Display cleared', type='positive', position='top')
@@ -217,55 +410,16 @@ def search_bible_verses(gui=None, q='', **_):
             if not verses[-1]['ref']:
                 ui.notify(verses[-1]['content'])
                 verses = verses[:-1]
-            with verses_container:
-                for v in verses:
-                    # Row setup
-                    with ui.column().classes('w-full shadow-sm rounded-lg items-start no-wrap border border-gray-200 !gap-0') as row:
-                        
-                        row.verse_data = v # Store data for filter function
 
-                        def get_verse_content(ref, content):
-                            content = re.sub("<[^<>]+?>", "", content)
-                            return f"[{ref}] {content}"
-                        
-                        def ask_biblemate(ref, content):
-                            nonlocal gui
-                            gui.ask_biblemate(f'''[{ref}] {re.sub("<[^<>]+?>", "", content)}''')
-
-                        # --- Chip (Clickable & Removable) ---
-                        with ui.element('div').classes('flex-none pt-1'): 
-                            with ui.chip(
-                                v['ref'], 
-                                removable=True, 
-                                icon='book',
-                                #on_click=partial(ui.notify, f'Clicked {v['ref']}'),
-                            ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm') as chip:
-                                with ui.menu():
-                                    ui.menu_item('📋 Copy', on_click=partial(gui.copy_text, get_verse_content(v['ref'], v['content'])))
-                                    ui.separator()
-                                    ui.menu_item('📜 Open in Bible Area', on_click=partial(gui.change_area_1_bible_chapter, v['bible'], v['b'], v['c'], v['v']))
-                                    ui.menu_item('📜 Open Here', on_click=partial(gui.change_area_2_bible_chapter, v['bible'], v['b'], v['c'], v['v'], sync=False))
-                                    ui.menu_item('📜 Open in Next Tab', on_click=partial(open_chapter_next_area2_tab, v['bible'], v['b'], v['c'], v['v']))
-                                    ui.menu_item('📜 Open in New Tab', on_click=partial(open_chapter_empty_area2_tab, v['bible'], v['b'], v['c'], v['v']))
-                                    ui.separator()
-                                    ui.menu_item('💬 Ask BibleMate', on_click=partial(ask_biblemate, v['ref'], v['content']))
-                            chip.on('remove', lambda _, r=row, ref=v['ref']: remove_verse_row(r, ref))
-
-                        # --- Content ---
-                        content = v['content']
-                        # add tooltip
-                        if "</heb>" in content:
-                            content = re.sub('(<heb id=")(.*?)"', r'\1\2" data-word="\2" class="tooltip-word"', content)
-                            content = content.replace("<heb> </heb>", "<heb>&nbsp;</heb>")
-                            content = f"<div style='display: inline-block; direction: rtl;'>{content}</div>"
-                        elif "</grk>" in content:
-                            content = re.sub('(<grk id=")(.*?)"', r'\1\2" data-word="\2" class="tooltip-word"', content)
-                        if highlights:
-                            if app.storage.user["dark_mode"]:
-                                content = re.sub(f"({query})", r"<font color='orange'>\1</font>", content, flags=0 if app.storage.user['search_case_sensitivity'] else re.IGNORECASE)
-                            else:
-                                content = re.sub(f"({query})", r"<span style='background-color: orange;'>\1</span>", content, flags=0 if app.storage.user['search_case_sensitivity'] else re.IGNORECASE)
-                        ui.html(content, sanitize=False).classes('grow min-w-0 leading-relaxed pl-2 text-base break-words')
+            results_state['all_verses'] = verses
+            results_state['filtered_verses'] = list(verses)
+            results_state['rendered_count'] = 0
+            results_state['highlights'] = highlights
+            results_state['query'] = query
+            render_verse_batch()
+            analysis_expansion.set_visibility(True)
+            if analysis_expansion.value:
+                update_distribution_chart()
 
             # Clear input so user can start typing to filter immediately
             input_field.value = ""
@@ -464,8 +618,19 @@ def search_bible_verses(gui=None, q='', **_):
 
     # --- Main Content Area ---
     with ui.column().classes('w-full items-center'):
+        with ui.expansion(
+            get_translation('Distribution Analysis'),
+            icon='bar_chart',
+            value=False,
+            on_value_change=lambda e: update_distribution_chart() if e.value else None,
+        ).classes('w-full rounded-lg border border-gray-200') as analysis_expansion:
+            analysis_chart = ui.echart({}).classes('w-full')
+        analysis_expansion.set_visibility(False)
+
         # Define the container HERE within the layout structure
         verses_container = ui.column().classes('w-full transition-all !gap-1')
+        load_more_btn = ui.button(get_translation('Load more'), on_click=render_verse_batch).props('outline').classes('my-2')
+        load_more_btn.set_visibility(False)
 
     if q:
         input_field.value = q

@@ -157,14 +157,22 @@ You can search:
 - **Single Book**: Specific book only
 - **Testament Section**: Law, Prophets, Gospels, Epistles, etc.
 
-### **Result Limits**
+### **Result Limits & Pagination**
 
-- Default: Returns first 2000 matching verses
+- Default cap: Returns up to the first 2000 matching verses (`config.verses_limit`)
 - If limit reached, notification appears
-- Refine search to narrow results
+- Results are rendered 100 verses at a time for fast performance; click **Load more** at the bottom to append the next batch
+- Typing in the filter box filters across all fetched results, not just the currently visible batch
 - Configure limit in settings
 
 ## **Features**
+
+### **Distribution Analysis Chart**
+
+- A collapsible **Distribution Analysis** section appears at the top of the search results (collapsed by default)
+- Expanding it displays a horizontal bar chart showing the search query, total occurrences, and the breakdown across Bible books (using localized book abbreviations)
+- Automatically updates when you filter or remove verses while expanded
+- Click the **Download** icon in the top-right corner of the chart to save the entire chart as a high-resolution PNG image
 
 ### **Instant Results**
 

@@ -260,4 +260,7 @@ translation_sc = {
     "Siblings": "兄弟姊妹",
     "Half-Siblings [same father]": "同父异母兄弟姊妹",
     "Half-Siblings [same mother]": "同母异父兄弟姊妹",
+    "Distribution Analysis": "分布分析",
+    "Load more": "加载更多",
+    "remaining": "剩余",
 }

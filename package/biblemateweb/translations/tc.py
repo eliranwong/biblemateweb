@@ -259,4 +259,7 @@ translation_tc = {
     "Siblings": "兄弟姊妹",
     "Half-Siblings [same father]": "同父異母兄弟姊妹",
     "Half-Siblings [same mother]": "同母異父兄弟姊妹",
+    "Distribution Analysis": "分佈分析",
+    "Load more": "載入更多",
+    "remaining": "剩餘",
 }
