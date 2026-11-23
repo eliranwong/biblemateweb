@@ -6,7 +6,7 @@
 
 - 頭像/標題按鈕（顯示 [URL 與 QR 碼](url_qr_code.md)）
 - [快速搜索](quick_search.md)
-- 開關：`Go`、`Swap`、`Notes`、`Sync`、`Fullscreen`、`Dark Mode`
+- 開關：`Go`、`Swap`、`Notes`、`Tooltip`、`Sync`、`Fullscreen`、`Dark Mode`
 - 可展開的聖經與工具清單
 - 版面選項：只顯示聖經、只顯示工具、聖經與工具
 

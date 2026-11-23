@@ -9,6 +9,7 @@
 | 版面转换开关 | 显示/隐藏[版面转换按钮](floating_buttons.md) |
 | 开启开关 | 显示/隐藏[开启按钮](floating_buttons.md) |
 | 笔记开关 | 显示/隐藏笔记标记（重新加载页面） |
+| 提示框开关 (Tooltip) | 切换悬停显示单词提示框（关闭时需点击单词才显示[提示框](../integrations/word_tooltips.md)） |
 | 同步开关 | 切换[同步](sync.md)状态 |
 | 屏幕开关 | 切换全萤幕 |
 | 浅色模式 / 深色模式 | 切换[深色模式](../user_preferences/dark_mode.md)（重新加载） |

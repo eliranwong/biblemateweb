@@ -9,6 +9,7 @@ The gear icon in the header.
 | Swap switch | Show/hide the [Swap button](floating_buttons.md) |
 | Go switch | Show/hide the [Go button](floating_buttons.md) |
 | Notes switch | Show/hide note indicators (reloads the page) |
+| Tooltip switch | Toggle hover word tooltips (when off, click a word to show its [tooltip](../integrations/word_tooltips.md)) |
 | Sync switch | Toggle [Sync](sync.md) |
 | Screen switch | Toggle fullscreen |
 | Light Mode / Dark Mode | Toggle [dark mode](../user_preferences/dark_mode.md) (reloads) |

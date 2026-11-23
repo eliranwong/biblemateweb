@@ -4,7 +4,7 @@ Words in original-language Bibles and annotated texts open an interactive popup 
 
 ## How the Popup Works
 
-- **Trigger:** Hovering over a marked word opens the popup after a brief delay (`100 ms`).
+- **Trigger:** When **Tooltip** is **On** (default) in the [Settings menu](../layout/settings_menu.md), hovering over a marked word opens the popup after a brief delay (`100 ms`). When **Tooltip** is **Off**, hover triggers are disabled and the popup opens only when you **click** a word (clicking the same word again or clicking outside dismisses it).
 - **Stay open for audio & links:** Moving your cursor into the popup keeps it open so you can play the audio or click links inside it; it closes `300 ms` after your cursor leaves both the word and the popup.
 - **Smart positioning:** Automatically places itself above, below, to the right, or to the left of the word based on available screen space, and repositions on scroll or window resize.
 - **On-demand & cached:** Data is fetched from `GET /api/tooltip/{word}` and cached in the browser for instant repeat lookups.

@@ -6,7 +6,7 @@
 
 - 头像/标题按钮（显示 [URL 与二维码](url_qr_code.md)）
 - [快速搜索](quick_search.md)
-- 开关：`Go`、`Swap`、`Notes`、`Sync`、`Fullscreen`、`Dark Mode`
+- 开关：`Go`、`Swap`、`Notes`、`Tooltip`、`Sync`、`Fullscreen`、`Dark Mode`
 - 可展开的圣经与工具列表
 - 版面选项：只显示圣经、只显示工具、圣经与工具
 
