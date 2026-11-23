@@ -70,7 +70,7 @@ def get_original_js(dark_mode):
     }}
 
     document.addEventListener('mouseover', function(e) {{
-        var el = e.target.closest('heb[id], grk[id], eng[class]');
+        var el = e.target.closest('heb[id], grk[id], en[id], zh[id], eng[class]');
         if (!el || el.hasAttribute('onmouseover')) return;
         if (e.relatedTarget && el.contains(e.relatedTarget)) return;
         var args = getHighlightArgs(el);
@@ -78,11 +78,36 @@ def get_original_js(dark_mode):
     }});
 
     document.addEventListener('mouseout', function(e) {{
-        var el = e.target.closest('heb[id], grk[id], eng[class]');
+        var el = e.target.closest('heb[id], grk[id], en[id], zh[id], eng[class]');
         if (!el || el.hasAttribute('onmouseout')) return;
         if (e.relatedTarget && el.contains(e.relatedTarget)) return;
         var args = getHighlightArgs(el);
         hl0(args[0], args[1], args[2]);
+    }});
+
+    document.addEventListener('click', function(e) {{
+        var wlex = e.target.closest('wlex');
+        if (!wlex) return;
+        var ref = wlex.closest('ref');
+        if (ref && ref.hasAttribute('onclick')) return;
+        var sn = wlex.getAttribute('data-sn') || '';
+        if (!sn) {{
+            var container = wlex.closest('.int');
+            if (container) {{
+                var word = container.querySelector('heb[class], grk[class]');
+                if (word) {{
+                    word.classList.forEach(function(c) {{
+                        if (!sn && /^[HG]\\d+$/.test(c)) {{
+                            sn = c;
+                        }}
+                    }});
+                }}
+            }}
+        }}
+        if (sn && typeof emitEvent === 'function') {{
+            emitEvent('lex', [sn]);
+            e.preventDefault();
+        }}
     }});
 </script>
 """

@@ -101,7 +101,7 @@ def original_interlinear(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, 
     ui.on('luV2', luV2)
     ui.on('note', note)
     #ui.on('luW', luW)
-    #ui.on('lex', lex)
+    ui.on('lex', lex)
     #ui.on('bdbid', bdbid)
     #ui.on('etcbcmorph', etcbcmorph)
     #ui.on('rmac', rmac)
