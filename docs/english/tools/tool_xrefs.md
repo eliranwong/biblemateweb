@@ -428,3 +428,9 @@ NT quoting or alluding to OT:
 - **Commentary**: Detailed exposition often referencing cross-references
 - **Search**: Find verses by content across the Bible
 - **Notes**: Record insights from cross-reference study
+
+
+## **Distribution Analysis Chart**
+
+- Expand the **Distribution Analysis** section above the cross-reference results to view a horizontal bar chart showing how the cross-references are distributed across Bible books (or by chapter when all cross-references belong to a single book).
+- Click the **Download** icon in the top-right corner of the chart to save it as a high-resolution PNG image.

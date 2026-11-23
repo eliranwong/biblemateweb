@@ -1,9 +1,10 @@
 import apsw
-import re, os
-from nicegui import ui, app
-from biblemateweb import BIBLEMATEWEB_DATA, get_translation
+import re, os, asyncio
+from nicegui import ui, app, run
+from biblemateweb import BIBLEMATEWEB_DATA, get_translation, download_txt, get_morphology_db
 from functools import partial
 from biblemateweb.fx.bible import BibleSelector
+from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 
 
 def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
@@ -185,5 +186,160 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
 
             if not found_any:
                 ui.notify('No data found in any index for this verse.', type='info')
+
+            # --- CHAPTER MAP (lazy-loaded on expand) ---
+            loc_html = results.get("Bible Locations") or ""
+            loc_ids = list(dict.fromkeys(re.findall(r"BL\d+", loc_html)))
+            if loc_ids:
+                map_loaded = {'done': False}
+                async def load_chapter_map(e):
+                    if not e.value or map_loaded['done']:
+                        return
+                    map_loaded['done'] = True
+                    map_container.clear()
+                    lang = app.storage.user.get("ui_language", "eng")
+                    exlbli_tbl = f"exlbli_{lang}" if lang in ("tc", "sc") else "exlbli"
+                    db_exlb = os.path.join(BIBLEMATEWEB_DATA, "data", "exlb3.data")
+                    markers_data = []
+                    try:
+                        with apsw.Connection(db_exlb) as connn:
+                            cur = connn.cursor()
+                            placeholders = ",".join("?" for _ in loc_ids)
+                            cur.execute(f"SELECT path, location, lat, lng FROM {exlbli_tbl} WHERE path IN ({placeholders})", loc_ids)
+                            for p, loc_name, lat_s, lng_s in cur.fetchall():
+                                try:
+                                    lat_f, lng_f = float(lat_s), float(lng_s)
+                                    if lat_f and lng_f:
+                                        markers_data.append((p, loc_name, lat_f, lng_f))
+                                except (TypeError, ValueError):
+                                    pass
+                    except Exception:
+                        pass
+
+                    with map_container:
+                        if not markers_data:
+                            ui.label(get_translation('No coordinates found for locations in this chapter.')).classes('italic p-2')
+                            return
+                        avg_lat = sum(m[2] for m in markers_data) / len(markers_data)
+                        avg_lng = sum(m[3] for m in markers_data) / len(markers_data)
+                        m = ui.leaflet(center=(avg_lat, avg_lng), zoom=7).classes('w-full h-96')
+                        created_markers = []
+                        for p, loc_name, lat_f, lng_f in markers_data:
+                            mk = m.marker(latlng=(lat_f, lng_f))
+                            created_markers.append((mk, loc_name, p))
+                        async def bind_all():
+                            await asyncio.sleep(0.2)
+                            for mk, loc_name, p in created_markers:
+                                if mk.id is not None:
+                                    mk.run_method('bindPopup', f"<b>{loc_name}</b><br>{p}")
+                        ui.timer(0.1, bind_all, once=True)
+
+                with ui.expansion(f"{get_translation('Chapter Map')} ({len(loc_ids)})", icon='map', value=False, on_value_change=load_chapter_map) \
+                        .classes('w-full border rounded-lg shadow-sm') \
+                        .props('header-class="font-bold text-lg text-secondary"'):
+                    map_container = ui.column().classes('w-full p-2')
+
+            # --- CHAPTER PEOPLE RELATIONSHIP GRAPH (lazy-loaded on expand) ---
+            people_loaded = {'done': False}
+            async def load_people_graph(e):
+                if not e.value or people_loaded['done']:
+                    return
+                people_loaded['done'] = True
+                people_graph_container.clear()
+                lang = app.storage.user.get("ui_language", "eng")
+                p_tbl = f"PEOPLE_{lang.upper()}" if lang in ("tc", "sc") else "PEOPLE"
+                r_tbl = f"PEOPLERELATIONSHIP_{lang.upper()}" if lang in ("tc", "sc") else "PEOPLERELATIONSHIP"
+                db_people = os.path.join(BIBLEMATEWEB_DATA, "data", "biblePeople.data")
+                nodes, links = [], []
+                try:
+                    with apsw.Connection(db_people) as connn:
+                        cur = connn.cursor()
+                        cur.execute(f"SELECT DISTINCT PersonID, Name, Sex FROM {p_tbl} WHERE Book=? AND Chapter=?", (book_id, chapter))
+                        chapter_people = cur.fetchall()
+                        if chapter_people:
+                            id_set = {r[0] for r in chapter_people}
+                            for pid, pname, psex in chapter_people:
+                                nodes.append({
+                                    'id': str(pid),
+                                    'name': pname,
+                                    'symbolSize': 28,
+                                    'itemStyle': {'color': '#3b82f6' if psex == 'M' else '#ec4899'},
+                                })
+                            placeholders = ",".join("?" for _ in id_set)
+                            cur.execute(
+                                f"SELECT PersonID, RelatedPersonID, Relationship FROM {r_tbl} WHERE PersonID IN ({placeholders}) AND RelatedPersonID IN ({placeholders})",
+                                list(id_set) + list(id_set),
+                            )
+                            seen_edges = set()
+                            for pid1, pid2, rel in cur.fetchall():
+                                edge_key = (min(pid1, pid2), max(pid1, pid2), rel)
+                                if edge_key not in seen_edges:
+                                    seen_edges.add(edge_key)
+                                    links.append({'source': str(pid1), 'target': str(pid2), 'value': rel, 'label': {'show': True, 'formatter': rel}})
+                except Exception:
+                    pass
+
+                with people_graph_container:
+                    if not nodes:
+                        ui.label(get_translation('No people found in this chapter.')).classes('italic p-2')
+                        return
+                    dark = app.storage.user.get('dark_mode', False)
+                    text_color = '#e5e7eb' if dark else '#1f2937'
+                    ui.echart({
+                        'tooltip': {'trigger': 'item'},
+                        'series': [{
+                            'type': 'graph',
+                            'layout': 'force',
+                            'roam': True,
+                            'draggable': True,
+                            'label': {'show': True, 'position': 'right', 'color': text_color},
+                            'edgeSymbol': ['none', 'arrow'],
+                            'edgeSymbolSize': [4, 8],
+                            'edgeLabel': {'fontSize': 10, 'color': text_color},
+                            'force': {'repulsion': 180, 'edgeLength': 90},
+                            'data': nodes,
+                            'links': links,
+                        }],
+                    }).classes('w-full h-96')
+
+            with ui.expansion(get_translation('People Relationship Graph'), icon='hub', value=False, on_value_change=load_people_graph) \
+                    .classes('w-full border rounded-lg shadow-sm') \
+                    .props('header-class="font-bold text-lg text-secondary"'):
+                people_graph_container = ui.column().classes('w-full p-2')
+
+            # --- EXPORT UNIFIED CHAPTER STUDY SHEET ---
+            async def export_study_sheet():
+                lang = app.storage.user.get("ui_language", "eng")
+                abbrev_map = BibleBooks.abbrev.get(lang, BibleBooks.abbrev['eng'])
+                book_name = abbrev_map[str(book_id)][-1] if str(book_id) in abbrev_map else str(book_id)
+                lines = [f"# {book_name} {chapter} — {get_translation('Study Sheet')}", ""]
+                for title in TABLE_CONFIG:
+                    raw = results.get(title) or ""
+                    clean = re.sub(r"<[^>]+?>", " ", raw)
+                    clean = re.sub(r"[ \t]+", " ", clean).strip()
+                    if clean:
+                        lines.append(f"## {title}")
+                        lines.append(clean)
+                        lines.append("")
+                try:
+                    morph_db = get_morphology_db(app.storage.client["custom"])
+                    with apsw.Connection(morph_db) as connn:
+                        cur = connn.cursor()
+                        cur.execute(
+                            "SELECT Lexeme, Gloss, COUNT(*) as cnt FROM morphology WHERE Book=? AND Chapter=? AND LexicalEntry != '' GROUP BY LexicalEntry ORDER BY cnt DESC LIMIT 15",
+                            (book_id, chapter),
+                        )
+                        top_lemmas = cur.fetchall()
+                    if top_lemmas:
+                        lines.append(f"## {get_translation('Top Chapter Lemmas')}")
+                        for lexeme, gloss, cnt in top_lemmas:
+                            lines.append(f"- {lexeme} ({cnt}x): {gloss}")
+                        lines.append("")
+                except Exception:
+                    pass
+                await download_txt("\n".join(lines))
+
+            with ui.row().classes('w-full justify-end mt-2'):
+                ui.button(get_translation('Export Study Sheet'), icon='download', on_click=export_study_sheet).props('outline color=primary')
         
     search_action(b,c)

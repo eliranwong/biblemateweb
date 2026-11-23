@@ -187,3 +187,11 @@ One-click access to:
 - **Commentary**: For grammatical explanations in context
 - **Cross-References**: To find related verses for comparison
 - **Interlinear Bibles**: To see word-for-word translations alongside morphology
+
+
+## **Chapter Vocabulary & Rare Words**
+
+- Expand **Chapter Vocabulary & Rare Words** at the bottom of the Morphology view to analyze the entire current chapter:
+  - **Top Chapter Lemmas**: Lists the 15 most frequent Hebrew or Greek lemmas in the chapter with their occurrence counts and glosses.
+  - **Rare Words in Chapter (<= 3x in Bible)**: Highlights rare lemmas and *hapax legomena* (1x) in the chapter.
+- Click any lemma chip to open its full lexicon entry.

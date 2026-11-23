@@ -436,3 +436,9 @@ The tool shows various types of family connections:
 5. **Use Genealogies**: Study biblical genealogy passages
 6. **Learn from Dynamics**: Both positive and negative examples
 7. **Apply Principles**: Biblical family values for today
+
+
+## **Relationship Graph**
+
+- Expand the **Relationship Graph** section at the bottom of a character's profile to view an interactive force-directed network of their parents, spouses, children, and siblings.
+- You can drag nodes, zoom, and pan to explore connections visually.

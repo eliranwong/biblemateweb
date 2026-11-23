@@ -516,3 +516,10 @@ Use wildcards for flexible matching:
 5. **Share Results**: Export findings for teaching or sharing
 6. **Verify Translations**: Check multiple Bible versions
 7. **Avoid Proof-Texting**: Consider full biblical teaching on topics
+
+
+## **Additional Interactive Analysis Features**
+
+- **Click-to-Filter on Distribution Chart**: Click any book or chapter bar in the **Distribution Analysis** chart to filter the verse list to that book/chapter. Use **Reset Filter** (or click the active chapter bar again) to return to all results.
+- **Morphology Breakdown Chart**: When searching by morphology (`E...|` or `G...|`), a second bar chart appears inside **Distribution Analysis** showing the frequency of each grammatical form.
+- **Compare Translations**: Click **Compare Translations** in any verse chip's menu to view that verse side by side across your active, primary, secondary, and selected Bible translations with word-level differences highlighted.

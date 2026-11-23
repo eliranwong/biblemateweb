@@ -149,3 +149,10 @@ If no entries are found for a category, the tool displays "No entries found for 
 - **Click Bible References**: Opens that passage in the Bible area
 - **Click Dictionary/Encyclopedia Links**: Opens detailed articles in a new tab
 - **Click Collection Chips**: Loads the full promise or parallel collection
+
+
+## **Chapter Map, People Graph & Study Sheet Export**
+
+- **Chapter Map**: When locations are present in the chapter, expand **Chapter Map** to plot all chapter locations together on a single interactive Leaflet map with popups.
+- **People Relationship Graph**: Expand **People Relationship Graph** to visualize all biblical figures appearing in the chapter and their recorded relationships in an interactive force-directed graph.
+- **Export Study Sheet**: Click **Export Study Sheet** at the bottom of the chapter indexes to download a unified Markdown study sheet combining the chapter's people, locations, topics, dictionary/encyclopedia entries, and top Hebrew/Greek lemmas.

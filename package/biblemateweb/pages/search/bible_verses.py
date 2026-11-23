@@ -1,11 +1,11 @@
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
-from biblemateweb.fx.bible import get_bible_content
+from biblemateweb.fx.bible import get_bible_content, getBiblePath
 from biblemateweb import BIBLEMATEWEB_DATA, config, get_morphology_db, get_translation, resolve_verses_additional_options
 from collections import Counter
 from functools import partial
 from nicegui import ui, app, run
-import re, apsw, os
+import re, apsw, os, difflib, html as html_lib
 
 
 def search_bible_verses(gui=None, q='', **_):
@@ -49,6 +49,8 @@ def search_bible_verses(gui=None, q='', **_):
         'chapter_counts': {},
         'is_filtered': False,
     }
+    chart_meta = {'mode': 'book', 'keys': [], 'single_book': None}
+    chart_filter = {'book': None, 'chapter': None}
 
     def get_verse_content(ref, content):
         content = re.sub("<[^<>]+?>", "", content)
@@ -57,6 +59,64 @@ def search_bible_verses(gui=None, q='', **_):
     def ask_biblemate(ref, content):
         nonlocal gui
         gui.ask_biblemate(f'''[{ref}] {re.sub("<[^<>]+?>", "", content)}''')
+
+    def _word_diff_html(base_text, other_text):
+        base_words = base_text.split()
+        other_words = other_text.split()
+        matcher = difflib.SequenceMatcher(None, base_words, other_words)
+        parts = []
+        for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+            segment = html_lib.escape(" ".join(other_words[j1:j2]))
+            if not segment:
+                continue
+            if tag == 'equal':
+                parts.append(segment)
+            else:
+                parts.append(f"<span style='background-color: rgba(245, 158, 11, 0.3); padding: 0 2px; border-radius: 3px;'>{segment}</span>")
+        return " ".join(parts)
+
+    def compare_translations(verse):
+        b, c, v_num = verse.get('b'), verse.get('c'), verse.get('v')
+        if not (b and c and v_num):
+            return
+        candidates = []
+        selected = get_bibles()
+        if isinstance(selected, str):
+            selected = [selected]
+        for ver in [verse.get('bible'), app.storage.user.get('primary_bible'), app.storage.user.get('secondary_bible'), *(selected or [])]:
+            if ver and ver not in candidates and getBiblePath(ver):
+                candidates.append(ver)
+
+        rows = []
+        for ver in candidates[:6]:
+            db_path = getBiblePath(ver)
+            try:
+                with apsw.Connection(db_path) as connn:
+                    cur = connn.cursor()
+                    cur.execute("SELECT Scripture FROM Verses WHERE Book=? AND Chapter=? AND Verse=? LIMIT 1", (b, c, v_num))
+                    row = cur.fetchone()
+                    if row and row[0]:
+                        plain = re.sub("<[^<>]+?>", "", row[0]).strip()
+                        rows.append((ver, plain))
+            except Exception:
+                pass
+
+        with ui.dialog() as dlg, ui.card().classes('w-full max-w-2xl'):
+            ui.label(f"{verse['ref']} — {get_translation('Compare Translations')}").classes('text-lg font-bold')
+            if not rows:
+                ui.label(get_translation('No verses found.'))
+            else:
+                base_text = rows[0][1]
+                for idx, (ver, txt) in enumerate(rows):
+                    with ui.column().classes('w-full p-2 rounded border border-gray-200 gap-1'):
+                        ui.badge(ver, color='primary' if idx == 0 else 'secondary')
+                        if idx == 0:
+                            ui.label(txt).classes('text-base leading-relaxed')
+                        else:
+                            ui.html(_word_diff_html(base_text, txt), sanitize=False).classes('text-base leading-relaxed')
+            with ui.row().classes('w-full justify-end'):
+                ui.button(get_translation('Close'), on_click=dlg.close).props('flat')
+        dlg.open()
 
     def update_load_more_button():
         remaining = len(results_state['filtered_verses']) - results_state['rendered_count']
@@ -91,6 +151,7 @@ def search_bible_verses(gui=None, q='', **_):
                         ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm') as chip:
                             with ui.menu():
                                 ui.menu_item('📋 Copy', on_click=partial(gui.copy_text, get_verse_content(v['ref'], v['content'])))
+                                ui.menu_item(f"🔍 {get_translation('Compare Translations')}", on_click=partial(compare_translations, v))
                                 ui.separator()
                                 ui.menu_item('📜 Open in Bible Area', on_click=partial(gui.change_area_1_bible_chapter, v['bible'], v['b'], v['c'], v['v']))
                                 ui.menu_item('📜 Open Here', on_click=partial(gui.change_area_2_bible_chapter, v['bible'], v['b'], v['c'], v['v'], sync=False))
@@ -180,6 +241,123 @@ def search_bible_verses(gui=None, q='', **_):
         if matched:
             ui.notify(f"{len(matched)} {'match' if len(matched) == 1 else 'matches'} found!")
 
+    def apply_chart_filter():
+        b_filter = chart_filter['book']
+        c_filter = chart_filter['chapter']
+        if b_filter is None:
+            results_state['filtered_verses'] = list(results_state['all_verses'])
+            results_state['is_filtered'] = bool(input_field.value and input_field.value.strip())
+            reset_chart_filter_btn.set_visibility(False)
+        else:
+            results_state['filtered_verses'] = [
+                v for v in results_state['all_verses']
+                if v.get('b') == b_filter and (c_filter is None or v.get('c') == c_filter)
+            ]
+            results_state['is_filtered'] = True
+            reset_chart_filter_btn.set_visibility(True)
+        verses_container.clear()
+        results_state['rendered_count'] = 0
+        render_verse_batch()
+        if analysis_expansion.value:
+            update_distribution_chart()
+
+    def reset_chart_filter():
+        chart_filter['book'] = None
+        chart_filter['chapter'] = None
+        apply_chart_filter()
+
+    def handle_chart_click(e):
+        idx = getattr(e, 'data_index', None)
+        if idx is None or idx < 0 or idx >= len(chart_meta['keys']):
+            return
+        clicked_key = chart_meta['keys'][idx]
+        if chart_meta['mode'] == 'book':
+            chart_filter['book'] = clicked_key
+            chart_filter['chapter'] = None
+            apply_chart_filter()
+        elif chart_meta['mode'] == 'chapter':
+            if chart_filter['chapter'] == clicked_key:
+                chart_filter['book'] = None
+                chart_filter['chapter'] = None
+            else:
+                chart_filter['book'] = chart_meta['single_book']
+                chart_filter['chapter'] = clicked_key
+            apply_chart_filter()
+
+    def update_morphology_chart():
+        search_morph = re.search(r"^([EG][0-9]+?)\|", last_entry or '')
+        if not search_morph:
+            morph_chart.set_visibility(False)
+            return
+        lexical_entry = search_morph.group(1) + ",%"
+        suffix = ""
+        for i in (last_entry or '').split("|")[1:]:
+            if i:
+                suffix += f"AND Morphology LIKE '{i}' "
+        if books := re.search("WHERE (Book.*?) AND", SQL_QUERY):
+            suffix += f"AND {books.group(1)} "
+        if chart_filter['book'] is not None:
+            suffix += f"AND Book={int(chart_filter['book'])} "
+        if chart_filter['chapter'] is not None:
+            suffix += f"AND Chapter={int(chart_filter['chapter'])} "
+        try:
+            db = get_morphology_db(app.storage.client["custom"])
+            with apsw.Connection(db) as connn:
+                cursor = connn.cursor()
+                cursor.execute(
+                    f"SELECT Morphology, COUNT(*) as cnt FROM morphology WHERE LexicalEntry LIKE ? {suffix}GROUP BY Morphology ORDER BY cnt DESC LIMIT 25",
+                    (lexical_entry,),
+                )
+                rows = cursor.fetchall()
+        except Exception:
+            rows = []
+
+        if not rows:
+            morph_chart.set_visibility(False)
+            return
+
+        dark = app.storage.user.get('dark_mode', False)
+        text_color = '#e5e7eb' if dark else '#1f2937'
+        split_color = '#374151' if dark else '#e5e7eb'
+        bg_color = '#1f2937' if dark else '#ffffff'
+
+        m_labels = [r[0].rstrip(',') for r in rows]
+        m_values = [r[1] for r in rows]
+        morph_chart.style(f'height: {max(220, len(m_labels) * 26 + 80)}px;')
+        morph_chart.options.clear()
+        morph_chart.options.update({
+            'backgroundColor': bg_color,
+            'title': {
+                'text': f"{get_translation('Morphology Breakdown')} ({sum(m_values)})",
+                'left': 'center',
+                'top': 8,
+                'textStyle': {'color': text_color, 'fontSize': 14},
+            },
+            'tooltip': {'trigger': 'axis', 'axisPointer': {'type': 'shadow'}},
+            'grid': {'left': 20, 'right': 50, 'top': 48, 'bottom': 20, 'containLabel': True},
+            'xAxis': {
+                'type': 'value',
+                'minInterval': 1,
+                'axisLabel': {'color': text_color},
+                'splitLine': {'lineStyle': {'color': split_color}},
+            },
+            'yAxis': {
+                'type': 'category',
+                'data': m_labels,
+                'inverse': True,
+                'axisLabel': {'color': text_color, 'interval': 0},
+            },
+            'series': [{
+                'type': 'bar',
+                'data': m_values,
+                'barMaxWidth': 20,
+                'itemStyle': {'color': '#f97316', 'borderRadius': [0, 4, 4, 0]},
+                'label': {'show': True, 'position': 'right', 'color': text_color},
+            }],
+        })
+        morph_chart.set_visibility(True)
+        morph_chart.update()
+
     def update_distribution_chart():
         use_uncapped = not results_state['is_filtered'] and results_state['book_counts']
         if use_uncapped:
@@ -208,9 +386,15 @@ def search_bible_verses(gui=None, q='', **_):
             chapters = sorted(chap_counts.keys())
             labels = [f"{book_abbrev} {c}" for c in chapters]
             values = [chap_counts[c] for c in chapters]
+            chart_meta['mode'] = 'chapter'
+            chart_meta['keys'] = chapters
+            chart_meta['single_book'] = single_book
         else:
             labels = [abbrev_map[str(b)][0] if str(b) in abbrev_map else str(b) for b in book_ids]
             values = [book_counts[b] for b in book_ids]
+            chart_meta['mode'] = 'book'
+            chart_meta['keys'] = book_ids
+            chart_meta['single_book'] = None
 
         dark = app.storage.user.get('dark_mode', False)
         text_color = '#e5e7eb' if dark else '#1f2937'
@@ -289,6 +473,7 @@ def search_bible_verses(gui=None, q='', **_):
         analysis_chart.options.clear()
         analysis_chart.options.update(options)
         analysis_chart.update()
+        update_morphology_chart()
 
     # ----------------------------------------------------------
     # Helper: Remove Verse
@@ -348,6 +533,10 @@ def search_bible_verses(gui=None, q='', **_):
         results_state['book_counts'] = {}
         results_state['chapter_counts'] = {}
         results_state['is_filtered'] = False
+        chart_filter['book'] = None
+        chart_filter['chapter'] = None
+        reset_chart_filter_btn.set_visibility(False)
+        morph_chart.set_visibility(False)
         update_load_more_button()
         analysis_expansion.set_visibility(False)
 
@@ -665,7 +854,16 @@ def search_bible_verses(gui=None, q='', **_):
             value=False,
             on_value_change=lambda e: update_distribution_chart() if e.value else None,
         ).classes('w-full rounded-lg border border-gray-200') as analysis_expansion:
-            analysis_chart = ui.echart({}).classes('w-full')
+            with ui.row().classes('w-full justify-end'):
+                reset_chart_filter_btn = ui.button(
+                    get_translation('Reset Filter'),
+                    icon='filter_alt_off',
+                    on_click=reset_chart_filter,
+                ).props('flat dense size=sm')
+                reset_chart_filter_btn.set_visibility(False)
+            analysis_chart = ui.echart({}, on_point_click=handle_chart_click).classes('w-full cursor-pointer')
+            morph_chart = ui.echart({}).classes('w-full mt-4')
+            morph_chart.set_visibility(False)
         analysis_expansion.set_visibility(False)
 
         # Define the container HERE within the layout structure

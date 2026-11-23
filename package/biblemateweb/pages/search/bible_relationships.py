@@ -319,5 +319,66 @@ def search_bible_relationships(gui=None, q='', **_):
                         for p in family['siblings_same_mother']:
                             relation_chip(p, select_person)
 
+            # 7. VISUAL RELATIONSHIP GRAPH (Collapsible)
+            graph_nodes = [{'id': str(current_id), 'name': name, 'symbolSize': 36, 'itemStyle': {'color': '#2563eb' if sex == 'M' else '#db2777'}}]
+            graph_links = []
+            seen_ids = {str(current_id)}
+
+            def _add_rel_group(group, rel_label, reverse=False):
+                for p in group:
+                    spid = str(p['id'])
+                    pname = p['name']
+                    psex = p['sex']
+                    if spid not in seen_ids:
+                        seen_ids.add(spid)
+                        graph_nodes.append({
+                            'id': spid,
+                            'name': pname,
+                            'symbolSize': 24,
+                            'itemStyle': {'color': '#60a5fa' if psex == 'M' else '#f472b6'},
+                        })
+                    if reverse:
+                        graph_links.append({'source': spid, 'target': str(current_id), 'label': {'show': True, 'formatter': rel_label}})
+                    else:
+                        graph_links.append({'source': str(current_id), 'target': spid, 'label': {'show': True, 'formatter': rel_label}})
+
+            _add_rel_group(family['parents'], get_translation('Parents'), reverse=True)
+            _add_rel_group(family['spouses'], get_translation('Spouse'))
+            _add_rel_group(family['children'], get_translation('Children'))
+            _add_rel_group(family['siblings'], get_translation('Siblings'))
+            _add_rel_group(family['siblings_same_father'], get_translation('Half-Siblings [same father]'))
+            _add_rel_group(family['siblings_same_mother'], get_translation('Half-Siblings [same mother]'))
+
+            if len(graph_nodes) > 1:
+                dark = app.storage.user.get('dark_mode', False)
+                text_color = '#e5e7eb' if dark else '#1f2937'
+                graph_loaded = {'done': False}
+
+                def load_rel_graph(e):
+                    if not e.value or graph_loaded['done']:
+                        return
+                    graph_loaded['done'] = True
+                    rel_graph_container.clear()
+                    with rel_graph_container:
+                        ui.echart({
+                            'tooltip': {'trigger': 'item'},
+                            'series': [{
+                                'type': 'graph',
+                                'layout': 'force',
+                                'roam': True,
+                                'draggable': True,
+                                'label': {'show': True, 'position': 'right', 'color': text_color},
+                                'edgeSymbol': ['none', 'arrow'],
+                                'edgeSymbolSize': [4, 8],
+                                'edgeLabel': {'fontSize': 10, 'color': text_color},
+                                'force': {'repulsion': 160, 'edgeLength': 85},
+                                'data': graph_nodes,
+                                'links': graph_links,
+                            }],
+                        }).classes('w-full h-80')
+
+                with ui.expansion(get_translation('Relationship Graph'), icon='hub', value=False, on_value_change=load_rel_graph).classes('w-full rounded'+(' bg-gray-900 border border-gray-700' if dark else ' bg-gray-50 border border-gray-100')):
+                    rel_graph_container = ui.column().classes('w-full p-2')
+
         view_area()
 

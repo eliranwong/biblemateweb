@@ -2,6 +2,7 @@ from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from biblemateweb import BIBLEMATEWEB_DATA, get_translation
 from biblemateweb.fx.bible import get_bible_content
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
+from collections import Counter
 from functools import partial
 from nicegui import ui, app, run
 import re, apsw, os
@@ -22,6 +23,129 @@ def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
 
     # --- Data: 66 Bible Books & ID Mapping ---
     BIBLE_BOOKS = [BibleBooks.abbrev["eng"][str(i)][0] for i in range(1,67)]
+    xref_verses_cache = []
+    xref_chart_meta = {'mode': 'book', 'keys': [], 'single_book': None}
+    xref_chart_filter = {'book': None, 'chapter': None}
+
+    def apply_xref_chart_filter():
+        b_filter = xref_chart_filter['book']
+        c_filter = xref_chart_filter['chapter']
+        for row in verses_container.default_slot.children:
+            if not hasattr(row, 'verse_data'):
+                continue
+            if b_filter is None:
+                row.set_visibility(True)
+            else:
+                d = row.verse_data
+                row.set_visibility(d.get('b') == b_filter and (c_filter is None or d.get('c') == c_filter))
+        reset_xref_filter_btn.set_visibility(b_filter is not None)
+        if xref_expansion.value:
+            update_xref_chart()
+
+    def reset_xref_chart_filter():
+        xref_chart_filter['book'] = None
+        xref_chart_filter['chapter'] = None
+        apply_xref_chart_filter()
+
+    def handle_xref_chart_click(e):
+        idx = getattr(e, 'data_index', None)
+        if idx is None or idx < 0 or idx >= len(xref_chart_meta['keys']):
+            return
+        clicked_key = xref_chart_meta['keys'][idx]
+        if xref_chart_meta['mode'] == 'book':
+            xref_chart_filter['book'] = clicked_key
+            xref_chart_filter['chapter'] = None
+            apply_xref_chart_filter()
+        elif xref_chart_meta['mode'] == 'chapter':
+            if xref_chart_filter['chapter'] == clicked_key:
+                xref_chart_filter['book'] = None
+                xref_chart_filter['chapter'] = None
+            else:
+                xref_chart_filter['book'] = xref_chart_meta['single_book']
+                xref_chart_filter['chapter'] = clicked_key
+            apply_xref_chart_filter()
+
+    def update_xref_chart():
+        if not xref_verses_cache:
+            return
+        b_filter = xref_chart_filter['book']
+        c_filter = xref_chart_filter['chapter']
+        active_verses = [
+            vr for vr in xref_verses_cache
+            if b_filter is None or (vr.get('b') == b_filter and (c_filter is None or vr.get('c') == c_filter))
+        ]
+        counts = Counter(vr['b'] for vr in active_verses if vr.get('b'))
+        book_ids = sorted(counts.keys())
+        lang = app.storage.user.get('ui_language', 'eng')
+        abbrev_map = BibleBooks.abbrev.get(lang, BibleBooks.abbrev['eng'])
+        if len(book_ids) == 1:
+            sb = book_ids[0]
+            ba = abbrev_map[str(sb)][0] if str(sb) in abbrev_map else str(sb)
+            cc = Counter(vr['c'] for vr in active_verses if vr.get('b') == sb and vr.get('c'))
+            chaps = sorted(cc.keys())
+            labels = [f"{ba} {ch}" for ch in chaps]
+            values = [cc[ch] for ch in chaps]
+            xref_chart_meta['mode'] = 'chapter'
+            xref_chart_meta['keys'] = chaps
+            xref_chart_meta['single_book'] = sb
+        else:
+            labels = [abbrev_map[str(bk)][0] if str(bk) in abbrev_map else str(bk) for bk in book_ids]
+            values = [counts[bk] for bk in book_ids]
+            xref_chart_meta['mode'] = 'book'
+            xref_chart_meta['keys'] = book_ids
+            xref_chart_meta['single_book'] = None
+
+        dark = app.storage.user.get('dark_mode', False)
+        text_color = '#e5e7eb' if dark else '#1f2937'
+        split_color = '#374151' if dark else '#e5e7eb'
+        bg_color = '#1f2937' if dark else '#ffffff'
+
+        xref_chart.style(f'height: {max(240, len(labels) * 28 + 90)}px;')
+        xref_chart.options.clear()
+        xref_chart.options.update({
+            'backgroundColor': bg_color,
+            'title': {
+                'text': f"{last_entry} ({sum(values)})",
+                'left': 'center',
+                'top': 8,
+                'textStyle': {'color': text_color, 'fontSize': 15},
+            },
+            'tooltip': {'trigger': 'axis', 'axisPointer': {'type': 'shadow'}},
+            'toolbox': {
+                'right': 16,
+                'top': 4,
+                'feature': {
+                    'saveAsImage': {
+                        'show': True,
+                        'title': get_translation('Download'),
+                        'name': re.sub(r'[^\w\-]+', '_', last_entry).strip('_') or 'xref_distribution',
+                        'pixelRatio': 3,
+                        'backgroundColor': bg_color,
+                    }
+                },
+            },
+            'grid': {'left': 20, 'right': 50, 'top': 52, 'bottom': 24, 'containLabel': True},
+            'xAxis': {
+                'type': 'value',
+                'minInterval': 1,
+                'axisLabel': {'color': text_color},
+                'splitLine': {'lineStyle': {'color': split_color}},
+            },
+            'yAxis': {
+                'type': 'category',
+                'data': labels,
+                'inverse': True,
+                'axisLabel': {'color': text_color, 'interval': 0},
+            },
+            'series': [{
+                'type': 'bar',
+                'data': values,
+                'barMaxWidth': 22,
+                'itemStyle': {'color': '#10b981', 'borderRadius': [0, 4, 4, 0]},
+                'label': {'show': True, 'position': 'right', 'color': text_color},
+            }],
+        })
+        xref_chart.update()
 
 
     # ----------------------------------------------------------
@@ -109,6 +233,11 @@ def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
             gui.update_active_area2_tab_records(q=query)
         # Clear existing rows first
         verses_container.clear()
+        xref_verses_cache.clear()
+        xref_chart_filter['book'] = None
+        xref_chart_filter['chapter'] = None
+        reset_xref_filter_btn.set_visibility(False)
+        xref_expansion.set_visibility(False)
 
         input_field.disable()
 
@@ -140,6 +269,12 @@ def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
                     if not verses:
                         #ui.notify('No verses found!', type='negative')
                         continue
+
+                    xref_verses_cache.extend(verses[1:])
+                    if xref_verses_cache:
+                        xref_expansion.set_visibility(True)
+                        if xref_expansion.value:
+                            update_xref_chart()
 
                     with verses_container:
                         
@@ -204,6 +339,22 @@ def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
 
     # --- Main Content Area ---
     with ui.column().classes('w-full items-center'):
+        with ui.expansion(
+            get_translation('Distribution Analysis'),
+            icon='bar_chart',
+            value=False,
+            on_value_change=lambda e: update_xref_chart() if e.value else None,
+        ).classes('w-full rounded-lg border border-gray-200') as xref_expansion:
+            with ui.row().classes('w-full justify-end'):
+                reset_xref_filter_btn = ui.button(
+                    get_translation('Reset Filter'),
+                    icon='filter_alt_off',
+                    on_click=reset_xref_chart_filter,
+                ).props('flat dense size=sm')
+                reset_xref_filter_btn.set_visibility(False)
+            xref_chart = ui.echart({}, on_point_click=handle_xref_chart_click).classes('w-full cursor-pointer')
+        xref_expansion.set_visibility(False)
+
         # Define the container HERE within the layout structure
         verses_container = ui.column().classes('w-full transition-all !gap-1')
 
