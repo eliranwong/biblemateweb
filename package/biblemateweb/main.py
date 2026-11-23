@@ -393,7 +393,8 @@ def page_home(
     ''')
     ui.add_head_html(get_original_css(app.storage.user['dark_mode']))
     ui.add_head_html(get_tooltip_css(app.storage.user["dark_mode"]))
-    ui.add_body_html(TOOLTIP_JS)
+    hover_tooltip_js = 'true' if app.storage.user.get('hover_tooltip', True) else 'false'
+    ui.add_body_html(f"<script>window.BIBLEMATE_HOVER_TOOLTIP = {hover_tooltip_js};</script>" + TOOLTIP_JS)
 
     # GUI object
     gui = BibleMateWeb()

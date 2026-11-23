@@ -628,6 +628,7 @@ USER_DEFAULT_SETTINGS = {
     'api_key': '',
     'ui_language': 'eng',
     'dark_mode': True,
+    'hover_tooltip': True,
     'notes': True,
     'left_drawer_open': False,
     'search_case_sensitivity': False,

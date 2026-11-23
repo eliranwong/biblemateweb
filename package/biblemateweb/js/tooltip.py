@@ -6,6 +6,10 @@ TOOLTIP_JS = '''
     let currentWord = null;
     let showTimeout = null;
     let initialized = false;
+
+    function isHoverTooltipEnabled() {
+        return window.BIBLEMATE_HOVER_TOOLTIP !== false;
+    }
     
     async function fetchTooltipData(word) {
         // Check cache first
@@ -207,6 +211,9 @@ TOOLTIP_JS = '''
             
             tooltip.addEventListener('mouseleave', (e) => {
                 e.stopPropagation();
+                if (!isHoverTooltipEnabled()) {
+                    return;
+                }
                 tooltipTimeout = setTimeout(() => hideTooltip(false), 300);
             });
             
@@ -260,61 +267,20 @@ TOOLTIP_JS = '''
         
         // Find all tooltip words and add event listeners
         document.querySelectorAll('.tooltip-word').forEach(element => {
-            // Check if already initialized
-            if (element.hasAttribute('data-tooltip-initialized')) {
-                return;
-            }
-            element.setAttribute('data-tooltip-initialized', 'true');
-            
-            const word = element.dataset.word;
-            
-            element.addEventListener('mouseenter', (e) => {
-                // Clear any pending hide
-                if (tooltipTimeout) {
-                    clearTimeout(tooltipTimeout);
-                    tooltipTimeout = null;
-                }
-                // Add small delay before showing to prevent flicker
-                if (showTimeout) {
-                    clearTimeout(showTimeout);
-                }
-                showTimeout = setTimeout(() => {
-                    showTooltip(element, word);
-                }, 100);
-            });
-            
-            element.addEventListener('mouseleave', (e) => {
-                // Clear show timeout if leaving before tooltip shows
-                if (showTimeout) {
-                    clearTimeout(showTimeout);
-                    showTimeout = null;
-                }
-                
-                // Check if we're moving to the tooltip itself
-                const relatedTarget = e.relatedTarget;
-                if (relatedTarget && (relatedTarget.id === 'tooltip-container' || relatedTarget.closest('#tooltip-container'))) {
-                    // Moving to tooltip, don't hide
-                    return;
-                }
-                
-                // Add delay before hiding to allow moving to tooltip
-                tooltipTimeout = setTimeout(() => hideTooltip(false), 300);
-            });
-            
-            // Handle mousemove to ensure tooltip stays visible
-            element.addEventListener('mousemove', (e) => {
-                if (currentWord === word && currentTooltip === element) {
-                    // Already showing this tooltip, clear any hide timeout
-                    if (tooltipTimeout) {
-                        clearTimeout(tooltipTimeout);
-                        tooltipTimeout = null;
-                    }
-                }
-            });
+            initSingleTooltip(element);
         });
         
         initialized = true;
     }
+
+    document.addEventListener('click', (e) => {
+        if (isHoverTooltipEnabled() || !currentTooltip) {
+            return;
+        }
+        if (!e.target.closest('#tooltip-container') && !e.target.closest('.tooltip-word')) {
+            hideTooltip(true);
+        }
+    });
     
     // Initialize tooltips when DOM is ready
     if (document.readyState === 'loading') {
@@ -355,6 +321,9 @@ TOOLTIP_JS = '''
         const word = element.dataset.word;
         
         element.addEventListener('mouseenter', (e) => {
+            if (!isHoverTooltipEnabled()) {
+                return;
+            }
             if (tooltipTimeout) {
                 clearTimeout(tooltipTimeout);
                 tooltipTimeout = null;
@@ -368,6 +337,9 @@ TOOLTIP_JS = '''
         });
         
         element.addEventListener('mouseleave', (e) => {
+            if (!isHoverTooltipEnabled()) {
+                return;
+            }
             if (showTimeout) {
                 clearTimeout(showTimeout);
                 showTimeout = null;
@@ -382,11 +354,27 @@ TOOLTIP_JS = '''
         });
         
         element.addEventListener('mousemove', (e) => {
+            if (!isHoverTooltipEnabled()) {
+                return;
+            }
             if (currentWord === word && currentTooltip === element) {
                 if (tooltipTimeout) {
                     clearTimeout(tooltipTimeout);
                     tooltipTimeout = null;
                 }
+            }
+        });
+
+        element.addEventListener('click', (e) => {
+            if (isHoverTooltipEnabled()) {
+                return;
+            }
+            e.stopPropagation();
+            const tooltip = document.querySelector('#tooltip-container');
+            if (currentTooltip === element && tooltip && tooltip.classList.contains('active')) {
+                hideTooltip(true);
+            } else {
+                showTooltip(element, word);
             }
         });
     }

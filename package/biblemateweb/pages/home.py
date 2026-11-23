@@ -1334,6 +1334,15 @@ class BibleMateWeb:
                                 ui.menu_item(get_translation("Notes"), on_click=toggleNotes)
                                 ui.space()
                                 ui.switch(value=app.storage.user["notes"], on_change=toggleNotes)
+                            # hover tooltip
+                            def toggleHoverTooltip():
+                                app.storage.user["hover_tooltip"] = not app.storage.user.get("hover_tooltip", True)
+                            with ui.row().tooltip(get_translation("Toggle Hover Word Tooltip")):
+                                ui.menu_item(get_translation("Tooltip"), on_click=toggleHoverTooltip)
+                                ui.space()
+                                ui.switch().bind_value(app.storage.user, 'hover_tooltip').on_value_change(
+                                    lambda e: ui.run_javascript(f"window.BIBLEMATE_HOVER_TOOLTIP = {'true' if e.value else 'false'};")
+                                )
                             # sync
                             def toggleSync():
                                 app.storage.user["sync"] = not app.storage.user["sync"]
@@ -1392,6 +1401,9 @@ class BibleMateWeb:
             ui.switch(get_translation("Go")).bind_value(app.storage.user, 'bible_select_button')
             ui.switch(get_translation("Swap")).bind_value(app.storage.user, 'layout_swap_button')
             ui.switch(get_translation("Notes"), value=app.storage.user["notes"], on_change=toggleNotes)
+            ui.switch(get_translation("Tooltip")).bind_value(app.storage.user, 'hover_tooltip').on_value_change(
+                lambda e: ui.run_javascript(f"window.BIBLEMATE_HOVER_TOOLTIP = {'true' if e.value else 'false'};")
+            )
             ui.switch(get_translation("Sync")).bind_value(app.storage.user, 'sync')
             ui.switch(get_translation("Fullscreen")).bind_value(app.storage.user, 'fullscreen')
             ui.switch(get_translation("Dark Mode")).bind_value(app.storage.user, 'dark_mode').on_value_change(lambda: ui.run_javascript('location.reload()'))
