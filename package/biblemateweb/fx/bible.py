@@ -15,7 +15,7 @@ def regexp_api(expr, item):
     reg = re.compile(expr, flags=re.IGNORECASE)
     return reg.search(item) is not None
 
-def get_bible_content(user_input="", bible="NET", sql_query="", refs=[], search_mode=1, top_similar_verses=20, search_case_sensitivity=False, api=False, parser=None, html=True) -> list:
+def get_bible_content(user_input="", bible="NET", sql_query="", refs=[], search_mode=1, top_similar_verses=20, search_case_sensitivity=False, api=False, parser=None, html=True, book_counts: Optional[dict] = None, chapter_counts: Optional[dict] = None) -> list:
     verses_limit_reached = False
     dbs = []
     if isinstance(bible, str): # str; single bible
@@ -50,6 +50,14 @@ def get_bible_content(user_input="", bible="NET", sql_query="", refs=[], search_
             if ref not in distinct_refs:
                 distinct_refs.append(ref)
         refs = distinct_refs
+        if book_counts is not None or chapter_counts is not None:
+            for ref in refs:
+                b = ref[0]
+                if book_counts is not None:
+                    book_counts[b] = book_counts.get(b, 0) + len(dbs)
+                if chapter_counts is not None:
+                    key = (b, ref[1])
+                    chapter_counts[key] = chapter_counts.get(key, 0) + len(dbs)
         if len(refs) > config.verses_limit:
             refs = refs[:config.verses_limit]
             verses_limit_reached = True
@@ -102,13 +110,29 @@ def get_bible_content(user_input="", bible="NET", sql_query="", refs=[], search_
             with apsw.Connection(db) as connn:
                 connn.createscalarfunction("REGEXP", regexp_api if api else regexp)
                 cursor = connn.cursor()
-                cursor.execute(query, (user_input,))
+                cursor.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='VersesPlain' LIMIT 1")
+                has_verses_plain = cursor.fetchone() is not None
+                db_query = re.sub(r"\bFROM\s+Verses\b", "FROM VersesPlain", query, count=1) if has_verses_plain else query
+                cursor.execute(db_query, (user_input,))
                 fetches = cursor.fetchall()
+                if book_counts is not None or chapter_counts is not None:
+                    for verse in fetches:
+                        b = verse[0]
+                        if book_counts is not None:
+                            book_counts[b] = book_counts.get(b, 0) + 1
+                        if chapter_counts is not None:
+                            key = (b, verse[1])
+                            chapter_counts[key] = chapter_counts.get(key, 0) + 1
                 if fetches and len(fetches) > config.verses_limit:
                     fetches = fetches[:config.verses_limit]
                     verses_limit_reached = True
                 for verse in fetches:
-                    verse_text = verse[3].strip()
+                    if has_verses_plain:
+                        cursor.execute("SELECT Scripture FROM Verses WHERE Book=? AND Chapter=? AND Verse=?", (verse[0], verse[1], verse[2]))
+                        row = cursor.fetchone()
+                        verse_text = row[0].strip() if row else verse[3].strip()
+                    else:
+                        verse_text = verse[3].strip()
                     if not html:
                         verse_text = re.sub("<.*?>", "", verse_text)
                     ref = parser.bcvToVerseReference(verse[0], verse[1], verse[2])

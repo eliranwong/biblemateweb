@@ -45,6 +45,9 @@ def search_bible_verses(gui=None, q='', **_):
         'rendered_count': 0,
         'highlights': False,
         'query': '',
+        'book_counts': {},
+        'chapter_counts': {},
+        'is_filtered': False,
     }
 
     def get_verse_content(ref, content):
@@ -135,6 +138,7 @@ def search_bible_verses(gui=None, q='', **_):
             search_term = search_term.lower()
 
         if not search_term:
+            results_state['is_filtered'] = False
             if len(results_state['filtered_verses']) == len(results_state['all_verses']) and results_state['rendered_count'] > 0:
                 update_load_more_button()
                 return
@@ -166,6 +170,7 @@ def search_bible_verses(gui=None, q='', **_):
                 matched.append(data)
 
         results_state['filtered_verses'] = matched
+        results_state['is_filtered'] = True
         verses_container.clear()
         results_state['rendered_count'] = 0
         render_verse_batch()
@@ -176,14 +181,36 @@ def search_bible_verses(gui=None, q='', **_):
             ui.notify(f"{len(matched)} {'match' if len(matched) == 1 else 'matches'} found!")
 
     def update_distribution_chart():
-        verses = results_state['filtered_verses']
-        counts = Counter(v['b'] for v in verses if v.get('b'))
-        book_ids = sorted(counts.keys())
+        use_uncapped = not results_state['is_filtered'] and results_state['book_counts']
+        if use_uncapped:
+            book_counts = {b: c for b, c in results_state['book_counts'].items() if b and c > 0}
+        else:
+            verses = results_state['filtered_verses']
+            book_counts = Counter(v['b'] for v in verses if v.get('b'))
 
+        book_ids = sorted(book_counts.keys())
         lang = app.storage.user.get('ui_language', 'eng')
         abbrev_map = BibleBooks.abbrev.get(lang, BibleBooks.abbrev['eng'])
-        labels = [abbrev_map[str(b)][0] if str(b) in abbrev_map else str(b) for b in book_ids]
-        values = [counts[b] for b in book_ids]
+
+        if len(book_ids) == 1:
+            single_book = book_ids[0]
+            book_abbrev = abbrev_map[str(single_book)][0] if str(single_book) in abbrev_map else str(single_book)
+            if use_uncapped and results_state['chapter_counts']:
+                chap_counts = {
+                    c: cnt for (b, c), cnt in results_state['chapter_counts'].items()
+                    if b == single_book and cnt > 0
+                }
+            else:
+                chap_counts = Counter(
+                    v['c'] for v in results_state['filtered_verses']
+                    if v.get('b') == single_book and v.get('c')
+                )
+            chapters = sorted(chap_counts.keys())
+            labels = [f"{book_abbrev} {c}" for c in chapters]
+            values = [chap_counts[c] for c in chapters]
+        else:
+            labels = [abbrev_map[str(b)][0] if str(b) in abbrev_map else str(b) for b in book_ids]
+            values = [book_counts[b] for b in book_ids]
 
         dark = app.storage.user.get('dark_mode', False)
         text_color = '#e5e7eb' if dark else '#1f2937'
@@ -195,7 +222,7 @@ def search_bible_verses(gui=None, q='', **_):
         chart_title = f"{search_label} ({total_count})" if search_label else f"{total_count}"
         safe_filename = re.sub(r'[^\w\-]+', '_', search_label).strip('_') or 'bible_search_distribution'
 
-        chart_height = max(240, len(book_ids) * 28 + 90)
+        chart_height = max(240, len(labels) * 28 + 90)
         analysis_chart.style(f'height: {chart_height}px;')
 
         options = {
@@ -275,6 +302,12 @@ def search_bible_verses(gui=None, q='', **_):
                 if verse_data in results_state['filtered_verses']:
                     results_state['filtered_verses'].remove(verse_data)
                     results_state['rendered_count'] = max(0, results_state['rendered_count'] - 1)
+                b = verse_data.get('b')
+                c = verse_data.get('c')
+                if b and b in results_state['book_counts']:
+                    results_state['book_counts'][b] = max(0, results_state['book_counts'][b] - 1)
+                if b and c and (b, c) in results_state['chapter_counts']:
+                    results_state['chapter_counts'][(b, c)] = max(0, results_state['chapter_counts'][(b, c)] - 1)
                 update_load_more_button()
                 if analysis_expansion.value:
                     update_distribution_chart()
@@ -312,6 +345,9 @@ def search_bible_verses(gui=None, q='', **_):
         results_state['rendered_count'] = 0
         results_state['highlights'] = False
         results_state['query'] = ''
+        results_state['book_counts'] = {}
+        results_state['chapter_counts'] = {}
+        results_state['is_filtered'] = False
         update_load_more_button()
         analysis_expansion.set_visibility(False)
 
@@ -331,6 +367,8 @@ def search_bible_verses(gui=None, q='', **_):
         try:
             n = ui.notification("Loading ...", timeout=None, spinner=True)
             highlights = False
+            book_counts = {}
+            chapter_counts = {}
             if search_morphology := re.search(r"^([EG][0-9]+?)\|", query): # search morphology
                 multiple_bibles.value = [app.storage.user["tool_book_text"]]
                 lexical_entry = search_morphology.group(1) + ",%"
@@ -348,7 +386,7 @@ def search_bible_verses(gui=None, q='', **_):
                 if not fetch:
                     ui.notify('No verses found.', type='negative')
                     return
-                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser)
+                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser, book_counts=book_counts, chapter_counts=chapter_counts)
             elif re.search("^BP[0-9]+?$", query): # bible characters entries
                 db_file = os.path.join(BIBLEMATEWEB_DATA, "data", "biblePeople.data")
                 with apsw.Connection(db_file) as connn:
@@ -358,7 +396,7 @@ def search_bible_verses(gui=None, q='', **_):
                 if not fetch:
                     ui.notify('No verses found.', type='negative')
                     return
-                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser)
+                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser, book_counts=book_counts, chapter_counts=chapter_counts)
             elif re.search("^BL[0-9]+?$", query): # bible locatios entries
                 db_file = os.path.join(BIBLEMATEWEB_DATA, "indexes2.sqlite")
                 with apsw.Connection(db_file) as connn:
@@ -368,7 +406,7 @@ def search_bible_verses(gui=None, q='', **_):
                 if not fetch:
                     ui.notify('No verses found.', type='negative')
                     return
-                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser)
+                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser, book_counts=book_counts, chapter_counts=chapter_counts)
             elif re.search(f'''^({"|".join(list(config.topics.keys()))})[0-9]+?$''', query): # bible topics entries
                 db_file = os.path.join(BIBLEMATEWEB_DATA, "indexes2.sqlite")
                 with apsw.Connection(db_file) as connn:
@@ -378,7 +416,7 @@ def search_bible_verses(gui=None, q='', **_):
                 if not fetch:
                     ui.notify('No verses found.', type='negative')
                     return
-                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser)
+                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser, book_counts=book_counts, chapter_counts=chapter_counts)
             elif re.search(f'''^({"|".join(list(config.dictionaries.keys()))})[0-9]+?$''', query): # bible dictionaries entries
                 db_file = os.path.join(BIBLEMATEWEB_DATA, "indexes2.sqlite")
                 with apsw.Connection(db_file) as connn:
@@ -388,7 +426,7 @@ def search_bible_verses(gui=None, q='', **_):
                 if not fetch:
                     ui.notify('No verses found.', type='negative')
                     return
-                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser)
+                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser, book_counts=book_counts, chapter_counts=chapter_counts)
             elif re.search(f'''^(ISBE|{"|".join(list(config.encyclopedias.keys()))})[0-9]+?$''', query): # bible encyclopedia entries
                 db_file = os.path.join(BIBLEMATEWEB_DATA, "indexes2.sqlite")
                 with apsw.Connection(db_file) as connn:
@@ -398,9 +436,9 @@ def search_bible_verses(gui=None, q='', **_):
                 if not fetch:
                     ui.notify('No verses found.', type='negative')
                     return
-                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser)
+                verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser, book_counts=book_counts, chapter_counts=chapter_counts)
             else: # regular search
-                verses = await run.io_bound(get_bible_content, user_input=query, bible=get_bibles(), sql_query=SQL_QUERY, search_mode=app.storage.user['search_mode'], top_similar_verses=app.storage.user['top_similar_verses'], search_case_sensitivity=app.storage.user['search_case_sensitivity'], parser=parser)
+                verses = await run.io_bound(get_bible_content, user_input=query, bible=get_bibles(), sql_query=SQL_QUERY, search_mode=app.storage.user['search_mode'], top_similar_verses=app.storage.user['top_similar_verses'], search_case_sensitivity=app.storage.user['search_case_sensitivity'], parser=parser, book_counts=book_counts, chapter_counts=chapter_counts)
                 highlights = True
 
             if not verses:
@@ -416,6 +454,9 @@ def search_bible_verses(gui=None, q='', **_):
             results_state['rendered_count'] = 0
             results_state['highlights'] = highlights
             results_state['query'] = query
+            results_state['book_counts'] = book_counts
+            results_state['chapter_counts'] = chapter_counts
+            results_state['is_filtered'] = False
             render_verse_batch()
             analysis_expansion.set_visibility(True)
             if analysis_expansion.value:

@@ -170,7 +170,7 @@ You can search:
 ### **Distribution Analysis Chart**
 
 - A collapsible **Distribution Analysis** section appears at the top of the search results (collapsed by default)
-- Expanding it displays a horizontal bar chart showing the search query, total occurrences, and the breakdown across Bible books (using localized book abbreviations)
+- Expanding it displays a horizontal bar chart showing the search query, total occurrences (uncapped even when results exceed `config.verses_limit`), and the breakdown across Bible books (using localized book abbreviations) — or by **chapter** when all results belong to a single book
 - Automatically updates when you filter or remove verses while expanded
 - Click the **Download** icon in the top-right corner of the chart to save the entire chart as a high-resolution PNG image
 
