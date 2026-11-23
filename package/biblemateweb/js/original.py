@@ -51,5 +51,38 @@ def get_original_js(dark_mode):
             }});
         }}
     }}
+
+    function getHighlightArgs(el) {{
+        var id = '';
+        if (el.id && el.id.charAt(0) === 'w') {{
+            id = el.id.slice(1);
+        }}
+        var cl = '';
+        var sn = '';
+        el.classList.forEach(function(c) {{
+            if (!cl && /^ch?\\d+$/.test(c)) {{
+                cl = c.slice(1);
+            }} else if (!sn && /^GE?\\d+$/.test(c)) {{
+                sn = c.slice(1);
+            }}
+        }});
+        return [id, cl, sn];
+    }}
+
+    document.addEventListener('mouseover', function(e) {{
+        var el = e.target.closest('heb[id], grk[id], eng[class]');
+        if (!el || el.hasAttribute('onmouseover')) return;
+        if (e.relatedTarget && el.contains(e.relatedTarget)) return;
+        var args = getHighlightArgs(el);
+        hl1(args[0], args[1], args[2]);
+    }});
+
+    document.addEventListener('mouseout', function(e) {{
+        var el = e.target.closest('heb[id], grk[id], eng[class]');
+        if (!el || el.hasAttribute('onmouseout')) return;
+        if (e.relatedTarget && el.contains(e.relatedTarget)) return;
+        var args = getHighlightArgs(el);
+        hl0(args[0], args[1], args[2]);
+    }});
 </script>
 """

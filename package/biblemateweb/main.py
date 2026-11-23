@@ -268,7 +268,7 @@ def page_home(
             }}
             /* Lexical Form (lemma) & Strong's Number Layers */
             wlex {{
-                display: block;
+                display: inline-block;
                 font-size: 1rem;
                 cursor: pointer;
             }}
