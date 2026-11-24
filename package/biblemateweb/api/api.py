@@ -241,7 +241,7 @@ def get_characters_content(query, language, custom):
     return html2md(html)
 
 def get_topics_content(query, language, custom):
-    html = fetch_bible_topics_entry(query)
+    html = fetch_bible_topics_entry(query, language)
     return html2md(html)
 
 def get_names_content(query, language, custom):

@@ -10,6 +10,11 @@ def exlbl_table(language="eng"):
         return f"exlbl_{language}"
     return "exlbl"
 
+def exlbli_table(language="eng"):
+    if language in ("tc", "sc"):
+        return f"exlbli_{language}"
+    return "exlbli"
+
 def fetch_bible_locations_entry(path, language="eng"):
     db = os.path.join(BIBLEMATEWEB_DATA, "data", "exlb3.data")
     with apsw.Connection(db) as connn:
@@ -22,7 +27,7 @@ def fetch_bible_locations_entry(path, language="eng"):
     location, lat, lng = None, None, None
     with apsw.Connection(vdb) as connn:
         cursor = connn.cursor()
-        sql_query = "SELECT location, lat, lng FROM exlbli WHERE path=?"
+        sql_query = f"SELECT location, lat, lng FROM {exlbli_table(language)} WHERE path=?"
         cursor.execute(sql_query, (path,))
         if fetch := cursor.fetchone():
             location, lat, lng = fetch
@@ -30,7 +35,7 @@ def fetch_bible_locations_entry(path, language="eng"):
     return content, location, lat, lng
 
 async def fetch_bible_locations_matches_async(query):
-    n = ui.notification("Loading ...", timeout=None, spinner=True)
+    n = ui.notification(get_translation('Loading...'), timeout=None, spinner=True)
     db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
     sql_table = exlbl_table(app.storage.user.get("ui_language", "eng"))
     embedding_model = "paraphrase-multilingual"
@@ -117,15 +122,15 @@ def fetch_bible_locations_matches(query):
     except Exception as ex:
         print("Error during database operation:", ex)
         traceback.print_exc()
-        ui.notify('Error during database operation!', type='negative')
+        ui.notify(get_translation('Error during database operation!'), type='negative')
         return
     return path, options
 
-def fetch_all_locations():
+def fetch_all_locations(language="eng"):
     vdb = os.path.join(BIBLEMATEWEB_DATA, "data", "exlb3.data")
     with apsw.Connection(vdb) as connn:
         cursor = connn.cursor()
-        sql_query = "SELECT location FROM exlbli" # SELECT lat, lng FROM exlbli WHERE path=?
+        sql_query = f"SELECT location FROM {exlbli_table(language)}" # SELECT lat, lng FROM exlbli WHERE path=?
         cursor.execute(sql_query)
         all_locations = [i[0] for i in cursor.fetchall()]
     return all_locations
@@ -163,8 +168,8 @@ def search_bible_locations(gui=None, q='', **_):
 
     # --- Fuzzy Match Dialog ---
     with ui.dialog() as dialog, ui.card().classes('w-full max-w-md'):
-        ui.label("Bible Locations ...").classes('text-xl font-bold text-secondary mb-4')
-        ui.label("We couldn't find an exact match. Please select one of these topics:").classes('text-secondary mb-4')
+        ui.label(f'{get_translation("Bible Locations")}...').classes('text-xl font-bold text-secondary mb-4')
+        ui.label(get_translation("We couldn't find an exact match. Please select one of these topics:")).classes('text-secondary mb-4')
         
         # This container will hold the radio selection dynamically
         selection_container = ui.column().classes('w-full')
@@ -209,7 +214,7 @@ def search_bible_locations(gui=None, q='', **_):
                     with ui.button(on_click=restore_center).props('fab-mini color=primary icon=center_focus_strong').style(
                         'position: absolute; top: 20px; right: 20px; z-index: 1000;'
                     ):
-                        ui.tooltip("Restore Center")
+                        ui.tooltip(get_translation("Restore Center"))
                 marker = m.marker(latlng=(lat, lng))
                 # Wait until marker is ready; wait 0.1 seconds to let the JS layer catch up
                 async def bind_marker():
@@ -244,9 +249,9 @@ def search_bible_locations(gui=None, q='', **_):
                 gui.load_area_2_content(title='Maps')
 
             with ui.row().classes('w-full justify-center q-my-md'):
-                ui.button('Show All Verses', icon='auto_stories', on_click=lambda: gui.show_all_verses(path)) \
+                ui.button(get_translation('Show All Verses'), icon='auto_stories', on_click=lambda: gui.show_all_verses(path)) \
                     .props('size=lg rounded color=primary')
-                ui.button('Maps', icon='search', on_click=lambda: search_action(path)) \
+                ui.button(get_translation('Maps'), icon='search', on_click=lambda: search_action(path)) \
                     .props('size=lg rounded color=primary')
 
         # Clear input so user can start typing to filter immediately
@@ -297,7 +302,7 @@ def search_bible_locations(gui=None, q='', **_):
             with selection_container:
                 # We use a radio button for selection
                 radio = ui.radio(options).classes('w-full').props('color=primary')
-                ui.button('Show Content', on_click=lambda: handle_selection(radio.value)) \
+                ui.button(get_translation('Show Content'), on_click=lambda: handle_selection(radio.value)) \
                     .classes('w-full mt-4 bg-blue-500 text-white shadow-md')    
             dialog.open()
         else:
@@ -319,11 +324,11 @@ def search_bible_locations(gui=None, q='', **_):
         with input_field.add_slot('append'):
             ui.icon('history') \
                 .on('click', handle_up_arrow) \
-                .classes('text-sm cursor-pointer text-secondary').tooltip('Restore last entry')
+                .classes('text-sm cursor-pointer text-secondary').tooltip(get_translation('Restore last entry'))
 
         # update autocomplete
         async def get_all_locations():
-            all_locations = await run.io_bound(fetch_all_locations)
+            all_locations = await run.io_bound(fetch_all_locations, app.storage.user.get("ui_language", "eng"))
             input_field.set_autocomplete(all_locations)
         n = ui.notification(get_translation('Loading...'), timeout=None, spinner=True)
         ui.timer(0, get_all_locations, once=True)

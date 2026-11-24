@@ -6,20 +6,25 @@ import numpy as np
 import re, apsw, os, json, traceback
 from biblemateweb.data.cr_books import cr_books
 
-def fetch_bible_topics_entry(path):
+def exlbt_table(language="eng"):
+    if language in ("tc", "sc"):
+        return f"exlbt_{language}"
+    return "exlbt"
+
+def fetch_bible_topics_entry(path, language="eng"):
     db = os.path.join(BIBLEMATEWEB_DATA, "data", "exlb3.data")
     with apsw.Connection(db) as connn:
         cursor = connn.cursor()
-        sql_query = "SELECT content FROM exlbt WHERE path=? limit 1"
+        sql_query = f"SELECT content FROM {exlbt_table(language)} WHERE path=? limit 1"
         cursor.execute(sql_query, (path,))
         fetch = cursor.fetchone()
         content = fetch[0] if fetch else ""
     return content
 
 async def fetch_bible_topics_matches_async(query):
-    n = ui.notification("Loading ...", timeout=None, spinner=True)
+    n = ui.notification(get_translation('Loading...'), timeout=None, spinner=True)
     db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
-    sql_table = "exlbt"
+    sql_table = exlbt_table(app.storage.user.get("ui_language", "eng"))
     embedding_model = "paraphrase-multilingual"
     path = ""
     options = []
@@ -71,7 +76,7 @@ async def fetch_bible_topics_matches_async(query):
 
 def fetch_bible_topics_matches(query):
     db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
-    sql_table = "exlbt"
+    sql_table = exlbt_table(app.storage.user.get("ui_language", "eng"))
     embedding_model="paraphrase-multilingual"
     path = ""
     options = []
@@ -104,15 +109,15 @@ def fetch_bible_topics_matches(query):
     except Exception as ex:
         print("Error during database operation:", ex)
         traceback.print_exc()
-        ui.notify('Error during database operation!', type='negative')
+        ui.notify(get_translation('Error during database operation!'), type='negative')
         return
     return path, options
 
-def fetch_all_topics():
+def fetch_all_topics(language="eng"):
     db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
     with apsw.Connection(db_file) as connn:
         cursor = connn.cursor()
-        sql_query = "SELECT entry FROM exlbt"
+        sql_query = f"SELECT entry FROM {exlbt_table(language)}"
         cursor.execute(sql_query)
         all_entries = [i[0] for i in cursor.fetchall()]
     all_entries = list(set([i for i in all_entries if i]))
@@ -139,8 +144,8 @@ def search_bible_topics(gui=None, q='', **_):
 
     # --- Fuzzy Match Dialog ---
     with ui.dialog() as dialog, ui.card().classes('w-full max-w-md'):
-        ui.label("Bible Topics...").classes('text-xl font-bold text-secondary mb-4')
-        ui.label("We couldn't find an exact match. Please select one of these topics:").classes('text-secondary mb-4')
+        ui.label(f'{get_translation("Bible Topics")}...').classes('text-xl font-bold text-secondary mb-4')
+        ui.label(get_translation("We couldn't find an exact match. Please select one of these topics:")).classes('text-secondary mb-4')
         
         # This container will hold the radio selection dynamically
         selection_container = ui.column().classes('w-full')
@@ -156,7 +161,7 @@ def search_bible_topics(gui=None, q='', **_):
         nonlocal content_container, gui, dialog, input_field, last_entry
 
         n = ui.notification(get_translation('Loading...'), timeout=None, spinner=True)
-        content = await run.io_bound(fetch_bible_topics_entry, path)
+        content = await run.io_bound(fetch_bible_topics_entry, path, app.storage.user.get("ui_language", "eng"))
         n.dismiss()
 
         # update tab records
@@ -177,7 +182,7 @@ def search_bible_topics(gui=None, q='', **_):
             ui.html(f'<div class="content-text">{content}</div>', sanitize=False)
 
             with ui.row().classes('w-full justify-center q-my-md'):
-                ui.button('Show All Verses', icon='auto_stories', on_click=lambda: gui.show_all_verses(path)) \
+                ui.button(get_translation('Show All Verses'), icon='auto_stories', on_click=lambda: gui.show_all_verses(path)) \
                     .props('size=lg rounded color=primary')
 
         # Clear input so user can start typing to filter immediately
@@ -229,7 +234,7 @@ def search_bible_topics(gui=None, q='', **_):
             with selection_container:
                 # We use a radio button for selection
                 radio = ui.radio(options).classes('w-full').props('color=primary')
-                ui.button('Show Content', on_click=lambda: handle_selection(radio.value)) \
+                ui.button(get_translation('Show Content'), on_click=lambda: handle_selection(radio.value)) \
                     .classes('w-full mt-4 bg-blue-500 text-white shadow-md')    
             dialog.open()
         else:
@@ -251,10 +256,10 @@ def search_bible_topics(gui=None, q='', **_):
         with input_field.add_slot('append'):
             ui.icon('history') \
                 .on('click', handle_up_arrow) \
-                .classes('text-sm cursor-pointer text-secondary').tooltip('Restore last entry')
+                .classes('text-sm cursor-pointer text-secondary').tooltip(get_translation('Restore last entry'))
 
         async def get_all_topics():
-            all_topics = await run.io_bound(fetch_all_topics)
+            all_topics = await run.io_bound(fetch_all_topics, app.storage.user.get("ui_language", "eng"))
             input_field.set_autocomplete(all_topics)
         n = ui.notification(get_translation('Loading...'), timeout=None, spinner=True)
         ui.timer(0, get_all_topics, once=True)

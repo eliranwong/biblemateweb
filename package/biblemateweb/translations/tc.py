@@ -283,4 +283,13 @@ translation_tc = {
     "Bible Dictionaries": "聖經詞典",
     "Bible Encyclopedia": "聖經百科",
     "No entries found for this category.": "此類別暫無條目。",
+    "Bible Characters": "聖經人物",
+    "We couldn't find an exact match. Please select one of these topics:": "找不到完全符合的項目，請選擇以下其中一個主題：",
+    "Show Content": "顯示內容",
+    "Show All Verses": "顯示所有經文",
+    "Restore last entry": "恢復上一個項目",
+    "Restore Center": "重設中心位置",
+    "No data found in any index for this verse.": "此經節在任何索引中均無資料。",
+    "Error during database operation!": "資料庫操作發生錯誤！",
+    "No verses found.": "找不到經文。",
 }

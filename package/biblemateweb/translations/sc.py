@@ -284,4 +284,13 @@ translation_sc = {
     "Bible Dictionaries": "圣经词典",
     "Bible Encyclopedia": "圣经百科",
     "No entries found for this category.": "此类别暂无条目。",
+    "Bible Characters": "圣经人物",
+    "We couldn't find an exact match. Please select one of these topics:": "找不到完全符合的项目，请选择以下其中一个主题：",
+    "Show Content": "显示内容",
+    "Show All Verses": "显示所有经文",
+    "Restore last entry": "恢复上一个项目",
+    "Restore Center": "重设中心位置",
+    "No data found in any index for this verse.": "此经节在任何索引中均无数据。",
+    "Error during database operation!": "数据库操作发生错误！",
+    "No verses found.": "找不到经文。",
 }

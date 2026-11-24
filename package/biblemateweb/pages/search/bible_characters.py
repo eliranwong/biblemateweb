@@ -21,7 +21,7 @@ def fetch_bible_characters_entry(path, language="eng"):
     return content
 
 async def fetch_bible_characters_matches_async(query):
-    n = ui.notification("Loading ...", timeout=None, spinner=True)
+    n = ui.notification(get_translation('Loading...'), timeout=None, spinner=True)
     db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
     sql_table = exlbp_table(app.storage.user.get("ui_language", "eng"))
     embedding_model = "paraphrase-multilingual"
@@ -109,7 +109,7 @@ def fetch_bible_characters_matches(query):
         except Exception as ex:
             print("Error during database operation:", ex)
             traceback.print_exc()
-            ui.notify('Error during database operation!', type='negative')
+            ui.notify(get_translation('Error during database operation!'), type='negative')
             return
         return path, options
 
@@ -149,8 +149,8 @@ def search_bible_characters(gui=None, q='', **_):
 
     # --- Fuzzy Match Dialog ---
     with ui.dialog() as dialog, ui.card().classes('w-full max-w-md'):
-        ui.label("Bible Characters ...").classes('text-xl font-bold text-secondary mb-4')
-        ui.label("We couldn't find an exact match. Please select one of these topics:").classes('text-secondary mb-4')
+        ui.label(f'{get_translation("Bible Characters")}...').classes('text-xl font-bold text-secondary mb-4')
+        ui.label(get_translation("We couldn't find an exact match. Please select one of these topics:")).classes('text-secondary mb-4')
         
         # This container will hold the radio selection dynamically
         selection_container = ui.column().classes('w-full')
@@ -198,9 +198,9 @@ def search_bible_characters(gui=None, q='', **_):
                 gui.load_area_2_content(title='Relationships')
 
             with ui.row().classes('w-full justify-center q-my-md'):
-                ui.button('Show All Verses', icon='auto_stories', on_click=lambda: gui.show_all_verses(path)) \
+                ui.button(get_translation('Show All Verses'), icon='auto_stories', on_click=lambda: gui.show_all_verses(path)) \
                     .props('size=lg rounded color=primary')
-                ui.button('Relationships', icon='search', on_click=lambda: search_action(path)) \
+                ui.button(get_translation('Relationships'), icon='search', on_click=lambda: search_action(path)) \
                     .props('size=lg rounded color=primary')
 
         # Clear input so user can start typing to filter immediately
@@ -251,7 +251,7 @@ def search_bible_characters(gui=None, q='', **_):
             with selection_container:
                 # We use a radio button for selection
                 radio = ui.radio(options).classes('w-full').props('color=primary')
-                ui.button('Show Content', on_click=lambda: handle_selection(radio.value)) \
+                ui.button(get_translation('Show Content'), on_click=lambda: handle_selection(radio.value)) \
                     .classes('w-full mt-4 bg-blue-500 text-white shadow-md')    
             dialog.open()
         else:
@@ -273,7 +273,7 @@ def search_bible_characters(gui=None, q='', **_):
         with input_field.add_slot('append'):
             ui.icon('history') \
                 .on('click', handle_up_arrow) \
-                .classes('text-sm cursor-pointer text-secondary').tooltip('Restore last entry')
+                .classes('text-sm cursor-pointer text-secondary').tooltip(get_translation('Restore last entry'))
 
         # update autocomplete
         async def get_all_characters():

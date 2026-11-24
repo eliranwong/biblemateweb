@@ -573,37 +573,43 @@ def search_bible_verses(gui=None, q='', **_):
                     cursor.execute(query, (lexical_entry,))
                     fetch = cursor.fetchall()
                 if not fetch:
-                    ui.notify('No verses found.', type='negative')
+                    ui.notify(get_translation('No verses found.'), type='negative')
                     return
                 verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser, book_counts=book_counts, chapter_counts=chapter_counts)
             elif re.search("^BP[0-9]+?$", query): # bible characters entries
+                lang = app.storage.user.get("ui_language", "eng")
+                people_table = f"PEOPLE_{lang.upper()}" if lang in ("tc", "sc") else "PEOPLE"
                 db_file = os.path.join(BIBLEMATEWEB_DATA, "data", "biblePeople.data")
                 with apsw.Connection(db_file) as connn:
                     cursor = connn.cursor()
-                    cursor.execute("SELECT Book, Chapter, Verse FROM PEOPLE WHERE PersonID=? ORDER BY Book, Chapter, Verse", (int(query[2:]),))
+                    cursor.execute(f"SELECT Book, Chapter, Verse FROM {people_table} WHERE PersonID=? ORDER BY Book, Chapter, Verse", (int(query[2:]),))
                     fetch = cursor.fetchall()
                 if not fetch:
-                    ui.notify('No verses found.', type='negative')
+                    ui.notify(get_translation('No verses found.'), type='negative')
                     return
                 verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser, book_counts=book_counts, chapter_counts=chapter_counts)
             elif re.search("^BL[0-9]+?$", query): # bible locatios entries
+                lang = app.storage.user.get("ui_language", "eng")
+                exlbl_tbl = f"exlbl_{lang}" if lang in ("tc", "sc") else "exlbl"
                 db_file = os.path.join(BIBLEMATEWEB_DATA, "indexes2.sqlite")
                 with apsw.Connection(db_file) as connn:
                     cursor = connn.cursor()
-                    cursor.execute('''SELECT Book, Chapter, Verse FROM exlbl WHERE Information LIKE ? ORDER BY Book, Chapter, Verse''', (f"%'{query}'%",))
+                    cursor.execute(f'''SELECT Book, Chapter, Verse FROM {exlbl_tbl} WHERE Information LIKE ? ORDER BY Book, Chapter, Verse''', (f"%'{query}'%",))
                     fetch = cursor.fetchall()
                 if not fetch:
-                    ui.notify('No verses found.', type='negative')
+                    ui.notify(get_translation('No verses found.'), type='negative')
                     return
                 verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser, book_counts=book_counts, chapter_counts=chapter_counts)
             elif re.search(f'''^({"|".join(list(config.topics.keys()))})[0-9]+?$''', query): # bible topics entries
+                lang = app.storage.user.get("ui_language", "eng")
+                exlbt_tbl = f"exlbt_{lang}" if lang in ("tc", "sc") else "exlbt"
                 db_file = os.path.join(BIBLEMATEWEB_DATA, "indexes2.sqlite")
                 with apsw.Connection(db_file) as connn:
                     cursor = connn.cursor()
-                    cursor.execute('''SELECT Book, Chapter, Verse FROM exlbt WHERE Information LIKE ? ORDER BY Book, Chapter, Verse''', (f"%'{query}'%",))
+                    cursor.execute(f'''SELECT Book, Chapter, Verse FROM {exlbt_tbl} WHERE Information LIKE ? ORDER BY Book, Chapter, Verse''', (f"%'{query}'%",))
                     fetch = cursor.fetchall()
                 if not fetch:
-                    ui.notify('No verses found.', type='negative')
+                    ui.notify(get_translation('No verses found.'), type='negative')
                     return
                 verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser, book_counts=book_counts, chapter_counts=chapter_counts)
             elif re.search(f'''^({"|".join(list(config.dictionaries.keys()))})[0-9]+?$''', query): # bible dictionaries entries
@@ -613,7 +619,7 @@ def search_bible_verses(gui=None, q='', **_):
                     cursor.execute('''SELECT Book, Chapter, Verse FROM dictionaries WHERE Information LIKE ? ORDER BY Book, Chapter, Verse''', (f"%'{query}'%",))
                     fetch = cursor.fetchall()
                 if not fetch:
-                    ui.notify('No verses found.', type='negative')
+                    ui.notify(get_translation('No verses found.'), type='negative')
                     return
                 verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser, book_counts=book_counts, chapter_counts=chapter_counts)
             elif re.search(f'''^(ISBE|{"|".join(list(config.encyclopedias.keys()))})[0-9]+?$''', query): # bible encyclopedia entries
@@ -623,7 +629,7 @@ def search_bible_verses(gui=None, q='', **_):
                     cursor.execute('''SELECT Book, Chapter, Verse FROM encyclopedia WHERE Information LIKE ? ORDER BY Book, Chapter, Verse''', (f"%'{query}'%",))
                     fetch = cursor.fetchall()
                 if not fetch:
-                    ui.notify('No verses found.', type='negative')
+                    ui.notify(get_translation('No verses found.'), type='negative')
                     return
                 verses = await run.io_bound(get_bible_content, bible=get_bibles(), sql_query=SQL_QUERY, refs=fetch, parser=parser, book_counts=book_counts, chapter_counts=chapter_counts)
             else: # regular search

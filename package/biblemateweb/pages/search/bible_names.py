@@ -123,7 +123,7 @@ def fetch_bible_names_matches(search_term):
     except Exception as ex:
         print("Error during database operation:", ex)
         traceback.print_exc()
-        ui.notify('Error during database operation!', type='negative')
+        ui.notify(get_translation('Error during database operation!'), type='negative')
         return
     return options
 
@@ -296,7 +296,7 @@ def search_bible_names(gui=None, q='', **_):
         with input_field.add_slot('append'):
             ui.icon('history') \
                 .on('click', handle_up_arrow) \
-                .classes('text-sm cursor-pointer text-secondary').tooltip('Restore last entry')
+                .classes('text-sm cursor-pointer text-secondary').tooltip(get_translation('Restore last entry'))
 
     # --- Main Content Area ---
     with ui.column().classes('w-full items-center'):

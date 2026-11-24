@@ -60,7 +60,7 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
             "icon": "place"         # Icon for maps/locations
         },
         "Bible Topics": {
-            "table": "exlbt", 
+            "table": localized_exlb_table("exlbt"), 
             "icon": "category"      # Icon for topics/categories
         },
         "Bible Dictionaries": {
@@ -328,7 +328,7 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                             .classes('p-4 italic')
 
             if not found_any:
-                ui.notify('No data found in any index for this verse.', type='info')
+                ui.notify(get_translation('No data found in any index for this verse.'), type='info')
 
             # --- EXPORT UNIFIED CHAPTER STUDY SHEET ---
             async def export_study_sheet():
