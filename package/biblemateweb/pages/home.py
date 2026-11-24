@@ -36,6 +36,7 @@ from biblemateweb.pages.tools.reading_plan import reading_plan
 from biblemateweb.pages.tools.timelines import bible_timelines
 from biblemateweb.pages.tools.indexes import resource_indexes
 from biblemateweb.pages.tools.chapter_indexes import chapter_indexes
+from biblemateweb.pages.tools.book_indexes import book_indexes
 from biblemateweb.pages.tools.promises import bible_promises_menu
 from biblemateweb.pages.tools.parallels import bible_parallels_menu
 from biblemateweb.pages.tools.morphology import word_morphology
@@ -100,6 +101,7 @@ class BibleMateWeb:
             "morphology": word_morphology,
             "indexes": resource_indexes,
             "chapterindexes": chapter_indexes,
+            "bookindexes": book_indexes,
             "podcast": bibles_podcast,
             "audio": bibles_audio,
             "verses": search_bible_verses, # API with additional options
@@ -563,6 +565,7 @@ class BibleMateWeb:
             app.storage.user["tool_verse_number"] = 0
             open_tool("Notes")
         with ui.context_menu() as menu:
+            ui.menu_item(f'📑 {get_translation("Book Indexes")}', on_click=lambda: open_tool("Bookindexes"))
             ui.menu_item(f'⏳ {get_translation("Timelines")}', on_click=lambda: open_tool("Timelines"))
             ui.separator()
             ui.menu_item(f'🔘 {get_translation("Overview")}', on_click=lambda: open_analysis("Overview"))
@@ -1451,6 +1454,7 @@ class BibleMateWeb:
                             ui.separator()
                             ui.menu_item(get_translation("Morphology"), on_click=lambda: self.load_area_2_content(title='Morphology', sync=True))
                             ui.separator()
+                            ui.menu_item(get_translation("Book Indexes"), on_click=lambda: self.load_area_2_content(title='Bookindexes', sync=True))
                             ui.menu_item(get_translation("Chapter Indexes"), on_click=lambda: self.load_area_2_content(title='Chapterindexes', sync=True))
                             ui.menu_item(get_translation("Verse Indexes"), on_click=lambda: self.load_area_2_content(title='Indexes', sync=True))
                             ui.separator()
@@ -1752,6 +1756,10 @@ class BibleMateWeb:
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.separator()
+                ui.item(get_translation("Book Indexes"), on_click=lambda: (
+                    self.load_area_2_content(title='Bookindexes', sync=True),
+                    app.storage.user.update(left_drawer_open=False)
+                )).props('clickable')
                 ui.item(get_translation("Chapter Indexes"), on_click=lambda: (
                     self.load_area_2_content(title='Chapterindexes', sync=True),
                     app.storage.user.update(left_drawer_open=False)

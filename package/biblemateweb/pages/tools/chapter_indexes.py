@@ -35,25 +35,153 @@ _COMMON_STOPWORDS = {
 _PUNCT_STRIP = ".,;:!?'\"()[]{}「」『』《》〈〉、。，；：！？（）【】“”‘’—–- \t\n\r"
 
 
-def fetch_chapter_vocabulary(b, c, custom=None):
-    """Fetch top and rare original-language lemmas for a Bible chapter."""
+def extract_grouped_module_entries(content: str, category: str) -> dict:
+    """Parse table rows and return {module: [(key, label), ...]} deduplicated per module."""
+    grouped = {}
+    seen_per_mod = {}
+    pattern_map = {
+        "topics": r'''<ref onclick="exlbt\('([^']+)'\)">(.*?)</ref>''',
+        "dictionaries": r'''<ref onclick="bibleDict\('([^']+)'\)">(.*?)</ref>''',
+        "encyclopedia": r'''<ref onclick="encyclopedia\('([^']+)','([^']+)'\)">(.*?)</ref>''',
+    }
+    entry_re = pattern_map.get(category)
+    if not entry_re:
+        return grouped
+
+    for td1, td2 in re.findall(r'<tr>\s*<td>(.*?)</td>\s*<td>(.*?)</td>\s*</tr>', content, flags=re.DOTALL):
+        mod_match = re.search(r'''<ref onclick="(?:searchDict|searchEncyc)\('([^']+)'\)">''', td1)
+        if mod_match:
+            mod = mod_match.group(1).strip()
+        else:
+            mod = re.sub(r'<[^<>]+?>', '', td1).strip('[] \t\n\r')
+        if not mod:
+            continue
+        mod_entries = grouped.setdefault(mod, [])
+        seen = seen_per_mod.setdefault(mod, set())
+        for match in re.findall(entry_re, td2, flags=re.DOTALL):
+            if category == "encyclopedia":
+                enc_mod, entry_id, raw_label = match
+                key = (enc_mod, entry_id)
+            else:
+                entry_id, raw_label = match
+                key = entry_id
+            if key in seen:
+                continue
+            seen.add(key)
+            clean_label = html_lib.unescape(re.sub(r'<[^<>]+?>', '', raw_label)).strip()
+            clean_label = re.sub(r'^\(-?\d+\)\s*', '', clean_label)
+            if clean_label:
+                mod_entries.append((key, clean_label))
+    return {k: v for k, v in sorted(grouped.items()) if v}
+
+
+def render_locations_map_expansion(loc_html: str, title_key: str = "Chapter Map"):
+    """Render a lazy-loaded Leaflet map expansion for BL location IDs found in loc_html."""
+    loc_ids = list(dict.fromkeys(re.findall(r"BL\d+", loc_html or "")))
+    if not loc_ids:
+        return
+    map_loaded = {'done': False}
+
+    async def load_locations_map(e):
+        if not e.value or map_loaded['done']:
+            return
+        map_loaded['done'] = True
+        map_container.clear()
+        lang = app.storage.user.get("ui_language", "eng")
+        exlbli_tbl = f"exlbli_{lang}" if lang in ("tc", "sc") else "exlbli"
+        db_exlb = os.path.join(BIBLEMATEWEB_DATA, "data", "exlb3.data")
+        markers_data = []
+        try:
+            with apsw.Connection(db_exlb) as connn:
+                cur = connn.cursor()
+                placeholders = ",".join("?" for _ in loc_ids)
+                cur.execute(f"SELECT path, location, lat, lng FROM {exlbli_tbl} WHERE path IN ({placeholders})", loc_ids)
+                for p, loc_name, lat_s, lng_s in cur.fetchall():
+                    try:
+                        lat_f, lng_f = float(lat_s), float(lng_s)
+                        if lat_f and lng_f:
+                            markers_data.append((p, loc_name, lat_f, lng_f))
+                    except (TypeError, ValueError):
+                        pass
+        except Exception:
+            pass
+
+        with map_container:
+            if not markers_data:
+                ui.label(get_translation('No coordinates found for locations in this chapter.')).classes('italic p-2')
+                return
+            avg_lat = sum(m[2] for m in markers_data) / len(markers_data)
+            avg_lng = sum(m[3] for m in markers_data) / len(markers_data)
+            m = ui.leaflet(center=(avg_lat, avg_lng), zoom=7).classes('w-full h-96')
+
+            created_markers = []
+            for p, loc_name, lat_f, lng_f in markers_data:
+                mk = m.marker(latlng=(lat_f, lng_f))
+                created_markers.append((mk, p, loc_name))
+
+            async def bind_all():
+                await asyncio.sleep(0.3)
+                for mk, p, loc_name in created_markers:
+                    if mk.id is not None:
+                        safe_loc = html_lib.escape(str(loc_name))
+                        safe_path = html_lib.escape(str(p))
+                        mk.run_method('bindTooltip', safe_loc)
+                        mk.run_method('bindPopup', f'''<a href="#" onclick="emitEvent('exlbl', ['{safe_path}']); return false;" style="text-decoration: underline; cursor: pointer;"><b>{safe_loc}</b></a>''')
+
+            ui.timer(0.1, bind_all, once=True)
+
+    with ui.expansion(f"{get_translation(title_key)} ({len(loc_ids)})", icon='map', value=False, on_value_change=load_locations_map) \
+            .classes('w-full border rounded-lg shadow-sm') \
+            .props('header-class="font-bold text-lg text-secondary"'):
+        map_container = ui.column().classes('w-full p-2')
+
+
+def render_grouped_module_chips(content: str, category: str, icon: str, on_chip_click) -> bool:
+    """Render deduplicated module-grouped entries as clickable ui.chip elements."""
+    grouped = extract_grouped_module_entries(content, category)
+    if not grouped:
+        return False
+    with ui.column().classes('w-full gap-3 p-4'):
+        for mod, entries in grouped.items():
+            with ui.column().classes('w-full gap-1'):
+                ui.label(f"{mod} ({len(entries)})").classes('font-bold text-sm text-secondary')
+                with ui.row().classes('w-full flex-wrap gap-2'):
+                    for key, label in entries:
+                        ui.chip(
+                            label,
+                            icon=icon,
+                            on_click=partial(on_chip_click, key),
+                        ).props('outline').classes('cursor-pointer font-medium shadow-sm')
+    return True
+
+
+ORIGINAL_LANGUAGE_BIBLES = {
+    "ORB", "OLB", "OPB", "OIB", "ODB",
+    "OHGB", "OHGBi", "LXX", "LXX1", "LXX1i", "LXX2", "LXX2i",
+}
+
+
+def fetch_chapter_vocabulary(b, c=None, custom=None):
+    """Fetch top and rare original-language lemmas for a Bible chapter or entire book (c=None)."""
     db = get_morphology_db(custom)
+    where_clause = "WHERE Book=? AND Chapter=? AND LexicalEntry != ''" if c is not None else "WHERE Book=? AND LexicalEntry != ''"
+    params = (b, c) if c is not None else (b,)
     with apsw.Connection(db) as connn:
         cursor = connn.cursor()
         cursor.execute(
-            """
+            f"""
             SELECT LexicalEntry, Lexeme, Gloss, COUNT(*) as cnt
             FROM morphology
-            WHERE Book=? AND Chapter=? AND LexicalEntry != ''
+            {where_clause}
             GROUP BY LexicalEntry
             ORDER BY cnt DESC
             """,
-            (b, c),
+            params,
         )
         chapter_rows = cursor.fetchall()
         if not chapter_rows:
             return [], []
-        top_words = chapter_rows[:15]
+        top_words = chapter_rows[:15 if c is not None else 20]
         entries = [r[0] for r in chapter_rows]
         placeholders = ",".join("?" for _ in entries)
         cursor.execute(
@@ -65,8 +193,8 @@ def fetch_chapter_vocabulary(b, c, custom=None):
     return top_words, rare_words
 
 
-def fetch_chapter_translation_vocabulary(b, c, active_bible, ui_language="eng", custom=None):
-    """Fetch tagged translation vocabulary for a Bible chapter, falling back by UI language."""
+def fetch_chapter_translation_vocabulary(b, c=None, active_bible="", ui_language="eng", custom=None):
+    """Fetch tagged translation vocabulary for a chapter or entire book (c=None), falling back by UI language."""
     db = get_tagged_translations_db(custom)
     fallback_col = {"tc": "CUV", "sc": "CUVs"}.get(ui_language, "NET")
     with apsw.Connection(db) as connn:
@@ -83,15 +211,21 @@ def fetch_chapter_translation_vocabulary(b, c, active_bible, ui_language="eng", 
         else:
             return None, False, [], [], []
 
-        cursor.execute(
-            f'SELECT Verse, LexicalEntry, Lexeme, Gloss, "{version_col}" FROM morphology WHERE Book=? AND Chapter=? AND "{version_col}" != "" ORDER BY WordID',
-            (b, c),
-        )
+        if c is not None:
+            cursor.execute(
+                f'SELECT Chapter, Verse, LexicalEntry, Lexeme, Gloss, "{version_col}" FROM morphology WHERE Book=? AND Chapter=? AND "{version_col}" != "" ORDER BY WordID',
+                (b, c),
+            )
+        else:
+            cursor.execute(
+                f'SELECT Chapter, Verse, LexicalEntry, Lexeme, Gloss, "{version_col}" FROM morphology WHERE Book=? AND "{version_col}" != "" ORDER BY WordID',
+                (b,),
+            )
         rows = cursor.fetchall()
         if not rows:
             return version_col, matched, [], [], []
 
-        entries = list({r[1] for r in rows if r[1]})
+        entries = list({r[2] for r in rows if r[2]})
         rare_entries = {}
         if entries:
             placeholders = ",".join("?" for _ in entries)
@@ -102,7 +236,7 @@ def fetch_chapter_translation_vocabulary(b, c, active_bible, ui_language="eng", 
             rare_entries = dict(cursor.fetchall())
 
     grouped = {}
-    for verse, entry, lexeme, gloss, raw_text in rows:
+    for chap, verse, entry, lexeme, gloss, raw_text in rows:
         cleaned = str(raw_text).strip(_PUNCT_STRIP)
         if not cleaned:
             continue
@@ -113,14 +247,18 @@ def fetch_chapter_translation_vocabulary(b, c, active_bible, ui_language="eng", 
                 "word": cleaned,
                 "count": 0,
                 "verses": [],
+                "chapters": [],
                 "lemmas": [],
                 "rare_count": None,
                 "is_stopword": key in _COMMON_STOPWORDS,
             }
             grouped[key] = item
         item["count"] += 1
-        if verse not in item["verses"]:
-            item["verses"].append(verse)
+        ref_tag = verse if c is not None else f"{chap}:{verse}"
+        if ref_tag not in item["verses"]:
+            item["verses"].append(ref_tag)
+        if chap not in item["chapters"]:
+            item["chapters"].append(chap)
         if lexeme:
             lemma_label = f"{lexeme} ({gloss})" if gloss else lexeme
             if lemma_label not in item["lemmas"]:
@@ -130,13 +268,13 @@ def fetch_chapter_translation_vocabulary(b, c, active_bible, ui_language="eng", 
             if item["rare_count"] is None or rc < item["rare_count"]:
                 item["rare_count"] = rc
 
-    all_items = sorted(grouped.values(), key=lambda x: (-x["count"], x["verses"][0]))
+    all_items = sorted(grouped.values(), key=lambda x: (-x["count"], x["chapters"][0]))
     filtered_top = [i for i in all_items if not i["is_stopword"]][:20]
     unfiltered_top = all_items[:20]
     rare_items = [i for i in all_items if i["rare_count"] is not None and not i["is_stopword"]]
     if not rare_items:
         rare_items = [i for i in all_items if i["rare_count"] is not None]
-    rare_items.sort(key=lambda x: (x["rare_count"], -x["count"], x["verses"][0]))
+    rare_items.sort(key=lambda x: (x["rare_count"], -x["count"], x["chapters"][0]))
     return version_col, matched, filtered_top, unfiltered_top, rare_items
 
 
@@ -276,87 +414,93 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                 gui.select_empty_area2_tab()
                 gui.load_area_2_content(title='Verses')
 
-            # --- CHAPTER TRANSLATION VOCABULARY (expanded by default) ---
+            # --- CHAPTER TRANSLATION VOCABULARY (expanded by default for translations) ---
+            _ORIGINAL_LANGUAGE_BIBLES = {
+                "ORB", "OLB", "OPB", "OIB", "ODB",
+                "OHGB", "OHGBi", "LXX", "LXX1", "LXX1i", "LXX2", "LXX2i",
+            }
             active_bible = gui.get_area_1_bible_text() if gui else app.storage.user.get('primary_bible', 'NET')
             ui_lang = app.storage.user.get('ui_language', 'eng')
-            trans_vocab_loaded = {'done': False}
+            is_original_bible = active_bible in _ORIGINAL_LANGUAGE_BIBLES
+            if not is_original_bible:
+                trans_vocab_loaded = {'done': False}
 
-            async def load_trans_vocab(e):
-                if not e.value or trans_vocab_loaded['done']:
-                    return
-                trans_vocab_loaded['done'] = True
-                trans_vocab_container.clear()
-                with trans_vocab_container:
-                    ui.spinner(size='sm')
-                version_col, matched, filtered_top, unfiltered_top, rare_items = await run.io_bound(
-                    fetch_chapter_translation_vocabulary,
-                    book_id,
-                    chapter,
-                    active_bible,
-                    ui_lang,
-                    app.storage.client["custom"],
-                )
-                trans_vocab_container.clear()
-                with trans_vocab_container:
-                    if not version_col or (not unfiltered_top and not rare_items):
-                        ui.label(get_translation('No data found.')).classes('p-2 italic')
+                async def load_trans_vocab(e):
+                    if not e.value or trans_vocab_loaded['done']:
                         return
+                    trans_vocab_loaded['done'] = True
+                    trans_vocab_container.clear()
+                    with trans_vocab_container:
+                        ui.spinner(size='sm')
+                    version_col, matched, filtered_top, unfiltered_top, rare_items = await run.io_bound(
+                        fetch_chapter_translation_vocabulary,
+                        book_id,
+                        chapter,
+                        active_bible,
+                        ui_lang,
+                        app.storage.client["custom"],
+                    )
+                    trans_vocab_container.clear()
+                    with trans_vocab_container:
+                        if not version_col or (not unfiltered_top and not rare_items):
+                            ui.label(get_translation('No data found.')).classes('p-2 italic')
+                            return
 
-                    if not matched:
-                        ui.label(
-                            f"{get_translation('Showing')} {version_col} ({active_bible} {get_translation('is not in tagged translations')})"
-                        ).classes('text-xs text-gray-500 italic')
+                        if not matched:
+                            ui.label(
+                                f"{get_translation('Showing')} {version_col} ({active_bible} {get_translation('is not in tagged translations')})"
+                            ).classes('text-xs text-gray-500 italic')
 
-                    def _chip_tooltip(item):
-                        vv = ", ".join(str(v_num) for v_num in item["verses"][:10])
-                        if len(item["verses"]) > 10:
-                            vv += ", ..."
-                        lemmas_str = "; ".join(item["lemmas"][:3])
-                        return f"vv. {vv}" + (f" · {lemmas_str}" if lemmas_str else "")
+                        def _chip_tooltip(item):
+                            vv = ", ".join(str(v_num) for v_num in item["verses"][:10])
+                            if len(item["verses"]) > 10:
+                                vv += ", ..."
+                            lemmas_str = "; ".join(item["lemmas"][:3])
+                            return f"vv. {vv}" + (f" · {lemmas_str}" if lemmas_str else "")
 
-                    hide_common = {'value': True}
-                    chips_area = ui.column().classes('w-full gap-2')
+                        hide_common = {'value': True}
+                        chips_area = ui.column().classes('w-full gap-2')
 
-                    def render_trans_chips():
-                        chips_area.clear()
-                        top_list = filtered_top if (hide_common['value'] and filtered_top) else unfiltered_top
-                        with chips_area:
-                            if top_list:
-                                ui.label(get_translation('Key Words in Chapter')).classes('font-bold text-sm mt-1')
-                                with ui.row().classes('w-full gap-2 flex-wrap'):
-                                    for item in top_list:
-                                        c = ui.chip(
-                                            f"{item['word']} ({item['count']})",
-                                            icon='search',
-                                            on_click=partial(search_bible_word, version_col, item['word']),
-                                        ).props('outline').classes('cursor-pointer')
-                                        c.tooltip(_chip_tooltip(item))
-                            if rare_items:
-                                ui.label(get_translation('Rare-Lemma Words in Chapter (<= 3x in Bible)')).classes('font-bold text-sm mt-3')
-                                with ui.row().classes('w-full gap-2 flex-wrap'):
-                                    for item in rare_items:
-                                        rc = item['rare_count']
-                                        badge = "1x (hapax)" if rc == 1 else f"{rc}x"
-                                        c = ui.chip(
-                                            f"{item['word']} [{badge}]",
-                                            icon='search',
-                                            color='deep-orange' if rc == 1 else 'amber-8',
-                                            on_click=partial(search_bible_word, version_col, item['word']),
-                                        ).props('text-color=white').classes('cursor-pointer')
-                                        c.tooltip(_chip_tooltip(item))
+                        def render_trans_chips():
+                            chips_area.clear()
+                            top_list = filtered_top if (hide_common['value'] and filtered_top) else unfiltered_top
+                            with chips_area:
+                                if top_list:
+                                    ui.label(get_translation('Key Words in Chapter')).classes('font-bold text-sm mt-1')
+                                    with ui.row().classes('w-full gap-2 flex-wrap'):
+                                        for item in top_list:
+                                            c = ui.chip(
+                                                f"{item['word']} ({item['count']})",
+                                                icon='search',
+                                                on_click=partial(search_bible_word, version_col, item['word']),
+                                            ).props('outline').classes('cursor-pointer')
+                                            c.tooltip(_chip_tooltip(item))
+                                if rare_items:
+                                    ui.label(get_translation('Rare-Lemma Words in Chapter (<= 3x in Bible)')).classes('font-bold text-sm mt-3')
+                                    with ui.row().classes('w-full gap-2 flex-wrap'):
+                                        for item in rare_items:
+                                            rc = item['rare_count']
+                                            badge = "1x (hapax)" if rc == 1 else f"{rc}x"
+                                            c = ui.chip(
+                                                f"{item['word']} [{badge}]",
+                                                icon='search',
+                                                color='deep-orange' if rc == 1 else 'amber-8',
+                                                on_click=partial(search_bible_word, version_col, item['word']),
+                                            ).props('text-color=white').classes('cursor-pointer')
+                                            c.tooltip(_chip_tooltip(item))
 
-                    def on_toggle_common(ev):
-                        hide_common['value'] = bool(ev.value)
+                        def on_toggle_common(ev):
+                            hide_common['value'] = bool(ev.value)
+                            render_trans_chips()
+
+                        ui.switch(get_translation('Hide common words'), value=True, on_change=on_toggle_common).classes('text-sm')
                         render_trans_chips()
 
-                    ui.switch(get_translation('Hide common words'), value=True, on_change=on_toggle_common).classes('text-sm')
-                    render_trans_chips()
-
-            with ui.expansion(get_translation('Chapter Translation Vocabulary'), icon='translate', value=True, on_value_change=load_trans_vocab) \
-                    .classes('w-full border rounded-lg shadow-sm') \
-                    .props('header-class="font-bold text-lg text-secondary"'):
-                trans_vocab_container = ui.column().classes('w-full p-2 gap-2')
-            ui.timer(0.05, lambda: load_trans_vocab(type('E', (), {'value': True})()), once=True)
+                with ui.expansion(get_translation('Chapter Translation Vocabulary'), icon='translate', value=True, on_value_change=load_trans_vocab) \
+                        .classes('w-full border rounded-lg shadow-sm') \
+                        .props('header-class="font-bold text-lg text-secondary"'):
+                    trans_vocab_container = ui.column().classes('w-full p-2 gap-2')
+                ui.timer(0.05, lambda: load_trans_vocab(type('E', (), {'value': True})()), once=True)
 
             # --- CHAPTER VOCABULARY & RARE WORDS (lazy-loaded on expand) ---
             vocab_loaded = {'done': False}
@@ -396,10 +540,12 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                                     on_click=partial(open_lexicon, app.storage.user['hebrew_lexicon'] if book_id < 40 else app.storage.user['greek_lexicon'], lex_entry),
                                 ).props('text-color=white').classes('cursor-pointer')
 
-            with ui.expansion(get_translation('Chapter Vocabulary & Rare Words'), icon='analytics', value=False, on_value_change=load_vocab) \
+            with ui.expansion(get_translation('Chapter Vocabulary & Rare Words'), icon='analytics', value=is_original_bible, on_value_change=load_vocab) \
                     .classes('w-full border rounded-lg shadow-sm') \
                     .props('header-class="font-bold text-lg text-secondary"'):
                 vocab_container = ui.column().classes('w-full p-2 gap-2')
+            if is_original_bible:
+                ui.timer(0.05, lambda: load_vocab(type('E', (), {'value': True})()), once=True)
 
             # --- CHAPTER PEOPLE RELATIONSHIP GRAPH (lazy-loaded on expand, before Bible People) ---
             people_html = results.get("Bible People") or ""
@@ -487,66 +633,25 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                     people_graph_container = ui.column().classes('w-full p-2')
 
             # --- CHAPTER MAP (lazy-loaded on expand, before Bible People) ---
-            loc_html = results.get("Bible Locations") or ""
-            loc_ids = list(dict.fromkeys(re.findall(r"BL\d+", loc_html)))
-            if loc_ids:
-                map_loaded = {'done': False}
-                async def load_chapter_map(e):
-                    if not e.value or map_loaded['done']:
-                        return
-                    map_loaded['done'] = True
-                    map_container.clear()
-                    lang = app.storage.user.get("ui_language", "eng")
-                    exlbli_tbl = f"exlbli_{lang}" if lang in ("tc", "sc") else "exlbli"
-                    db_exlb = os.path.join(BIBLEMATEWEB_DATA, "data", "exlb3.data")
-                    markers_data = []
-                    try:
-                        with apsw.Connection(db_exlb) as connn:
-                            cur = connn.cursor()
-                            placeholders = ",".join("?" for _ in loc_ids)
-                            cur.execute(f"SELECT path, location, lat, lng FROM {exlbli_tbl} WHERE path IN ({placeholders})", loc_ids)
-                            for p, loc_name, lat_s, lng_s in cur.fetchall():
-                                try:
-                                    lat_f, lng_f = float(lat_s), float(lng_s)
-                                    if lat_f and lng_f:
-                                        markers_data.append((p, loc_name, lat_f, lng_f))
-                                except (TypeError, ValueError):
-                                    pass
-                    except Exception:
-                        pass
-
-                    with map_container:
-                        if not markers_data:
-                            ui.label(get_translation('No coordinates found for locations in this chapter.')).classes('italic p-2')
-                            return
-                        avg_lat = sum(m[2] for m in markers_data) / len(markers_data)
-                        avg_lng = sum(m[3] for m in markers_data) / len(markers_data)
-                        m = ui.leaflet(center=(avg_lat, avg_lng), zoom=7).classes('w-full h-96')
-
-                        created_markers = []
-                        for p, loc_name, lat_f, lng_f in markers_data:
-                            mk = m.marker(latlng=(lat_f, lng_f))
-                            created_markers.append((mk, p, loc_name))
-                        async def bind_all():
-                            await asyncio.sleep(0.3)
-                            for mk, p, loc_name in created_markers:
-                                if mk.id is not None:
-                                    safe_loc = html_lib.escape(str(loc_name))
-                                    safe_path = html_lib.escape(str(p))
-                                    mk.run_method('bindTooltip', safe_loc)
-                                    mk.run_method('bindPopup', f'''<a href="#" onclick="emitEvent('exlbl', ['{safe_path}']); return false;" style="text-decoration: underline; cursor: pointer;"><b>{safe_loc}</b></a>''')
-                        ui.timer(0.1, bind_all, once=True)
-
-                with ui.expansion(f"{get_translation('Chapter Map')} ({len(loc_ids)})", icon='map', value=False, on_value_change=load_chapter_map) \
-                        .classes('w-full border rounded-lg shadow-sm') \
-                        .props('header-class="font-bold text-lg text-secondary"'):
-                    map_container = ui.column().classes('w-full p-2')
+            render_locations_map_expansion(results.get("Bible Locations") or "", "Chapter Map")
             
             def open_exlb(target_title, entry_id):
                 nonlocal gui
                 app.storage.user['tool_query'] = entry_id
                 gui.select_empty_area2_tab()
                 gui.load_area_2_content(title=target_title)
+
+            def open_dictionary(entry_id):
+                nonlocal gui
+                app.storage.user['tool_query'] = entry_id
+                gui.select_empty_area2_tab()
+                gui.load_area_2_content(title='Dictionaries')
+
+            def open_encyclopedia(key):
+                nonlocal gui
+                app.storage.user['favorite_encyclopedia'], app.storage.user['tool_query'] = key
+                gui.select_empty_area2_tab()
+                gui.load_area_2_content(title='Encyclopedias')
 
             for title, config in TABLE_CONFIG.items():
                 content = results.get(title)
@@ -564,6 +669,24 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                             target_title = "Characters" if title == "Bible People" else "Locations"
                             chip_icon = "person" if title == "Bible People" else "place"
                             if render_exlb_chips(content, chip_icon, partial(open_exlb, target_title)):
+                                found_any = True
+                            else:
+                                ui.label(get_translation('No entries found for this category.')) \
+                                    .classes('p-4 italic')
+                        elif title == "Bible Topics":
+                            if render_grouped_module_chips(content, "topics", "topic", partial(open_exlb, "Topics")):
+                                found_any = True
+                            else:
+                                ui.label(get_translation('No entries found for this category.')) \
+                                    .classes('p-4 italic')
+                        elif title == "Bible Dictionaries":
+                            if render_grouped_module_chips(content, "dictionaries", "loyalty", open_dictionary):
+                                found_any = True
+                            else:
+                                ui.label(get_translation('No entries found for this category.')) \
+                                    .classes('p-4 italic')
+                        elif title == "Bible Encyclopedia":
+                            if render_grouped_module_chips(content, "encyclopedia", "diamond", open_encyclopedia):
                                 found_any = True
                             else:
                                 ui.label(get_translation('No entries found for this category.')) \
@@ -691,6 +814,7 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                     ui.button(get_translation('Bible Podcast'), icon='podcasts', on_click=partial(open_chapter_tool, 'Podcast')).props('outline size=sm')
                     ui.button(get_translation('Bible Audio'), icon='volume_up', on_click=partial(open_chapter_tool, 'Audio')).props('outline size=sm')
                     ui.button(get_translation('Verse Indexes'), icon='list_alt', on_click=partial(open_chapter_tool, 'Indexes')).props('outline size=sm')
+                    ui.button(get_translation('Book Indexes'), icon='menu_book', on_click=partial(open_chapter_tool, 'Bookindexes')).props('outline size=sm')
                     if app_config.google_client_id and app_config.google_client_secret:
                         ui.button(get_translation('Notes'), icon='edit_note', on_click=partial(open_chapter_tool, 'Notes', _setup_chapter_note)).props('outline size=sm')
         

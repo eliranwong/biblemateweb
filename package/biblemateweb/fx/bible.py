@@ -241,11 +241,12 @@ class BibleSelector:
 
         self.chapter_zero, self.verse_zero = chapter_zero, verse_zero
         
-    def create_ui(self, bible, b, c, v, additional_items=None, show_versions=True, show_verses=True):
+    def create_ui(self, bible, b, c, v, additional_items=None, show_versions=True, show_chapters=True, show_verses=True):
         self.selected_version = bible
         self.selected_book = b
         self.selected_chapter = c
         self.selected_verse = v
+        self.show_chapters = show_chapters
         self.show_verses = show_verses
 
         if not self.version_options:
@@ -286,12 +287,13 @@ class BibleSelector:
                 on_change=self.on_book_change
             )
             # Chapter
-            self.chapter_select = ui.select(
-                options=self.chapter_options,
-                #label='Chapter',
-                value=c if c in self.chapter_options else self.chapter_options[0],
-                on_change=self.on_chapter_change
-            )
+            if show_chapters:
+                self.chapter_select = ui.select(
+                    options=self.chapter_options,
+                    #label='Chapter',
+                    value=c if c in self.chapter_options else self.chapter_options[0],
+                    on_change=self.on_chapter_change
+                )
             # Verse
             if show_verses:
                 self.verse_select = ui.select(
@@ -357,6 +359,9 @@ class BibleSelector:
     
     def reset_chapter_dropdown(self):
         """Reset chapter dropdown to initial state"""
+        if not getattr(self, 'show_chapters', True):
+            self.selected_chapter = 1
+            return
         self.chapter_options = getBibleChapterList(getBiblePath(self.selected_version), self.selected_book)
         if self.chapter_zero:
             self.chapter_options.insert(0, 0)

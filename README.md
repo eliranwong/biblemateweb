@@ -37,7 +37,7 @@ BibleMate AI Web provides a unified web interface combining the best features of
 - **Mutual Word & Clause Highlighting**: Hovering over a Hebrew or Greek word in original-language Bibles highlights its clause, matching lexical/Strong's occurrences across parallel panes (e.g., `OPB` and `OLB`), and the focal word
 - **Cross-References**: Treasury of Scripture Knowledge (TSK) integration with one-click verse loading and export
 - **Commentaries**: 30+ classic Bible commentaries and AI Commentary with quick switching and export
-- **Chapter & Verse Indexes**: Default chapter study dashboard featuring **Chapter Translation Vocabulary**, **Chapter Vocabulary & Rare Words**, **Chapter Map**, **People Relationship Graph**, and quick-launch tool buttons
+- **Book, Chapter & Verse Indexes**: Whole-book, chapter, and verse study dashboards featuring **Translation Vocabulary**, **Vocabulary & Rare Words**, **Chapter Map**, **People Relationship Graph**, and quick-launch tool buttons
 - **Reference Books**: Read `.book` files (chapter-by-chapter) in a built-in reader, with clickable Bible references; add your own by dropping files into a folder ([guide](docs/english/tools/tool_books.md))
 - **Topical Studies**: Nave's, Thompson Chain, Torrey's topical Bibles
 - **Bible Dictionaries & Encyclopedias**: Easton's, Smith's, ISBE, and more

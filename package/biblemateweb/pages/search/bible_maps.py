@@ -110,6 +110,7 @@ def search_bible_maps(gui=None, q='', **_):
                     # 3. Bind
                     safe_name = html_lib.escape(str(name))
                     safe_uid = html_lib.escape(str(uid))
+                    marker.run_method('bindTooltip', safe_name)
                     marker.run_method('bindPopup', f'''<a href="#" onclick="emitEvent('exlbl', ['{safe_uid}']); return false;" style="text-decoration: underline; cursor: pointer;"><b>{safe_name}</b></a>''')
                 # Fire the safe async function
                 ui.timer(0.1, partial(bind_marker, marker, name, uid), once=True)

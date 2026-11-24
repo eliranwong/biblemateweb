@@ -25,14 +25,20 @@ def parse_day_passages(day: int, ui_language: str = "eng") -> list[dict]:
         first_ref = refs[0]
         b, c = first_ref[0], first_ref[1]
         v = first_ref[2] if len(first_ref) >= 3 else 1
-        # Check if original segment specifies only a chapter (no ':' in segment)
         is_chapter_only = ":" not in seg
-        loc_ref = ui_parser.bcvToVerseReference(b, c, v, isChapter=is_chapter_only)
-        if not is_chapter_only and len(first_ref) >= 4 and first_ref[3] and first_ref[3] != v:
-            loc_ref = f"{loc_ref}-{first_ref[3]}"
-        elif len(first_ref) >= 5 and first_ref[3] and first_ref[4]:
-            end_ref = ui_parser.bcvToVerseReference(b, first_ref[3], first_ref[4])
-            loc_ref = f"{loc_ref}–{end_ref}"
+        if is_chapter_only:
+            loc_ref = ui_parser.bcvToVerseReference(b, c, v, isChapter=True)
+        elif len(first_ref) >= 5:
+            _, _, _, c_end, v_end = first_ref[:5]
+            base_ref = ui_parser.bcvToVerseReference(b, c, v)
+            if c_end == c and v_end and v_end != v:
+                loc_ref = f"{base_ref}-{v_end}"
+            elif c_end and c_end != c:
+                loc_ref = f"{base_ref}–{ui_parser.bcvToVerseReference(b, c_end, v_end or 1)}"
+            else:
+                loc_ref = base_ref
+        else:
+            loc_ref = ui_parser.bcvToVerseReference(b, c, v)
         passages.append({"ref": loc_ref, "b": b, "c": c, "v": v})
     return passages
 
