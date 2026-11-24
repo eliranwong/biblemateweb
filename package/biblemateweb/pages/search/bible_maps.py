@@ -7,7 +7,7 @@ from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from nicegui import ui, app
 from functools import partial
-import math, re, asyncio
+import math, re, asyncio, html as html_lib
 
 
 # --- Data: 66 Bible Books & ID Mapping ---
@@ -108,7 +108,9 @@ def search_bible_maps(gui=None, q='', **_):
                     # 2. Add a tiny buffer for the JavaScript side to render the marker
                     await asyncio.sleep(0.5)
                     # 3. Bind
-                    marker.run_method('bindPopup', f'''<b>{name}</b><br>[<ref onclick="emitEvent('exlbl', ['{uid}']); return false;">{uid}</ref>]''')
+                    safe_name = html_lib.escape(str(name))
+                    safe_uid = html_lib.escape(str(uid))
+                    marker.run_method('bindPopup', f'''<a href="#" onclick="emitEvent('exlbl', ['{safe_uid}']); return false;" style="text-decoration: underline; cursor: pointer;"><b>{safe_name}</b></a>''')
                 # Fire the safe async function
                 ui.timer(0.1, partial(bind_marker, marker, name, uid), once=True)
                 

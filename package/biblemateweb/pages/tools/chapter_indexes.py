@@ -248,21 +248,19 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                         avg_lat = sum(m[2] for m in markers_data) / len(markers_data)
                         avg_lng = sum(m[3] for m in markers_data) / len(markers_data)
                         m = ui.leaflet(center=(avg_lat, avg_lng), zoom=7).classes('w-full h-96')
-                        def open_location_next_tab(path):
-                            app.storage.user['tool_query'] = path
-                            gui.select_next_area2_tab()
-                            gui.load_area_2_content(title='Locations', sync=False)
 
                         created_markers = []
                         for p, loc_name, lat_f, lng_f in markers_data:
                             mk = m.marker(latlng=(lat_f, lng_f))
-                            mk.on('click', lambda _, path=p: open_location_next_tab(path))
-                            created_markers.append((mk, loc_name))
+                            created_markers.append((mk, p, loc_name))
                         async def bind_all():
-                            await asyncio.sleep(0.2)
-                            for mk, loc_name in created_markers:
+                            await asyncio.sleep(0.3)
+                            for mk, p, loc_name in created_markers:
                                 if mk.id is not None:
-                                    mk.run_method('bindTooltip', html_lib.escape(str(loc_name)))
+                                    safe_loc = html_lib.escape(str(loc_name))
+                                    safe_path = html_lib.escape(str(p))
+                                    mk.run_method('bindTooltip', safe_loc)
+                                    mk.run_method('bindPopup', f'''<a href="#" onclick="emitEvent('exlbl', ['{safe_path}']); return false;" style="text-decoration: underline; cursor: pointer;"><b>{safe_loc}</b></a>''')
                         ui.timer(0.1, bind_all, once=True)
 
                 with ui.expansion(f"{get_translation('Chapter Map')} ({len(loc_ids)})", icon='map', value=False, on_value_change=load_chapter_map) \
