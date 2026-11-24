@@ -1,9 +1,36 @@
 import apsw
-import re, os
+import re, os, html as html_lib
 from nicegui import ui, app
 from biblemateweb import BIBLEMATEWEB_DATA, get_translation
 from functools import partial
 from biblemateweb.fx.bible import BibleSelector
+
+
+def extract_unique_exlb_entries(content: str) -> list[tuple[str, str]]:
+    """Extract unique (entry_id, display_name) pairs in order of appearance."""
+    seen_ids = set()
+    entries = []
+    for entry_id, label in re.findall(r'''<ref onclick="(?:exlbp|exlbl)\('([^']+)'\)">(.*?)</ref>''', content):
+        if entry_id not in seen_ids:
+            seen_ids.add(entry_id)
+            entries.append((entry_id, html_lib.unescape(label).strip()))
+    return entries
+
+
+def render_exlb_chips(content: str, icon: str, on_chip_click) -> bool:
+    """Render deduplicated Bible People/Locations entries as clickable ui.chip elements."""
+    entries = extract_unique_exlb_entries(content)
+    if not entries:
+        return False
+    with ui.row().classes('w-full flex-wrap gap-2 p-4'):
+        for entry_id, label in entries:
+            ui.chip(
+                label,
+                icon=icon,
+                color='primary',
+                on_click=partial(on_chip_click, entry_id),
+            ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm')
+    return True
 
 
 def resource_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
@@ -125,6 +152,12 @@ def resource_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
             # --- RENDER EXPANSIONS ---
             found_any = False
             
+            def open_exlb(target_title, entry_id):
+                nonlocal gui
+                app.storage.user['tool_query'] = entry_id
+                gui.select_empty_area2_tab()
+                gui.load_area_2_content(title=target_title)
+
             for title, config in TABLE_CONFIG.items():
                 content = results.get(title)
                 
@@ -137,16 +170,25 @@ def resource_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                         .props('header-class="font-bold text-lg text-secondary"'):
                     
                     if content:
-                        # convert links, e.g. <ref onclick="bcv(3,19,26)">
-                        content = content.replace("<table><tr>", "<tr>")
-                        content = content.replace("<tr>", "<table><tr>")
-                        content = content.replace("</tr></table>", "</tr>")
-                        content = content.replace("</tr>", "</tr></table>")
-                        content = re.sub(r'''<ref onclick="(searchEncyc|searchDict)\('.*?'\)">(.*?)</ref>''', r"\2", content)
-                        content = re.sub(r'''(onclick|ondblclick)="(cr|bcv|website|exlbl|exlbp|exlbt|bibleDict|encyclopedia)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
-                        content = re.sub(r"""(onclick|ondblclick)='(cr|bcv|website|exlbl|exlbp|exlbt|bibleDict|encyclopedia)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
-                        ui.html(f'<div class="content-text">{content}</div>', sanitize=False).classes('p-4')
-                        found_any = True
+                        if title in ("Bible People", "Bible Locations"):
+                            target_title = "Characters" if title == "Bible People" else "Locations"
+                            chip_icon = "person" if title == "Bible People" else "place"
+                            if render_exlb_chips(content, chip_icon, partial(open_exlb, target_title)):
+                                found_any = True
+                            else:
+                                ui.label(get_translation('No entries found for this category.')) \
+                                    .classes('p-4 italic')
+                        else:
+                            # convert links, e.g. <ref onclick="bcv(3,19,26)">
+                            content = content.replace("<table><tr>", "<tr>")
+                            content = content.replace("<tr>", "<table><tr>")
+                            content = content.replace("</tr></table>", "</tr>")
+                            content = content.replace("</tr>", "</tr></table>")
+                            content = re.sub(r'''<ref onclick="(searchEncyc|searchDict)\('.*?'\)">(.*?)</ref>''', r"\2", content)
+                            content = re.sub(r'''(onclick|ondblclick)="(cr|bcv|website|exlbl|exlbp|exlbt|bibleDict|encyclopedia)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
+                            content = re.sub(r"""(onclick|ondblclick)='(cr|bcv|website|exlbl|exlbp|exlbt|bibleDict|encyclopedia)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
+                            ui.html(f'<div class="content-text">{content}</div>', sanitize=False).classes('p-4')
+                            found_any = True
                     else:
                         ui.label(get_translation('No entries found for this category.')) \
                             .classes('p-4 italic')

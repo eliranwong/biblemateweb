@@ -4,6 +4,7 @@ from nicegui import ui, app, run
 from biblemateweb import BIBLEMATEWEB_DATA, get_translation, download_txt, get_morphology_db
 from functools import partial
 from biblemateweb.fx.bible import BibleSelector
+from biblemateweb.pages.tools.indexes import render_exlb_chips
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 
 
@@ -269,6 +270,12 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                         .props('header-class="font-bold text-lg text-secondary"'):
                     map_container = ui.column().classes('w-full p-2')
             
+            def open_exlb(target_title, entry_id):
+                nonlocal gui
+                app.storage.user['tool_query'] = entry_id
+                gui.select_empty_area2_tab()
+                gui.load_area_2_content(title=target_title)
+
             for title, config in TABLE_CONFIG.items():
                 content = results.get(title)
                 
@@ -281,16 +288,25 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                         .props('header-class="font-bold text-lg text-secondary"'):
                     
                     if content:
-                        # convert links, e.g. <ref onclick="bcv(3,19,26)">
-                        content = content.replace("<table><tr>", "<tr>")
-                        content = content.replace("<tr>", "<table><tr>")
-                        content = content.replace("</tr></table>", "</tr>")
-                        content = content.replace("</tr>", "</tr></table>")
-                        content = re.sub(r'''<ref onclick="(searchEncyc|searchDict)\('.*?'\)">(.*?)</ref>''', r"\2", content)
-                        content = re.sub(r'''(onclick|ondblclick)="(cr|bcv|website|exlbl|exlbp|exlbt|bibleDict|encyclopedia)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
-                        content = re.sub(r"""(onclick|ondblclick)='(cr|bcv|website|exlbl|exlbp|exlbt|bibleDict|encyclopedia)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
-                        ui.html(f'<div class="content-text">{content}</div>', sanitize=False).classes('p-4')
-                        found_any = True
+                        if title in ("Bible People", "Bible Locations"):
+                            target_title = "Characters" if title == "Bible People" else "Locations"
+                            chip_icon = "person" if title == "Bible People" else "place"
+                            if render_exlb_chips(content, chip_icon, partial(open_exlb, target_title)):
+                                found_any = True
+                            else:
+                                ui.label(get_translation('No entries found for this category.')) \
+                                    .classes('p-4 italic')
+                        else:
+                            # convert links, e.g. <ref onclick="bcv(3,19,26)">
+                            content = content.replace("<table><tr>", "<tr>")
+                            content = content.replace("<tr>", "<table><tr>")
+                            content = content.replace("</tr></table>", "</tr>")
+                            content = content.replace("</tr>", "</tr></table>")
+                            content = re.sub(r'''<ref onclick="(searchEncyc|searchDict)\('.*?'\)">(.*?)</ref>''', r"\2", content)
+                            content = re.sub(r'''(onclick|ondblclick)="(cr|bcv|website|exlbl|exlbp|exlbt|bibleDict|encyclopedia)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
+                            content = re.sub(r"""(onclick|ondblclick)='(cr|bcv|website|exlbl|exlbp|exlbt|bibleDict|encyclopedia)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)
+                            ui.html(f'<div class="content-text">{content}</div>', sanitize=False).classes('p-4')
+                            found_any = True
                     else:
                         ui.label(get_translation('No entries found for this category.')) \
                             .classes('p-4 italic')
