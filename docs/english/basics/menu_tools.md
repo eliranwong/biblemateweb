@@ -10,7 +10,8 @@ Icon: `build`. Opens study tools in the **Tool Area**.
 - **Time:** Bible Timelines, Bible Chronology.
 - **Books**
 - **Morphology**
-- **Indexes:** Chapter Indexes, Verse Indexes.
-- **Notes:** Bible Notes (when Google Drive is configured), Notepad.
+- **Indexes:** Chapter Indexes (default tool on startup), Verse Indexes.
+- **Notes & Bookmarks:** Bible Notes (when Google Drive is configured), Notepad, Bookmarks (with Highlights & Reading History).
+- **Bible Reading Plan:** 365-day reading plan with progress tracking and multilingual references.
 
 Most tools open at the verse you are reading. Full list with guides: [Tools](../layout/tools_window.md).

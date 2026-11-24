@@ -382,3 +382,72 @@ class BibleSelector:
     def get_selection(self):
         """Get the current selection and display it"""
         return (self.selected_version, self.selected_book, self.selected_chapter, self.selected_verse)
+
+
+def build_export_verses_text(verses, markdown_table: bool = False):
+    """Format verse dicts for export, preferring VersesPlain when present in the .bible DB."""
+    plain_cache = {}
+    by_bible = {}
+    for item in verses:
+        if item.get('bible') and item.get('b'):
+            by_bible.setdefault(item['bible'], set()).add(item['b'])
+
+    for bible_ver, books in by_bible.items():
+        db_path = getBiblePath(bible_ver)
+        if not db_path:
+            continue
+        try:
+            with apsw.Connection(db_path) as connn:
+                cur = connn.cursor()
+                has_plain = cur.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='VersesPlain' LIMIT 1"
+                ).fetchone()
+                if not has_plain:
+                    continue
+                placeholders = ",".join("?" for _ in books)
+                cur.execute(
+                    f"SELECT Book, Chapter, Verse, Scripture FROM VersesPlain WHERE Book IN ({placeholders})",
+                    list(books),
+                )
+                plain_cache[bible_ver] = {(r[0], r[1], r[2]): r[3] for r in cur.fetchall()}
+        except Exception:
+            pass
+
+    def _clean_item_text(item):
+        bible_ver = item.get('bible', '')
+        plain_map = plain_cache.get(bible_ver)
+        if plain_map is not None and (item['b'], item['c'], item['v']) in plain_map:
+            text = plain_map[(item['b'], item['c'], item['v'])]
+        else:
+            text = item.get('content', '')
+        return re.sub(r"<[^<>]+?>", "", str(text)).strip()
+
+    if markdown_table:
+        versions = []
+        grouped = {}
+        ref_map = {}
+        for item in verses:
+            ver = item.get('bible', '')
+            if ver and ver not in versions:
+                versions.append(ver)
+            coord = (item.get('b'), item.get('c'), item.get('v'))
+            if coord not in grouped:
+                grouped[coord] = {}
+                ref_map[coord] = item.get('ref', '')
+            grouped[coord][ver] = _clean_item_text(item).replace("|", "\\|").replace("\n", " ")
+        header = "| Reference | " + " | ".join(versions) + " |"
+        sep = "| --- | " + " | ".join("---" for _ in versions) + " |"
+        rows = [header, sep]
+        for coord, ver_texts in grouped.items():
+            cells = [ver_texts.get(ver, "") for ver in versions]
+            rows.append(f"| {ref_map[coord]} | " + " | ".join(cells) + " |")
+        return "\n".join(rows)
+
+    multi_bible = len(by_bible) > 1
+    lines = []
+    for item in verses:
+        bible_ver = item.get('bible', '')
+        clean_text = _clean_item_text(item)
+        prefix = f"[{item['ref']} {bible_ver}]" if multi_bible and bible_ver else f"[{item['ref']}]"
+        lines.append(f"{prefix} {clean_text}")
+    return "\n\n".join(lines)

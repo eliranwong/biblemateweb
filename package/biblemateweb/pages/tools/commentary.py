@@ -1,10 +1,11 @@
 from nicegui import ui, app
-from biblemateweb import BIBLEMATEWEB_DATA, getCommentaryVersionList, get_translation, markdown2html
+from biblemateweb import BIBLEMATEWEB_DATA, download_txt, getCommentaryVersionList, get_translation, markdown2html
 from biblemateweb.data.cr_books import cr_books
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from agentmake.plugins.uba.lib.RegexSearch import RegexSearch
-import apsw, os, re
+from functools import partial
+import apsw, os, re, html as html_lib
 
 def get_ai_commentary_content(references: str, module: str = "AIC", language: str ="eng"):
     def fetch_ai_commentary_verse(b,c,v):
@@ -162,6 +163,53 @@ def bible_commentary(gui=None, b=1, c=1, v=1, q='', **_):
         content_container.clear()
 
         with content_container:
+            current_mod = app.storage.user.get('favorite_commentary', 'AIC')
+            aic_mod = gui.get_aic() if gui else 'AIC'
+            quick_mods = []
+            for cand in [aic_mod, 'CBSC', 'BKC', 'JFB', 'MHC']:
+                if cand in client_commentaries and cand not in quick_mods:
+                    quick_mods.append(cand)
+
+            def _plain_commentary_text():
+                plain = re.sub(r"<br\s*/?>", "\n", content)
+                plain = re.sub(r"</(?:p|div|h[1-6]|li|tr|hr)>", "\n", plain)
+                plain = re.sub(r"<[^<>]+?>", " ", plain)
+                plain = html_lib.unescape(plain)
+                plain = re.sub(r"[ \t]+", " ", plain)
+                plain = re.sub(r"\n{3,}", "\n\n", plain).strip()
+                return f"# {last_entry} ({current_mod})\n\n{plain}" if plain else ""
+
+            async def export_commentary():
+                txt = _plain_commentary_text()
+                if txt:
+                    await download_txt(txt)
+
+            def switch_commentary(mod):
+                change_module(mod)
+                handle_enter(None)
+
+            with ui.row().classes('w-full items-center justify-between gap-2 mb-1 flex-wrap'):
+                with ui.row().classes('items-center gap-1 flex-wrap'):
+                    for mod in quick_mods:
+                        label = get_translation('AI Commentary') if mod == aic_mod else mod
+                        ui.chip(
+                            label,
+                            color='primary' if mod == current_mod else 'grey-4',
+                            on_click=partial(switch_commentary, mod),
+                        ).props('text-color=white' if mod == current_mod else 'outline').classes('cursor-pointer text-xs')
+                if content:
+                    with ui.row().classes('items-center gap-1'):
+                        ui.button(
+                            get_translation('Copy'),
+                            icon='content_copy',
+                            on_click=lambda: gui.copy_text(_plain_commentary_text()),
+                        ).props('outline size=sm')
+                        ui.button(
+                            get_translation('Export Commentary'),
+                            icon='download',
+                            on_click=export_commentary,
+                        ).props('outline size=sm color=primary')
+
             # convert links, e.g. <ref onclick="bcv(3,19,26)">
             content = re.sub(r'''(onclick|ondblclick)="(bdbid|bdbeid|bdagid|halotid|chalotid|lsjid|lex|cr|bcv|website)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
             content = re.sub(r"""(onclick|ondblclick)='(bdbid|bdbeid|bdagid|halotid|chalotid|lsjid|lex|cr|bcv|website)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)

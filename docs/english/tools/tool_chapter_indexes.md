@@ -151,8 +151,12 @@ If no entries are found for a category, the tool displays "No entries found for 
 - **Click Collection Chips**: Loads the full promise or parallel collection
 
 
-## **Chapter Map, People Graph & Study Sheet Export**
+## **Chapter Map, People Graph, Vocabulary & Quick Tools**
 
+- **Default Tool**: **Chapter Indexes** is the default tool loaded on startup and after **Reset All Preferences**, with **Chapter Translation Vocabulary** expanded by default.
+- **Chapter Translation Vocabulary**: Placed at the top under the chapter selector. Matches the active Bible version against `tagged_translations.sqlite` (using `data_custom/tagged_translations.sqlite` when custom access is enabled and the file exists; otherwise `data/tagged_translations.sqlite`), falling back by UI language (`NET` for English, `CUV` for Traditional Chinese, `CUVs` for Simplified Chinese). Includes a **Hide common words** toggle, **Key Words in Chapter** and **Rare-Lemma Words in Chapter (<= 3x in Bible)** chips with verse-number and lemma tooltips, and click-to-search in **Verses**.
+- **Chapter Vocabulary & Rare Words**: Lists the 15 most frequent Hebrew/Greek lemmas in the chapter and highlights rare lemmas (`<= 3x` in the Bible, including *hapax legomena*); click any chip to open its lexicon entry.
 - **Chapter Map**: When locations are present in the chapter, expand **Chapter Map** to plot all chapter locations together on a single interactive Leaflet map with popups.
 - **People Relationship Graph**: Expand **People Relationship Graph** to visualize all biblical figures appearing in the chapter and their recorded relationships in an interactive force-directed graph.
-- **Export Study Sheet**: Click **Export Study Sheet** at the bottom of the chapter indexes to download a unified Markdown study sheet combining the chapter's people, locations, topics, dictionary/encyclopedia entries, and top Hebrew/Greek lemmas.
+- **Export Study Sheet**: Click **Export Study Sheet** at the bottom of the chapter indexes to download a unified Markdown study sheet combining the chapter's people, locations, topics, dictionary/encyclopedia entries, top & rare Hebrew/Greek lemmas, and key translation words with verse numbers.
+- **Chapter Tools**: Quick-launch buttons at the bottom open **Chapter Summary**, **Chapter Map**, **Bible Podcast**, **Bible Audio**, **Verse Indexes**, and **Notes** (when configured) in the next tab.

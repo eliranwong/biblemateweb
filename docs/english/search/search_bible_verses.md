@@ -520,6 +520,9 @@ Use wildcards for flexible matching:
 
 ## **Additional Interactive Analysis Features**
 
-- **Click-to-Filter on Distribution Chart**: Click any book or chapter bar in the **Distribution Analysis** chart to filter the verse list to that book/chapter. Use **Reset Filter** (or click the active chapter bar again) to return to all results.
+- **Click-to-Filter & On-Demand Book Loading on Distribution Chart**: Click any book or chapter bar in the **Distribution Analysis** chart to filter the verse list to that book/chapter (with **OT | NT** totals displayed above the chart). When a search exceeds the display limit (`verses_limit`), books beyond the initial cap are shown in lighter blue on the chart and a notice banner appears; clicking any book loads that book's verses on demand. Use **Reset Filter** (or click the active chapter bar again) to return to all results.
+- **Highlight Differences (Parallel Comparison)**: When viewing multiple translations for the same verse(s) (e.g. via **Comparison**), toggle **Highlight Differences** to highlight word-level differences relative to the first translation.
+- **Export Verses**: Click **Export Verses** above the results list to download the currently displayed (or filtered) verses. When a `.bible` database includes the optional `VersesPlain` table, its plain-text `Scripture` is used; otherwise it falls back to the `Verses` table with HTML tags stripped.
 - **Morphology Breakdown Chart**: When searching by morphology (`E...|` or `G...|`), a second bar chart appears inside **Distribution Analysis** showing the frequency of each grammatical form.
 - **Compare Translations**: Click **Compare Translations** in any verse chip's menu to view that verse side by side across your active, primary, secondary, and selected Bible translations with word-level differences highlighted.
+- **Export Table (Comparison)**: When multiple translations are displayed for the same verse(s), click **Export Table** to download a grouped Markdown comparison table.

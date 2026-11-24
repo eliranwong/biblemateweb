@@ -1,7 +1,7 @@
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
-from biblemateweb.fx.bible import get_bible_content, getBiblePath
-from biblemateweb import BIBLEMATEWEB_DATA, config, download_txt, get_morphology_db, get_translation, resolve_verses_additional_options
+from biblemateweb.fx.bible import build_export_verses_text, get_bible_content, getBiblePath
+from biblemateweb import BIBLEMATEWEB_DATA, config, download_txt, get_comparison_bibles, get_morphology_db, get_translation, resolve_verses_additional_options
 from collections import Counter
 from functools import partial
 from nicegui import ui, app, run
@@ -14,6 +14,10 @@ def search_bible_verses(gui=None, q='', **_):
     default_placeholder = get_translation("Search for words or refs")
     multiple_bibles = None
     export_verses_btn = None
+    limit_notice_label = None
+    diff_mode_switch = None
+    ot_nt_label = None
+    export_table_btn = None
 
     def get_bibles():
         nonlocal multiple_bibles, gui
@@ -49,6 +53,10 @@ def search_bible_verses(gui=None, q='', **_):
         'book_counts': {},
         'chapter_counts': {},
         'is_filtered': False,
+        'limit_reached': False,
+        'book_cache': {},
+        'search_params': {},
+        'diff_mode': False,
     }
     chart_meta = {'mode': 'book', 'keys': [], 'single_book': None}
     chart_filter = {'book': None, 'chapter': None}
@@ -84,7 +92,7 @@ def search_bible_verses(gui=None, q='', **_):
         selected = get_bibles()
         if isinstance(selected, str):
             selected = [selected]
-        for ver in [verse.get('bible'), app.storage.user.get('primary_bible'), app.storage.user.get('secondary_bible'), *(selected or [])]:
+        for ver in [verse.get('bible'), *get_comparison_bibles(active_bible=verse.get('bible')), app.storage.user.get('secondary_bible'), *(selected or [])]:
             if ver and ver not in candidates and getBiblePath(ver):
                 candidates.append(ver)
 
@@ -129,6 +137,30 @@ def search_bible_verses(gui=None, q='', **_):
             load_more_btn.set_visibility(False)
         if export_verses_btn is not None:
             export_verses_btn.set_visibility(bool(results_state['filtered_verses']))
+        if diff_mode_switch is not None:
+            seen_coords = {}
+            has_multi_ver = False
+            for item in results_state['filtered_verses']:
+                coord = (item.get('b'), item.get('c'), item.get('v'))
+                if coord[0]:
+                    prev_b = seen_coords.get(coord)
+                    if prev_b is not None and prev_b != item.get('bible'):
+                        has_multi_ver = True
+                        break
+                    seen_coords[coord] = item.get('bible')
+            diff_mode_switch.set_visibility(has_multi_ver)
+            if export_table_btn is not None:
+                export_table_btn.set_visibility(has_multi_ver)
+        if limit_notice_label is not None:
+            show_notice = results_state['limit_reached'] and not results_state['is_filtered']
+            if show_notice:
+                total_matches = sum(results_state['book_counts'].values()) or len(results_state['all_verses'])
+                limit_notice_label.text = (
+                    f"{get_translation('Showing first')} {len(results_state['all_verses'])} "
+                    f"{get_translation('of')} {total_matches} "
+                    f"{get_translation('matches — click any book in Distribution Analysis to load that book')}"
+                )
+            limit_notice_label.set_visibility(show_notice)
 
     def render_verse_batch():
         start = results_state['rendered_count']
@@ -140,6 +172,13 @@ def search_bible_verses(gui=None, q='', **_):
 
         highlights = results_state['highlights']
         search_query = results_state['query']
+        diff_mode = results_state['diff_mode']
+        base_plain_map = {}
+        if diff_mode:
+            for item in results_state['filtered_verses']:
+                coord = (item.get('b'), item.get('c'), item.get('v'))
+                if coord[0] and coord not in base_plain_map:
+                    base_plain_map[coord] = (item.get('bible'), re.sub(r"<[^<>]+?>", "", str(item.get('content', ''))).strip())
 
         with verses_container:
             for v in batch:
@@ -165,17 +204,22 @@ def search_bible_verses(gui=None, q='', **_):
                         chip.on('remove', lambda _, r=row, verse=v: remove_verse_row(r, verse['ref'], verse))
 
                     content = v['content']
-                    if "</heb>" in content:
-                        content = re.sub('(<heb id=")(.*?)"', r'\1\2" data-word="\2" class="tooltip-word"', content)
-                        content = content.replace("<heb> </heb>", "<heb>&nbsp;</heb>")
-                        content = f"<div style='display: inline-block; direction: rtl;'>{content}</div>"
-                    elif "</grk>" in content:
-                        content = re.sub('(<grk id=")(.*?)"', r'\1\2" data-word="\2" class="tooltip-word"', content)
-                    if highlights and search_query:
-                        if app.storage.user["dark_mode"]:
-                            content = re.sub(f"({search_query})", r"<font color='orange'>\1</font>", content, flags=0 if app.storage.user['search_case_sensitivity'] else re.IGNORECASE)
-                        else:
-                            content = re.sub(f"({search_query})", r"<span style='background-color: orange;'>\1</span>", content, flags=0 if app.storage.user['search_case_sensitivity'] else re.IGNORECASE)
+                    coord = (v.get('b'), v.get('c'), v.get('v'))
+                    if diff_mode and coord in base_plain_map and base_plain_map[coord][0] != v.get('bible'):
+                        plain_txt = re.sub(r"<[^<>]+?>", "", str(content)).strip()
+                        content = _word_diff_html(base_plain_map[coord][1], plain_txt)
+                    else:
+                        if "</heb>" in content:
+                            content = re.sub('(<heb id=")(.*?)"', r'\1\2" data-word="\2" class="tooltip-word"', content)
+                            content = content.replace("<heb> </heb>", "<heb>&nbsp;</heb>")
+                            content = f"<div style='display: inline-block; direction: rtl;'>{content}</div>"
+                        elif "</grk>" in content:
+                            content = re.sub('(<grk id=")(.*?)"', r'\1\2" data-word="\2" class="tooltip-word"', content)
+                        if highlights and search_query:
+                            if app.storage.user["dark_mode"]:
+                                content = re.sub(f"({search_query})", r"<font color='orange'>\1</font>", content, flags=0 if app.storage.user['search_case_sensitivity'] else re.IGNORECASE)
+                            else:
+                                content = re.sub(f"({search_query})", r"<span style='background-color: orange;'>\1</span>", content, flags=0 if app.storage.user['search_case_sensitivity'] else re.IGNORECASE)
                     ui.html(content, sanitize=False).classes('grow min-w-0 leading-relaxed pl-2 text-base break-words')
 
         results_state['rendered_count'] += len(batch)
@@ -244,7 +288,40 @@ def search_bible_verses(gui=None, q='', **_):
         if matched:
             ui.notify(f"{len(matched)} {'match' if len(matched) == 1 else 'matches'} found!")
 
-    def apply_chart_filter():
+    async def _fetch_book_verses(b_filter):
+        params = results_state.get('search_params') or {}
+        if not params:
+            return []
+        parser = BibleVerseParser(False, language=app.storage.user['ui_language'])
+        refs = params.get('refs')
+        if refs is not None:
+            book_refs = [r for r in refs if r[0] == b_filter]
+            if not book_refs:
+                return []
+            verses = await run.io_bound(
+                get_bible_content,
+                bible=params['bibles'],
+                sql_query=params['sql_query'],
+                refs=book_refs,
+                parser=parser,
+            )
+        else:
+            scoped_sql = re.sub(r'\bWHERE\b', f'WHERE Book={int(b_filter)} AND', params['sql_query'], count=1, flags=re.IGNORECASE)
+            verses = await run.io_bound(
+                get_bible_content,
+                user_input=params['query'],
+                bible=params['bibles'],
+                sql_query=scoped_sql,
+                search_mode=app.storage.user['search_mode'],
+                top_similar_verses=app.storage.user['top_similar_verses'],
+                search_case_sensitivity=app.storage.user['search_case_sensitivity'],
+                parser=parser,
+            )
+        if verses and not verses[-1]['ref']:
+            verses = verses[:-1]
+        return verses
+
+    async def apply_chart_filter():
         b_filter = chart_filter['book']
         c_filter = chart_filter['chapter']
         if b_filter is None:
@@ -252,10 +329,26 @@ def search_bible_verses(gui=None, q='', **_):
             results_state['is_filtered'] = bool(input_field.value and input_field.value.strip())
             reset_chart_filter_btn.set_visibility(False)
         else:
-            results_state['filtered_verses'] = [
+            in_memory = [
                 v for v in results_state['all_verses']
                 if v.get('b') == b_filter and (c_filter is None or v.get('c') == c_filter)
             ]
+            expected_book_total = results_state['book_counts'].get(b_filter, 0)
+            in_memory_book_total = sum(1 for v in results_state['all_verses'] if v.get('b') == b_filter)
+            if results_state['limit_reached'] and in_memory_book_total < expected_book_total:
+                if b_filter not in results_state['book_cache']:
+                    n = ui.notification(get_translation('Loading ...'), timeout=None, spinner=True)
+                    try:
+                        results_state['book_cache'][b_filter] = await _fetch_book_verses(b_filter)
+                    finally:
+                        n.dismiss()
+                book_verses = results_state['book_cache'][b_filter]
+                results_state['filtered_verses'] = [
+                    v for v in book_verses
+                    if c_filter is None or v.get('c') == c_filter
+                ]
+            else:
+                results_state['filtered_verses'] = in_memory
             results_state['is_filtered'] = True
             reset_chart_filter_btn.set_visibility(True)
         verses_container.clear()
@@ -264,12 +357,12 @@ def search_bible_verses(gui=None, q='', **_):
         if analysis_expansion.value:
             update_distribution_chart()
 
-    def reset_chart_filter():
+    async def reset_chart_filter():
         chart_filter['book'] = None
         chart_filter['chapter'] = None
-        apply_chart_filter()
+        await apply_chart_filter()
 
-    def handle_chart_click(e):
+    async def handle_chart_click(e):
         idx = getattr(e, 'data_index', None)
         if idx is None or idx < 0 or idx >= len(chart_meta['keys']):
             return
@@ -277,7 +370,7 @@ def search_bible_verses(gui=None, q='', **_):
         if chart_meta['mode'] == 'book':
             chart_filter['book'] = clicked_key
             chart_filter['chapter'] = None
-            apply_chart_filter()
+            await apply_chart_filter()
         elif chart_meta['mode'] == 'chapter':
             if chart_filter['chapter'] == clicked_key:
                 chart_filter['book'] = None
@@ -285,7 +378,7 @@ def search_bible_verses(gui=None, q='', **_):
             else:
                 chart_filter['book'] = chart_meta['single_book']
                 chart_filter['chapter'] = clicked_key
-            apply_chart_filter()
+            await apply_chart_filter()
 
     def update_morphology_chart():
         search_morph = re.search(r"^([EG][0-9]+?)\|", last_entry or '')
@@ -370,6 +463,10 @@ def search_bible_verses(gui=None, q='', **_):
             book_counts = Counter(v['b'] for v in verses if v.get('b'))
 
         book_ids = sorted(book_counts.keys())
+        if ot_nt_label is not None:
+            ot_total = sum(cnt for bk, cnt in book_counts.items() if bk < 40)
+            nt_total = sum(cnt for bk, cnt in book_counts.items() if bk >= 40)
+            ot_nt_label.text = f"{get_translation('OT')}: {ot_total}  |  {get_translation('NT')}: {nt_total}"
         lang = app.storage.user.get('ui_language', 'eng')
         abbrev_map = BibleBooks.abbrev.get(lang, BibleBooks.abbrev['eng'])
 
@@ -394,7 +491,17 @@ def search_bible_verses(gui=None, q='', **_):
             chart_meta['single_book'] = single_book
         else:
             labels = [abbrev_map[str(b)][0] if str(b) in abbrev_map else str(b) for b in book_ids]
-            values = [book_counts[b] for b in book_ids]
+            if results_state['limit_reached']:
+                loaded_books = {v['b'] for v in results_state['all_verses'] if v.get('b')} | set(results_state['book_cache'].keys())
+                values = [
+                    {
+                        'value': book_counts[b],
+                        'itemStyle': {'color': '#3b82f6' if b in loaded_books else '#93c5fd'},
+                    }
+                    for b in book_ids
+                ]
+            else:
+                values = [book_counts[b] for b in book_ids]
             chart_meta['mode'] = 'book'
             chart_meta['keys'] = book_ids
             chart_meta['single_book'] = None
@@ -405,8 +512,10 @@ def search_bible_verses(gui=None, q='', **_):
         bg_color = '#1f2937' if dark else '#ffffff'
 
         search_label = last_entry or results_state['query'] or ''
-        total_count = sum(values)
+        total_count = sum(v['value'] if isinstance(v, dict) else v for v in values)
         chart_title = f"{search_label} ({total_count})" if search_label else f"{total_count}"
+        if results_state['limit_reached'] and chart_meta['mode'] == 'book':
+            chart_title += f" — {get_translation('click any book to load')}"
         safe_filename = re.sub(r'[^\w\-]+', '_', search_label).strip('_') or 'bible_search_distribution'
 
         chart_height = max(240, len(labels) * 28 + 90)
@@ -536,6 +645,9 @@ def search_bible_verses(gui=None, q='', **_):
         results_state['book_counts'] = {}
         results_state['chapter_counts'] = {}
         results_state['is_filtered'] = False
+        results_state['limit_reached'] = False
+        results_state['book_cache'] = {}
+        results_state['search_params'] = {}
         chart_filter['book'] = None
         chart_filter['chapter'] = None
         reset_chart_filter_btn.set_visibility(False)
@@ -559,6 +671,7 @@ def search_bible_verses(gui=None, q='', **_):
         try:
             n = ui.notification("Loading ...", timeout=None, spinner=True)
             highlights = False
+            fetch = None
             book_counts = {}
             chapter_counts = {}
             if search_morphology := re.search(r"^([EG][0-9]+?)\|", query): # search morphology
@@ -643,7 +756,9 @@ def search_bible_verses(gui=None, q='', **_):
                 ui.notify('No verses found.', type='negative')
                 return
 
+            limit_reached = False
             if not verses[-1]['ref']:
+                limit_reached = True
                 ui.notify(verses[-1]['content'])
                 verses = verses[:-1]
 
@@ -655,6 +770,14 @@ def search_bible_verses(gui=None, q='', **_):
             results_state['book_counts'] = book_counts
             results_state['chapter_counts'] = chapter_counts
             results_state['is_filtered'] = False
+            results_state['limit_reached'] = limit_reached
+            results_state['book_cache'] = {}
+            results_state['search_params'] = {
+                'query': query,
+                'refs': fetch,
+                'bibles': get_bibles(),
+                'sql_query': SQL_QUERY,
+            }
             render_verse_batch()
             analysis_expansion.set_visibility(True)
             if analysis_expansion.value:
@@ -863,7 +986,8 @@ def search_bible_verses(gui=None, q='', **_):
             value=False,
             on_value_change=lambda e: update_distribution_chart() if e.value else None,
         ).classes('w-full rounded-lg border border-gray-200') as analysis_expansion:
-            with ui.row().classes('w-full justify-end'):
+            with ui.row().classes('w-full items-center justify-between px-2'):
+                ot_nt_label = ui.label('').classes('text-xs font-semibold text-secondary')
                 reset_chart_filter_btn = ui.button(
                     get_translation('Reset Filter'),
                     icon='filter_alt_off',
@@ -875,62 +999,42 @@ def search_bible_verses(gui=None, q='', **_):
             morph_chart.set_visibility(False)
         analysis_expansion.set_visibility(False)
 
-        def _build_export_verses_text(verses):
-            plain_cache = {}
-            by_bible = {}
-            for item in verses:
-                by_bible.setdefault(item['bible'], set()).add(item['b'])
-
-            for bible_ver, books in by_bible.items():
-                db_path = getBiblePath(bible_ver)
-                if not db_path:
-                    continue
-                try:
-                    with apsw.Connection(db_path) as connn:
-                        cur = connn.cursor()
-                        has_plain = cur.execute(
-                            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='VersesPlain' LIMIT 1"
-                        ).fetchone()
-                        if not has_plain:
-                            continue
-                        placeholders = ",".join("?" for _ in books)
-                        cur.execute(
-                            f"SELECT Book, Chapter, Verse, Scripture FROM VersesPlain WHERE Book IN ({placeholders})",
-                            list(books),
-                        )
-                        plain_cache[bible_ver] = {(r[0], r[1], r[2]): r[3] for r in cur.fetchall()}
-                except Exception:
-                    pass
-
-            multi_bible = len(by_bible) > 1
-            lines = []
-            for item in verses:
-                bible_ver = item['bible']
-                plain_map = plain_cache.get(bible_ver)
-                if plain_map is not None and (item['b'], item['c'], item['v']) in plain_map:
-                    text = plain_map[(item['b'], item['c'], item['v'])]
-                else:
-                    text = item['content']
-                clean_text = re.sub(r"<[^<>]+?>", "", str(text)).strip()
-                prefix = f"[{item['ref']} {bible_ver}]" if multi_bible else f"[{item['ref']}]"
-                lines.append(f"{prefix} {clean_text}")
-            return "\n\n".join(lines)
-
-        async def export_filtered_verses():
+        async def export_filtered_verses(markdown_table=False):
             verses = list(results_state['filtered_verses'])
             if not verses:
                 ui.notify(get_translation('No verses found.'), type='info')
                 return
-            content = await run.io_bound(_build_export_verses_text, verses)
+            content = await run.io_bound(build_export_verses_text, verses, markdown_table)
             await download_txt(content)
 
-        with ui.row().classes('w-full justify-end'):
-            export_verses_btn = ui.button(
-                get_translation('Export Verses'),
-                icon='download',
-                on_click=export_filtered_verses,
-            ).props('outline size=sm color=primary')
-            export_verses_btn.set_visibility(False)
+        def on_toggle_diff_mode(e):
+            results_state['diff_mode'] = bool(e.value)
+            verses_container.clear()
+            results_state['rendered_count'] = 0
+            render_verse_batch()
+
+        with ui.row().classes('w-full items-center justify-between gap-2'):
+            limit_notice_label = ui.label('').classes('text-xs text-amber-700 dark:text-amber-300 italic')
+            limit_notice_label.set_visibility(False)
+            with ui.row().classes('items-center gap-2 ml-auto'):
+                diff_mode_switch = ui.switch(
+                    get_translation('Highlight Differences'),
+                    value=False,
+                    on_change=on_toggle_diff_mode,
+                ).props('dense').classes('text-sm')
+                diff_mode_switch.set_visibility(False)
+                export_table_btn = ui.button(
+                    get_translation('Export Table'),
+                    icon='table_chart',
+                    on_click=lambda: export_filtered_verses(True),
+                ).props('outline size=sm color=secondary')
+                export_table_btn.set_visibility(False)
+                export_verses_btn = ui.button(
+                    get_translation('Export Verses'),
+                    icon='download',
+                    on_click=lambda: export_filtered_verses(False),
+                ).props('outline size=sm color=primary')
+                export_verses_btn.set_visibility(False)
 
         # Define the container HERE within the layout structure
         verses_container = ui.column().classes('w-full transition-all !gap-1')

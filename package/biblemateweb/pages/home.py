@@ -2,7 +2,7 @@ import os, traceback, re, apsw, base64, io, qrcode
 from nicegui import app, ui
 from functools import partial
 
-from biblemateweb import config, BIBLEMATEWEB_APP_DIR, getBibleVersionList, get_translation
+from biblemateweb import config, BIBLEMATEWEB_APP_DIR, HIGHLIGHT_PALETTE, getBibleVersionList, get_comparison_bibles, get_translation
 
 from biblemateweb.pages.ai.chat import ai_chat
 from biblemateweb.pages.ai.partner import ai_partner
@@ -32,6 +32,7 @@ from biblemateweb.pages.tools.podcast import bibles_podcast
 from biblemateweb.pages.tools.commentary import bible_commentary
 from biblemateweb.pages.tools.books import bible_books
 from biblemateweb.pages.tools.chronology import bible_chronology
+from biblemateweb.pages.tools.reading_plan import reading_plan
 from biblemateweb.pages.tools.timelines import bible_timelines
 from biblemateweb.pages.tools.indexes import resource_indexes
 from biblemateweb.pages.tools.chapter_indexes import chapter_indexes
@@ -106,6 +107,7 @@ class BibleMateWeb:
             "commentary": bible_commentary, # API with additional options
             "books": bible_books,
             "chronology": bible_chronology,
+            "reading": reading_plan,
             "timelines": bible_timelines,
             "xrefs": xrefs,
             "promises": search_bible_promises,
@@ -604,12 +606,21 @@ class BibleMateWeb:
         def open_chapter_note():
             app.storage.user["tool_verse_number"] = 0
             open_tool("Notes")
+        bible_ver = os.path.basename(db)[:-6]
+        def compare_chapter():
+            ref = BibleVerseParser(False, language=app.storage.user['ui_language']).bcvToVerseReference(b, c, v, isChapter=True)
+            bible_versions = get_comparison_bibles(active_bible=bible_ver)
+            app.storage.user["tool_query"] = f"{','.join(bible_versions)}:::{ref}:1-180"
+            open_tool("Verses")
         with ui.context_menu() as menu:
             ui.menu_item(f'📋 {get_translation("Copy")}', on_click=lambda: self.copy_text(get_chapter_content()))
+            ui.menu_item(f'🔖 {get_translation("Bookmark Chapter")}', on_click=lambda: self.toggle_bookmark(bible_ver, b, c, v, is_chapter=True))
+            ui.menu_item(f'📒 {get_translation("Add to Notepad")}', on_click=lambda: self.add_to_notepad(get_chapter_content()))
             ui.separator()
             ui.menu_item(f'📡 {get_translation("Bible Podcast")}', on_click=lambda: open_tool("Podcast"))
             ui.menu_item(f'🔊 {get_translation("Bible Audio")}', on_click=self.open_sync_tool)
             ui.separator()
+            ui.menu_item(f'👀 {get_translation("Compare Chapter")}', on_click=compare_chapter)
             ui.menu_item(f'💎 {get_translation("Chapter Summary")}', on_click=lambda: open_tool("Summary"))
             ui.menu_item(f'🗺️ {get_translation("Chapter Map")}', on_click=open_map)
             ui.menu_item(f'📑 {get_translation("Chapter Indexes")}', on_click=lambda: open_tool("Chapterindexes"))
@@ -617,6 +628,175 @@ class BibleMateWeb:
                 ui.separator()
                 ui.menu_item(f'📝 {get_translation("Edit Note" if note else "Add Note")}', on_click=open_chapter_note)
         menu.open()
+
+    def toggle_bookmark(self, bible, b, c, v, is_chapter=False):
+        bookmarks = list(app.storage.user.get('bookmarks') or [])
+        for idx, bm in enumerate(bookmarks):
+            if bm.get('b') == b and bm.get('c') == c and bm.get('v') == v and bool(bm.get('is_chapter')) == bool(is_chapter):
+                bookmarks.pop(idx)
+                app.storage.user['bookmarks'] = bookmarks
+                ui.notify(f"{get_translation('Bookmark removed')}: {bm.get('ref', '')}", type='info')
+                return
+        ref = BibleVerseParser(False, language=app.storage.user.get('ui_language', 'eng')).bcvToVerseReference(b, c, v, isChapter=is_chapter)
+        bookmarks.insert(0, {'bible': bible, 'b': b, 'c': c, 'v': v, 'is_chapter': bool(is_chapter), 'ref': ref})
+        app.storage.user['bookmarks'] = bookmarks
+        ui.notify(f"{get_translation('Bookmarked')}: {ref}", type='positive')
+
+    def record_reading_history(self, bible, b, c, v):
+        if not (bible and b and c):
+            return
+        history = list(app.storage.user.get('reading_history') or [])
+        history = [h for h in history if not (h.get('bible') == bible and h.get('b') == b and h.get('c') == c)]
+        ref = BibleVerseParser(False, language=app.storage.user.get('ui_language', 'eng')).bcvToVerseReference(b, c, v or 1, isChapter=True)
+        history.insert(0, {'bible': bible, 'b': b, 'c': c, 'v': v or 1, 'ref': ref})
+        app.storage.user['reading_history'] = history[:25]
+
+    def set_verse_highlight(self, bible, b, c, v, color=None):
+        highlights = dict(app.storage.user.get('verse_highlights') or {})
+        key = f"{b}.{c}.{v}"
+        if color and color in HIGHLIGHT_PALETTE:
+            highlights[key] = color
+            ui.notify(f"{get_translation('Highlighted')}: {get_translation(HIGHLIGHT_PALETTE[color]['label'])}", type='positive')
+        else:
+            highlights.pop(key, None)
+            ui.notify(get_translation('Highlight removed'), type='info')
+        app.storage.user['verse_highlights'] = highlights
+        self.change_area_1_bible_chapter(bible, b, c, v)
+
+    def open_bookmarks_dialog(self):
+        with ui.dialog() as dlg, ui.card().classes('w-full max-w-lg'):
+            ui.label(f"🔖 {get_translation('Bookmarks & History')}").classes('text-lg font-bold')
+            with ui.tabs().classes('w-full') as tabs:
+                bm_tab = ui.tab(get_translation('Bookmarks'))
+                hl_tab = ui.tab(get_translation('Highlights'))
+                hist_tab = ui.tab(get_translation('History'))
+
+            with ui.tab_panels(tabs, value=bm_tab).classes('w-full'):
+                with ui.tab_panel(bm_tab).classes('p-0 pt-2'):
+                    bm_list = ui.column().classes('w-full gap-1 max-h-80 overflow-y-auto')
+
+                    def render_bookmarks():
+                        bm_list.clear()
+                        bookmarks = list(app.storage.user.get('bookmarks') or [])
+                        with bm_list:
+                            if not bookmarks:
+                                ui.label(get_translation('No bookmarks yet.')).classes('italic text-gray-500 p-2')
+                                return
+                            for idx, bm in enumerate(bookmarks):
+                                with ui.row().classes('w-full items-center justify-between p-2 rounded border border-gray-200'):
+                                    label = f"{bm.get('ref', '')} ({bm.get('bible', '')})" if bm.get('bible') else bm.get('ref', '')
+                                    ui.button(
+                                        label,
+                                        icon='bookmark',
+                                        on_click=lambda _, item=bm: (
+                                            self.change_area_1_bible_chapter(item.get('bible'), item.get('b', 1), item.get('c', 1), item.get('v', 1)),
+                                            dlg.close(),
+                                        ),
+                                    ).props('flat no-caps').classes('text-left')
+                                    ui.button(
+                                        icon='delete',
+                                        on_click=lambda _, i=idx: (
+                                            app.storage.user['bookmarks'].pop(i),
+                                            render_bookmarks(),
+                                        ),
+                                    ).props('flat round dense color=negative')
+
+                    render_bookmarks()
+                    with ui.row().classes('w-full justify-start mt-2'):
+                        ui.button(
+                            get_translation('Clear All'),
+                            on_click=lambda: (app.storage.user.update(bookmarks=[]), render_bookmarks()),
+                        ).props('flat size=sm color=negative')
+
+                with ui.tab_panel(hl_tab).classes('p-0 pt-2'):
+                    selected_hl_color = {'value': None}
+                    hl_list = ui.column().classes('w-full gap-1 max-h-72 overflow-y-auto')
+
+                    def render_highlights():
+                        hl_list.clear()
+                        highlights = dict(app.storage.user.get('verse_highlights') or {})
+                        parser = BibleVerseParser(False, language=app.storage.user.get('ui_language', 'eng'))
+                        active_bible = self.get_area_1_bible_text()
+                        items = []
+                        for k, col in highlights.items():
+                            if selected_hl_color['value'] and col != selected_hl_color['value']:
+                                continue
+                            parts = k.split(".")
+                            if len(parts) == 3:
+                                try:
+                                    hb, hc, hv = int(parts[0]), int(parts[1]), int(parts[2])
+                                    items.append((hb, hc, hv, col, parser.bcvToVerseReference(hb, hc, hv)))
+                                except ValueError:
+                                    pass
+                        items.sort()
+                        with hl_list:
+                            if not items:
+                                ui.label(get_translation('No highlights yet.')).classes('italic text-gray-500 p-2')
+                                return
+                            for hb, hc, hv, col, href in items:
+                                swatch = HIGHLIGHT_PALETTE.get(col, {}).get('swatch', '#eab308')
+                                col_label = get_translation(HIGHLIGHT_PALETTE.get(col, {}).get('label', col))
+                                with ui.row().classes('w-full items-center justify-between p-2 rounded border border-gray-200'):
+                                    with ui.row().classes('items-center gap-2'):
+                                        ui.element('div').style(f'width: 12px; height: 12px; border-radius: 50%; background-color: {swatch};')
+                                        ui.button(
+                                            f"{href} ({col_label})",
+                                            on_click=lambda _, b0=hb, c0=hc, v0=hv: (
+                                                self.change_area_1_bible_chapter(active_bible, b0, c0, v0),
+                                                dlg.close(),
+                                            ),
+                                        ).props('flat no-caps').classes('text-left')
+                                    ui.button(
+                                        icon='delete',
+                                        on_click=lambda _, b0=hb, c0=hc, v0=hv: (
+                                            self.set_verse_highlight(active_bible, b0, c0, v0, None),
+                                            render_highlights(),
+                                        ),
+                                    ).props('flat round dense color=negative')
+
+                    with ui.row().classes('w-full gap-1 flex-wrap mb-2'):
+                        ui.chip(
+                            get_translation('All'),
+                            on_click=lambda: (selected_hl_color.update(value=None), render_highlights()),
+                        ).props('outline dense').classes('cursor-pointer text-xs')
+                        for cname, cinfo in HIGHLIGHT_PALETTE.items():
+                            ui.chip(
+                                get_translation(cinfo['label']),
+                                on_click=lambda _, c_key=cname: (selected_hl_color.update(value=c_key), render_highlights()),
+                            ).props('outline dense').style(f"border-color: {cinfo['swatch']};").classes('cursor-pointer text-xs')
+                    render_highlights()
+
+                with ui.tab_panel(hist_tab).classes('p-0 pt-2'):
+                    hist_list = ui.column().classes('w-full gap-1 max-h-80 overflow-y-auto')
+
+                    def render_history():
+                        hist_list.clear()
+                        history = list(app.storage.user.get('reading_history') or [])
+                        with hist_list:
+                            if not history:
+                                ui.label(get_translation('No reading history yet.')).classes('italic text-gray-500 p-2')
+                                return
+                            for item in history:
+                                label = f"{item.get('ref', '')} ({item.get('bible', '')})"
+                                ui.button(
+                                    label,
+                                    icon='history',
+                                    on_click=lambda _, it=item: (
+                                        self.change_area_1_bible_chapter(it.get('bible'), it.get('b', 1), it.get('c', 1), it.get('v', 1)),
+                                        dlg.close(),
+                                    ),
+                                ).props('flat no-caps').classes('w-full justify-start text-left')
+
+                    render_history()
+                    with ui.row().classes('w-full justify-start mt-2'):
+                        ui.button(
+                            get_translation('Clear All'),
+                            on_click=lambda: (app.storage.user.update(reading_history=[]), render_history()),
+                        ).props('flat size=sm color=negative')
+
+            with ui.row().classes('w-full justify-end mt-2'):
+                ui.button(get_translation('Close'), on_click=dlg.close).props('flat')
+        dlg.open()
 
     def open_verse_context_menu(self, db, b, c, v, note=False):
         app.storage.user["tool_book_number"] = b
@@ -638,7 +818,7 @@ class BibleMateWeb:
         def compare_verse():
             nonlocal db, b, c, v
             ref = BibleVerseParser(False, language=app.storage.user['ui_language']).bcvToVerseReference(b, c, v)
-            bible_versions = sorted(list(set([app.storage.user["primary_bible"], app.storage.user["primary_bible"], os.path.basename(db)[:-6], "OHGBi"])))
+            bible_versions = get_comparison_bibles(active_bible=os.path.basename(db)[:-6])
             app.storage.user["tool_query"] = f"{','.join(bible_versions)}:::{ref}"
             open_tool("Verses")
         def add_to_notepad():
@@ -648,8 +828,22 @@ class BibleMateWeb:
             nonlocal self
             ref, verse_content = get_verse_content()[1:].split("] ", 1)
             self.ask_biblemate(f"[{ref}] {verse_content}")
+        verse_bible_ver = os.path.basename(db)[:-6]
         with ui.context_menu() as menu:
             ui.menu_item(f'📋 {get_translation("Copy")}', on_click=lambda: self.copy_text(get_verse_content()))
+            ui.menu_item(f'🔖 {get_translation("Bookmark Verse")}', on_click=lambda: self.toggle_bookmark(verse_bible_ver, b, c, v, is_chapter=False))
+            with ui.menu_item(f'🖍️ {get_translation("Highlight")}', auto_close=False):
+                with ui.menu().props('anchor="top end" self="top start"'):
+                    for cname, cinfo in HIGHLIGHT_PALETTE.items():
+                        ui.menu_item(
+                            get_translation(cinfo['label']),
+                            on_click=partial(self.set_verse_highlight, verse_bible_ver, b, c, v, cname),
+                        )
+                    ui.separator()
+                    ui.menu_item(
+                        get_translation('Clear Highlight'),
+                        on_click=partial(self.set_verse_highlight, verse_bible_ver, b, c, v, None),
+                    )
             ui.separator()
             ui.menu_item(f'🔊 {get_translation("Bible Audio")}', on_click=self.open_sync_tool)
             ui.separator()
@@ -734,6 +928,7 @@ class BibleMateWeb:
                         client.run_javascript(f'document.title = "[{title}] {ref}"')
             if keep:
                 app.storage.user[active_tab] = args
+                self.record_reading_history(args.get("bt"), args.get("b"), args.get("c"), args.get("v"))
             # Get the active tab's scroll area
             active_panel = self.area1_tab_panels[active_tab]
             # Clear and load new content
@@ -1262,6 +1457,8 @@ class BibleMateWeb:
                             if config.google_client_id and config.google_client_secret:
                                 ui.menu_item(get_translation("Bible Notes"), on_click=lambda: self.load_area_2_content(title='Notes', sync=True))
                             ui.menu_item(get_translation("Notepad"), on_click=lambda: self.load_area_2_content(title='Notepad', sync=True))
+                            ui.menu_item(get_translation("Bookmarks"), on_click=self.open_bookmarks_dialog)
+                            ui.menu_item(get_translation("Bible Reading Plan"), on_click=lambda: self.load_area_2_content(title='Reading', sync=False))
                     
                     with ui.button(icon='search').props('flat color=white round').tooltip(get_translation("Search")):
                         with ui.menu():
@@ -1561,6 +1758,10 @@ class BibleMateWeb:
                 )).props('clickable')
                 ui.item(get_translation("Verse Indexes"), on_click=lambda: (
                     self.load_area_2_content(title='Indexes', sync=True),
+                    app.storage.user.update(left_drawer_open=False)
+                )).props('clickable')
+                ui.item(get_translation("Bible Reading Plan"), on_click=lambda: (
+                    self.load_area_2_content(title='Reading', sync=False),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.separator()

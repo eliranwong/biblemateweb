@@ -35,8 +35,9 @@ BibleMate AI Web provides a unified web interface combining the best features of
 - **Original Language Support**: Interlinear view, morphology analysis, Strong's numbers
 - **Hebrew & Greek Tooltips**: Instant lexical information on hover
 - **Mutual Word & Clause Highlighting**: Hovering over a Hebrew or Greek word in original-language Bibles highlights its clause, matching lexical/Strong's occurrences across parallel panes (e.g., `OPB` and `OLB`), and the focal word
-- **Cross-References**: Treasury of Scripture Knowledge (TSK) integration
-- **Commentaries**: 30+ classic Bible commentaries
+- **Cross-References**: Treasury of Scripture Knowledge (TSK) integration with one-click verse loading and export
+- **Commentaries**: 30+ classic Bible commentaries and AI Commentary with quick switching and export
+- **Chapter & Verse Indexes**: Default chapter study dashboard featuring **Chapter Translation Vocabulary**, **Chapter Vocabulary & Rare Words**, **Chapter Map**, **People Relationship Graph**, and quick-launch tool buttons
 - **Reference Books**: Read `.book` files (chapter-by-chapter) in a built-in reader, with clickable Bible references; add your own by dropping files into a folder ([guide](docs/english/tools/tool_books.md))
 - **Topical Studies**: Nave's, Thompson Chain, Torrey's topical Bibles
 - **Bible Dictionaries & Encyclopedias**: Easton's, Smith's, ISBE, and more
@@ -58,9 +59,10 @@ BibleMate AI Web provides a unified web interface combining the best features of
 ### User Experience
 - **Synchronized Scrolling**: Cross-reference comparison with linked scrolling
 - **Audio Bible**: Listen to Bible chapters (multiple versions)
-- **Personal Notes**: Google Drive integration for synced study notes
-- **Customizable UI**: Dark mode, colors, fonts, layout options
-- **Export**: Download content as TXT or DOCX (requires pandoc)
+- **Personal Notes, Bookmarks & Highlights**: Google Drive integration for synced study notes, local Notepad, color-coded verse **Highlights** (light/dark mode aware), **Bookmarks**, **Reading History**, and a **365-Day Bible Reading Plan**
+- **Customizable UI & Comparison**: Dark mode, colors, fonts, layout options, **Compare Chapter**, and customizable **Verse Comparison** versions with word-diff highlighting
+- **Export**: Download content as TXT or DOCX (requires pandoc), including Chapter Study Sheets, Verses (`VersesPlain` when available), Markdown Comparison Tables, Cross-References, Treasury, and Commentaries
+- **Distribution Analysis**: Interactive book/chapter charts with OT/NT totals and on-demand book loading for large search results
 - **Deep Linking**: Share specific verses, chapters, and tool states via URL
 
 ### Developer Features

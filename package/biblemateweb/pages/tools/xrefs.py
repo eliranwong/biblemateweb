@@ -1,6 +1,6 @@
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
-from biblemateweb import BIBLEMATEWEB_DATA, get_translation
-from biblemateweb.fx.bible import get_bible_content
+from biblemateweb import BIBLEMATEWEB_DATA, download_txt, get_translation
+from biblemateweb.fx.bible import build_export_verses_text, get_bible_content
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from collections import Counter
 from functools import partial
@@ -75,6 +75,9 @@ def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
             if b_filter is None or (vr.get('b') == b_filter and (c_filter is None or vr.get('c') == c_filter))
         ]
         counts = Counter(vr['b'] for vr in active_verses if vr.get('b'))
+        ot_total = sum(cnt for bk, cnt in counts.items() if bk < 40)
+        nt_total = sum(cnt for bk, cnt in counts.items() if bk >= 40)
+        xref_ot_nt_label.text = f"{get_translation('OT')}: {ot_total}  |  {get_translation('NT')}: {nt_total}"
         book_ids = sorted(counts.keys())
         lang = app.storage.user.get('ui_language', 'eng')
         abbrev_map = BibleBooks.abbrev.get(lang, BibleBooks.abbrev['eng'])
@@ -273,6 +276,7 @@ def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
                     xref_verses_cache.extend(verses[1:])
                     if xref_verses_cache:
                         xref_expansion.set_visibility(True)
+                        export_xrefs_btn.set_visibility(True)
                         if xref_expansion.value:
                             update_xref_chart()
 
@@ -345,7 +349,8 @@ def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
             value=False,
             on_value_change=lambda e: update_xref_chart() if e.value else None,
         ).classes('w-full rounded-lg border border-gray-200') as xref_expansion:
-            with ui.row().classes('w-full justify-end'):
+            with ui.row().classes('w-full items-center justify-between px-2'):
+                xref_ot_nt_label = ui.label('').classes('text-xs font-semibold text-secondary')
                 reset_xref_filter_btn = ui.button(
                     get_translation('Reset Filter'),
                     icon='filter_alt_off',
@@ -354,6 +359,25 @@ def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
                 reset_xref_filter_btn.set_visibility(False)
             xref_chart = ui.echart({}, on_point_click=handle_xref_chart_click).classes('w-full cursor-pointer')
         xref_expansion.set_visibility(False)
+
+        async def export_visible_xrefs():
+            visible_verses = [
+                row.verse_data for row in verses_container.default_slot.children
+                if hasattr(row, 'verse_data') and row.visible
+            ]
+            if not visible_verses:
+                ui.notify(get_translation('No verses found.'), type='info')
+                return
+            content = await run.io_bound(build_export_verses_text, visible_verses)
+            await download_txt(content)
+
+        with ui.row().classes('w-full justify-end'):
+            export_xrefs_btn = ui.button(
+                get_translation('Export Cross-References'),
+                icon='download',
+                on_click=export_visible_xrefs,
+            ).props('outline size=sm color=primary')
+            export_xrefs_btn.set_visibility(False)
 
         # Define the container HERE within the layout structure
         verses_container = ui.column().classes('w-full transition-all !gap-1')

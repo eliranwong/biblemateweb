@@ -163,3 +163,4 @@ Simply type or paste references in the input field:
 - Classical commentaries may be chapter-based or verse-based
 - Commentary content supports HTML formatting including tables, lists, and styling
 - All lexicon and reference links are interactive
+- **Quick Switch & Export**: Use the quick-switch chips at the top of the commentary view to jump between **AI Commentary** and classical commentaries (`CBSC`, `BKC`, `JFB`, `MHC`, etc.), or click **Copy** / **Export Commentary** to save the plain-text commentary.

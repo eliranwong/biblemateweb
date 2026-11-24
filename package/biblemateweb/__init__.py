@@ -622,6 +622,12 @@ USER_DEFAULT_SETTINGS = {
     'opb_nt_trans2': 'NET',
     'odb_ot_trans': 'NET',
     'odb_nt_trans': 'NET',
+    'verse_comparison_mode': 'default',
+    'verse_comparison_bibles': [],
+    'bookmarks': [],
+    'reading_history': [],
+    'verse_highlights': {},
+    'reading_plan_completed': [],
     'ai_backend': 'default',
     'ai_model': '',
     'api_endpoint': '',
@@ -670,3 +676,74 @@ def get_morphology_db(custom=None):
 def get_tagged_translations_db(custom=None):
     """Return the path to the tagged translations database, preferring the custom file when authorized."""
     return _resolve_custom_db("tagged_translations.sqlite", custom=custom)
+
+def get_comparison_bibles(active_bible=None, custom=None):
+    """Return Bible versions for verse comparison according to user preferences."""
+    if custom is None:
+        try:
+            custom = bool(app.storage.client.get("custom", False))
+        except RuntimeError:
+            custom = False
+    available = getBibleVersionList(custom)
+    if app.storage.user.get("verse_comparison_mode") == "custom":
+        selected = [b for b in (app.storage.user.get("verse_comparison_bibles") or []) if b in available]
+        if selected:
+            return selected
+    versions = [app.storage.user.get("primary_bible", "NET"), "OHGBi"]
+    if active_bible:
+        versions.append(active_bible)
+    return sorted(list(set(versions)))
+
+
+HIGHLIGHT_PALETTE = {
+    'yellow': {
+        'label': 'Key Verse',
+        'swatch': '#eab308',
+        'light': 'background-color: #fef08a; color: #1f2937;',
+        'dark': 'background-color: rgba(234, 179, 8, 0.28); color: #fef9c3;',
+    },
+    'green': {
+        'label': 'Promise',
+        'swatch': '#22c55e',
+        'light': 'background-color: #bbf7d0; color: #1f2937;',
+        'dark': 'background-color: rgba(34, 197, 94, 0.25); color: #dcfce7;',
+    },
+    'blue': {
+        'label': 'Doctrine',
+        'swatch': '#3b82f6',
+        'light': 'background-color: #bfdbfe; color: #1f2937;',
+        'dark': 'background-color: rgba(59, 130, 246, 0.28); color: #dbeafe;',
+    },
+    'pink': {
+        'label': 'Prayer',
+        'swatch': '#ec4899',
+        'light': 'background-color: #fbcfe8; color: #1f2937;',
+        'dark': 'background-color: rgba(236, 72, 153, 0.28); color: #fce7f3;',
+    },
+}
+
+
+def apply_verse_highlights_html(content: str, b: int, c: int, highlights: dict = None, dark_mode: bool = False) -> str:
+    """Wrap highlighted verses in chapter HTML with theme-appropriate inline styles."""
+    if not highlights or not content:
+        return content
+    theme_key = 'dark' if dark_mode else 'light'
+    prefix = f"{b}.{c}."
+    chapter_hls = {
+        int(k.split(".")[2]): color
+        for k, color in highlights.items()
+        if isinstance(k, str) and k.startswith(prefix) and color in HIGHLIGHT_PALETTE
+    }
+    if not chapter_hls:
+        return content
+    for v_num, color in chapter_hls.items():
+        style = HIGHLIGHT_PALETTE[color][theme_key]
+        pattern = rf'(<vid id="v{b}\.{c}\.{v_num}"[^>]*>.*?</vid>(?:(?!</?vid\b|</?(?:br|div|p|h[1-6]|table|tr)\b).)*)'
+        content = re.sub(
+            pattern,
+            rf'<span style="{style} border-radius: 4px; padding: 1px 3px;">\1</span>',
+            content,
+            count=1,
+            flags=re.DOTALL,
+        )
+    return content

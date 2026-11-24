@@ -1,9 +1,9 @@
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
-from biblemateweb import BIBLEMATEWEB_DATA, get_translation
+from biblemateweb import BIBLEMATEWEB_DATA, download_txt, get_translation
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from biblemateweb.data.cr_books import cr_books
 from nicegui import ui, app
-import re, apsw, os
+import re, apsw, os, html as html_lib
 
 def fetch_tske(b, c, v):
     db = os.path.join(BIBLEMATEWEB_DATA, "cross-reference.sqlite")
@@ -85,6 +85,53 @@ def treasury(gui=None, b=1, c=1, v=1, q='', **_):
             input_field.run_method('focus')
 
         with content_container:
+            # Extract referenced verses for "Open References in Verses"
+            ref_parser = BibleVerseParser(False, language=app.storage.user.get('ui_language', 'eng'))
+            extracted_refs = []
+            seen_bcv = set()
+            for fn_name, args_str in re.findall(r'(?:onclick|ondblclick)="(cr|bcv)\(([^)]+)\)"', content):
+                parts = [p.strip() for p in args_str.split(",")]
+                if len(parts) >= 3:
+                    try:
+                        rb, rc, rv = int(parts[0]), int(parts[1]), int(parts[2])
+                        if fn_name == "cr":
+                            rb = cr_books.get(rb, rb)
+                        if (rb, rc, rv) not in seen_bcv:
+                            seen_bcv.add((rb, rc, rv))
+                            extracted_refs.append(ref_parser.bcvToVerseReference(rb, rc, rv))
+                    except ValueError:
+                        pass
+
+            def open_refs_in_verses():
+                nonlocal gui
+                if not extracted_refs:
+                    return
+                app.storage.user["tool_query"] = "; ".join(extracted_refs)
+                gui.select_next_area2_tab()
+                gui.load_area_2_content(title='Verses')
+
+            async def export_treasury():
+                plain = re.sub(r"<br\s*/?>", "\n", content)
+                plain = re.sub(r"</(?:p|div|h[1-6]|li|tr|hr)>", "\n", plain)
+                plain = re.sub(r"<[^<>]+?>", " ", plain)
+                plain = html_lib.unescape(plain)
+                plain = re.sub(r"[ \t]+", " ", plain)
+                plain = re.sub(r"\n{3,}", "\n\n", plain).strip()
+                await download_txt(plain)
+
+            with ui.row().classes('w-full items-center justify-end gap-2 mb-1'):
+                if extracted_refs:
+                    ui.button(
+                        f"{get_translation('Open References in Verses')} ({len(extracted_refs)})",
+                        icon='open_in_new',
+                        on_click=open_refs_in_verses,
+                    ).props('outline size=sm color=primary')
+                ui.button(
+                    get_translation('Export Treasury'),
+                    icon='download',
+                    on_click=export_treasury,
+                ).props('outline size=sm color=primary')
+
             # convert links, e.g. <ref onclick="bcv(3,19,26)">
             content = re.sub(r'''(onclick|ondblclick)="(bdbid|bdbeid|bdagid|halotid|chalotid|lsjid|lex|cr|bcv|website)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
             content = re.sub(r"""(onclick|ondblclick)='(bdbid|bdbeid|bdagid|halotid|chalotid|lsjid|lex|cr|bcv|website)\((.*?)\)'""", r"""\1='emitEvent("\2", [\3]); return false;'""", content)

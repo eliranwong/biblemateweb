@@ -22,3 +22,5 @@ Click a **verse number** in a Bible (or right-click a verse; also via ⋮ → `V
 
 - Tools open **unsynced** to the verse you clicked, so they do not jump when you scroll.
 - On touch devices a tap on the verse number opens the menu.
+- **Bookmark Verse**: Right-click a verse or click a verse number to **Bookmark Verse** (manage saved bookmarks from **Tools → Bookmarks**).
+- **Color-Coded Highlights**: Right-click a verse or click a verse number → **Highlight** to mark it as **Key Verse**, **Promise**, **Doctrine**, or **Prayer** (theme-aware for both light and dark modes; browse/filter under **Tools → Bookmarks**).

@@ -416,7 +416,7 @@ def page_home(
         #gui.select_empty_area2_tab()
         gui.load_area_2_content(title=tbt if tool == "bible" else tool, keep=k, sync=s, update_url=False)
     elif not gui.area2_tab_loaded: # when nothing is loaded
-        gui.load_area_2_content(title="chat", sync=True, update_url=False)
+        gui.load_area_2_content(title="Chapterindexes", sync=True, update_url=False)
 
     if k:
         # update storage based on latest loaded content
@@ -619,6 +619,21 @@ def page_Settings(
                 ui.select(label='ODB NT Translation',
                           options=bible_trans_options) \
                     .bind_value(app.storage.user, 'odb_nt_trans')
+            with ui.column().classes('w-full px-4 pb-4 gap-2'):
+                ui.label(get_translation('Verse Comparison')).classes('font-semibold text-sm')
+                ui.radio(
+                    {'default': get_translation('Default'), 'custom': get_translation('Custom')},
+                    value=app.storage.user.get('verse_comparison_mode', 'default'),
+                ).props('inline').bind_value(app.storage.user, 'verse_comparison_mode')
+                ui.select(
+                    label=get_translation('Comparison Versions'),
+                    options=getBibleVersionList(app.storage.client["custom"]),
+                    multiple=True,
+                ).props('use-chips clearable') \
+                    .classes('w-full') \
+                    .bind_value(app.storage.user, 'verse_comparison_bibles') \
+                    .bind_visibility_from(app.storage.user, 'verse_comparison_mode', value='custom') \
+                    .tooltip('Select Bible versions to open for verse comparison. Leave empty to use Default.')
 
         # --- Semantic Searches ---
         with ui.expansion(get_translation("Semantic Searches"), icon='search').classes('w-full rounded-lg'):

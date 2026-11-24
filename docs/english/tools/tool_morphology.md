@@ -191,7 +191,4 @@ One-click access to:
 
 ## **Chapter Vocabulary & Rare Words**
 
-- Expand **Chapter Vocabulary & Rare Words** at the bottom of the Morphology view to analyze the entire current chapter:
-  - **Top Chapter Lemmas**: Lists the 15 most frequent Hebrew or Greek lemmas in the chapter with their occurrence counts and glosses.
-  - **Rare Words in Chapter (<= 3x in Bible)**: Highlights rare lemmas and *hapax legomena* (1x) in the chapter.
-- Click any lemma chip to open its full lexicon entry.
+- **Chapter Vocabulary & Rare Words** has been moved to [Chapter Indexes](tool_chapter_indexes.md), alongside **Chapter Translation Vocabulary**.

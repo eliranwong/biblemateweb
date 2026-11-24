@@ -176,8 +176,9 @@ Shows Gospel parallels and related passages:
 - **Click Promise/Parallel Chips**: Loads the full collection for study
 - **Click Topic Links**: Opens topical discussions and related verses
 
-## **Related Tools**
+## **Related Tools & Quick Launch**
 
+- **Verse Tools** (quick-launch buttons at the bottom open in the next tab): **Cross-references**, **Treasury**, **AI Commentary**, **Commentaries**, **Morphology**, **Comparison** (respecting your Verse Comparison preference), **Bible Audio**, **Chapter Indexes**, and **Notes** (when configured).
 - **Chapter Indexes**: For a broader view of an entire chapter's references
 - **Cross-References**: For verses that reference or relate to your passage
 - **Treasury**: For detailed cross-reference study with Treasury of Scripture Knowledge

@@ -1,11 +1,12 @@
 import apsw
 import re, os, asyncio, html as html_lib
 from nicegui import ui, app, run
-from biblemateweb import BIBLEMATEWEB_DATA, get_translation, download_txt, get_morphology_db, get_tagged_translations_db
+from biblemateweb import BIBLEMATEWEB_DATA, config as app_config, get_translation, download_txt, get_morphology_db, get_tagged_translations_db
 from functools import partial
 from biblemateweb.fx.bible import BibleSelector
 from biblemateweb.pages.tools.indexes import render_exlb_chips
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
+from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 
 
 _NON_TRANSLATION_COLS = {
@@ -268,7 +269,10 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
             def search_bible_word(bible_version, word):
                 nonlocal gui
                 app.storage.user['tool_book_text'] = bible_version
-                app.storage.user['tool_query'] = word
+                if word.isascii() and app.storage.user.get('search_mode') == 2:
+                    app.storage.user['tool_query'] = rf"\b{re.escape(word)}\b"
+                else:
+                    app.storage.user['tool_query'] = word
                 gui.select_empty_area2_tab()
                 gui.load_area_2_content(title='Verses')
 
@@ -661,5 +665,33 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
 
             with ui.row().classes('w-full justify-end mt-2'):
                 ui.button(get_translation('Export Study Sheet'), icon='download', on_click=export_study_sheet).props('outline color=primary')
+
+            def open_chapter_tool(title, setup_fn=None):
+                nonlocal gui
+                app.storage.user["tool_book_number"] = book_id
+                app.storage.user["tool_chapter_number"] = chapter
+                app.storage.user["tool_verse_number"] = v
+                if setup_fn:
+                    setup_fn()
+                gui.select_next_area2_tab()
+                gui.load_area_2_content(title=title, sync=False)
+
+            def _setup_chapter_map():
+                ref = BibleVerseParser(False, language=app.storage.user['ui_language']).bcvToVerseReference(book_id, chapter, v, isChapter=True)
+                app.storage.user["tool_query"] = f"{ref}:1-180"
+
+            def _setup_chapter_note():
+                app.storage.user["tool_verse_number"] = 0
+
+            with ui.column().classes('w-full gap-2 mt-2 pt-3 border-t border-gray-200'):
+                ui.label(get_translation('Chapter Tools')).classes('font-bold text-sm text-secondary')
+                with ui.row().classes('w-full gap-2 flex-wrap'):
+                    ui.button(get_translation('Chapter Summary'), icon='diamond', on_click=partial(open_chapter_tool, 'Summary')).props('outline size=sm')
+                    ui.button(get_translation('Chapter Map'), icon='map', on_click=partial(open_chapter_tool, 'Maps', _setup_chapter_map)).props('outline size=sm')
+                    ui.button(get_translation('Bible Podcast'), icon='podcasts', on_click=partial(open_chapter_tool, 'Podcast')).props('outline size=sm')
+                    ui.button(get_translation('Bible Audio'), icon='volume_up', on_click=partial(open_chapter_tool, 'Audio')).props('outline size=sm')
+                    ui.button(get_translation('Verse Indexes'), icon='list_alt', on_click=partial(open_chapter_tool, 'Indexes')).props('outline size=sm')
+                    if app_config.google_client_id and app_config.google_client_secret:
+                        ui.button(get_translation('Notes'), icon='edit_note', on_click=partial(open_chapter_tool, 'Notes', _setup_chapter_note)).props('outline size=sm')
         
     search_action(b,c)

@@ -24,6 +24,7 @@ Each user setting has its own document. The first table lists settings on the `P
 | [OPB NT Translation 2](opb_nt_trans2.md) | Frequently Used Resources | `opb_nt_trans2` |
 | [ODB OT Translation](odb_ot_trans.md) | Frequently Used Resources | `odb_ot_trans` |
 | [ODB NT Translation](odb_nt_trans.md) | Frequently Used Resources | `odb_nt_trans` |
+| [Verse Comparison](verse_comparison.md) | Frequently Used Resources | `verse_comparison_mode`, `verse_comparison_bibles` |
 | [Similar Entries](top_similar_entries.md) | Semantic Searches | `top_similar_entries` |
 | [Similar Verses](top_similar_verses.md) | Semantic Searches | `top_similar_verses` |
 | [AI Backend](ai_backend.md) | AI Backend | `ai_backend` |

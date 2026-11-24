@@ -24,6 +24,7 @@
 | [OPB NT Translation 2](opb_nt_trans2.md) | 常用資源 | `opb_nt_trans2` |
 | [ODB OT Translation](odb_ot_trans.md) | 常用資源 | `odb_ot_trans` |
 | [ODB NT Translation](odb_nt_trans.md) | 常用資源 | `odb_nt_trans` |
+| [經文對照版本](verse_comparison.md) | 常用資源 | `verse_comparison_mode`, `verse_comparison_bibles` |
 | [相似詞條](top_similar_entries.md) | 語義搜索 | `top_similar_entries` |
 | [相似經文](top_similar_verses.md) | 語義搜索 | `top_similar_verses` |
 | [AI 後端](ai_backend.md) | AI Backend | `ai_backend` |

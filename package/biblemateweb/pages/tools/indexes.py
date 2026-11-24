@@ -1,9 +1,10 @@
 import apsw
 import re, os, html as html_lib
 from nicegui import ui, app
-from biblemateweb import BIBLEMATEWEB_DATA, get_translation
+from biblemateweb import BIBLEMATEWEB_DATA, config as app_config, get_comparison_bibles, get_translation
 from functools import partial
 from biblemateweb.fx.bible import BibleSelector
+from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 
 
 def extract_unique_exlb_entries(content: str) -> list[tuple[str, str]]:
@@ -227,5 +228,37 @@ def resource_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
 
             if not found_any:
                 ui.notify(get_translation('No data found in any index for this verse.'), type='info')
+
+            def open_verse_tool(title, setup_fn=None):
+                nonlocal gui
+                app.storage.user["tool_book_number"] = book_id
+                app.storage.user["tool_chapter_number"] = chapter
+                app.storage.user["tool_verse_number"] = verse
+                if setup_fn:
+                    setup_fn()
+                gui.select_next_area2_tab()
+                gui.load_area_2_content(title=title, sync=False)
+
+            def _setup_ai_commentary():
+                app.storage.user["favorite_commentary"] = gui.get_aic()
+
+            def _setup_comparison():
+                ref = BibleVerseParser(False, language=app.storage.user['ui_language']).bcvToVerseReference(book_id, chapter, verse)
+                bible_versions = get_comparison_bibles(active_bible=gui.get_area_1_bible_text())
+                app.storage.user["tool_query"] = f"{','.join(bible_versions)}:::{ref}"
+
+            with ui.column().classes('w-full gap-2 mt-2 pt-3 border-t border-gray-200'):
+                ui.label(get_translation('Verse Tools')).classes('font-bold text-sm text-secondary')
+                with ui.row().classes('w-full gap-2 flex-wrap'):
+                    ui.button(get_translation('Cross-references'), icon='link', on_click=partial(open_verse_tool, 'Xrefs')).props('outline size=sm')
+                    ui.button(get_translation('Treasury'), icon='account_balance', on_click=partial(open_verse_tool, 'Treasury')).props('outline size=sm')
+                    ui.button(get_translation('AI Commentary'), icon='psychology', on_click=partial(open_verse_tool, 'Commentary', _setup_ai_commentary)).props('outline size=sm')
+                    ui.button(get_translation('Commentaries'), icon='menu_book', on_click=partial(open_verse_tool, 'Commentary')).props('outline size=sm')
+                    ui.button(get_translation('Morphology'), icon='biotech', on_click=partial(open_verse_tool, 'Morphology')).props('outline size=sm')
+                    ui.button(get_translation('Comparison'), icon='compare', on_click=partial(open_verse_tool, 'Verses', _setup_comparison)).props('outline size=sm')
+                    ui.button(get_translation('Bible Audio'), icon='volume_up', on_click=partial(open_verse_tool, 'Audio')).props('outline size=sm')
+                    ui.button(get_translation('Chapter Indexes'), icon='library_books', on_click=partial(open_verse_tool, 'Chapterindexes')).props('outline size=sm')
+                    if app_config.google_client_id and app_config.google_client_secret:
+                        ui.button(get_translation('Notes'), icon='edit_note', on_click=partial(open_verse_tool, 'Notes')).props('outline size=sm')
         
     search_action(b,c,v)

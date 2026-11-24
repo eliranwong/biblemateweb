@@ -383,3 +383,8 @@ The Treasury was compiled by:
 - **Concordance**: Find all uses of specific words
 - **Indexes**: See topical and thematic connections
 - **Lexicons**: Study original language words
+
+## **Quick Actions**
+
+- **Open References in Verses**: Click **Open References in Verses** at the top of a Treasury entry to load all referenced verses together in the **Verses** page in the next tab.
+- **Export Treasury**: Click **Export Treasury** to download the current Treasury entry as plain text.

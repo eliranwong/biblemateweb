@@ -1,5 +1,5 @@
 from nicegui import ui, app
-from biblemateweb import get_translation, VerseEventObj
+from biblemateweb import apply_verse_highlights_html, get_translation, VerseEventObj
 from biblemateweb.fx.bible import *
 from biblemateweb.fx.original import *
 from biblemateweb.fx.cloud_index_manager import get_drive_service, CloudIndexManager
@@ -296,6 +296,13 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
                     ui.menu_item(f'📝 {get_translation("Verse Note")}', on_click=lambda: open_tool(bible_selector.get_selection(), title="Notes"))
 
     bible_selector.create_ui(title, b, c, v, additional_items=additional_items)
+
+    # apply user verse highlights (light/dark aware)
+    content = apply_verse_highlights_html(
+        content, b, c,
+        highlights=app.storage.user.get('verse_highlights'),
+        dark_mode=bool(app.storage.user.get('dark_mode', False)),
+    )
 
     # create a dummy label for being the parent of `open_verse_context_menu`, as ui.html can't take two context menus
     # without a parent, the context menu doesn't close automatically
