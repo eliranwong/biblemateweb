@@ -1,7 +1,7 @@
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from biblemateweb.fx.bible import get_bible_content, getBiblePath
-from biblemateweb import BIBLEMATEWEB_DATA, config, get_morphology_db, get_translation, resolve_verses_additional_options
+from biblemateweb import BIBLEMATEWEB_DATA, config, download_txt, get_morphology_db, get_translation, resolve_verses_additional_options
 from collections import Counter
 from functools import partial
 from nicegui import ui, app, run
@@ -13,6 +13,7 @@ def search_bible_verses(gui=None, q='', **_):
     last_entry = q
     default_placeholder = get_translation("Search for words or refs")
     multiple_bibles = None
+    export_verses_btn = None
 
     def get_bibles():
         nonlocal multiple_bibles, gui
@@ -126,6 +127,8 @@ def search_bible_verses(gui=None, q='', **_):
             load_more_btn.set_visibility(True)
         else:
             load_more_btn.set_visibility(False)
+        if export_verses_btn is not None:
+            export_verses_btn.set_visibility(bool(results_state['filtered_verses']))
 
     def render_verse_batch():
         start = results_state['rendered_count']
@@ -871,6 +874,63 @@ def search_bible_verses(gui=None, q='', **_):
             morph_chart = ui.echart({}).classes('w-full mt-4')
             morph_chart.set_visibility(False)
         analysis_expansion.set_visibility(False)
+
+        def _build_export_verses_text(verses):
+            plain_cache = {}
+            by_bible = {}
+            for item in verses:
+                by_bible.setdefault(item['bible'], set()).add(item['b'])
+
+            for bible_ver, books in by_bible.items():
+                db_path = getBiblePath(bible_ver)
+                if not db_path:
+                    continue
+                try:
+                    with apsw.Connection(db_path) as connn:
+                        cur = connn.cursor()
+                        has_plain = cur.execute(
+                            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='VersesPlain' LIMIT 1"
+                        ).fetchone()
+                        if not has_plain:
+                            continue
+                        placeholders = ",".join("?" for _ in books)
+                        cur.execute(
+                            f"SELECT Book, Chapter, Verse, Scripture FROM VersesPlain WHERE Book IN ({placeholders})",
+                            list(books),
+                        )
+                        plain_cache[bible_ver] = {(r[0], r[1], r[2]): r[3] for r in cur.fetchall()}
+                except Exception:
+                    pass
+
+            multi_bible = len(by_bible) > 1
+            lines = []
+            for item in verses:
+                bible_ver = item['bible']
+                plain_map = plain_cache.get(bible_ver)
+                if plain_map is not None and (item['b'], item['c'], item['v']) in plain_map:
+                    text = plain_map[(item['b'], item['c'], item['v'])]
+                else:
+                    text = item['content']
+                clean_text = re.sub(r"<[^<>]+?>", "", str(text)).strip()
+                prefix = f"[{item['ref']} {bible_ver}]" if multi_bible else f"[{item['ref']}]"
+                lines.append(f"{prefix} {clean_text}")
+            return "\n\n".join(lines)
+
+        async def export_filtered_verses():
+            verses = list(results_state['filtered_verses'])
+            if not verses:
+                ui.notify(get_translation('No verses found.'), type='info')
+                return
+            content = await run.io_bound(_build_export_verses_text, verses)
+            await download_txt(content)
+
+        with ui.row().classes('w-full justify-end'):
+            export_verses_btn = ui.button(
+                get_translation('Export Verses'),
+                icon='download',
+                on_click=export_filtered_verses,
+            ).props('outline size=sm color=primary')
+            export_verses_btn.set_visibility(False)
 
         # Define the container HERE within the layout structure
         verses_container = ui.column().classes('w-full transition-all !gap-1')

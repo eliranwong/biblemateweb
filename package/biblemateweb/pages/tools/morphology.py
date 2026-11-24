@@ -1,7 +1,7 @@
 import os, re
 from biblemateweb import get_morphology_db, get_translation
 import apsw
-from nicegui import ui, app, run
+from nicegui import ui, app
 from biblemateweb.fx.bible import BibleSelector
 from functools import partial
 
@@ -14,34 +14,6 @@ def fetch_morphology(b, c, v, custom=None):
         cursor.execute(query, (b,c,v))
         results = cursor.fetchall()
     return results
-
-def fetch_chapter_vocabulary(b, c, custom=None):
-    db = get_morphology_db(custom)
-    with apsw.Connection(db) as connn:
-        cursor = connn.cursor()
-        cursor.execute(
-            """
-            SELECT LexicalEntry, Lexeme, Gloss, COUNT(*) as cnt
-            FROM morphology
-            WHERE Book=? AND Chapter=? AND LexicalEntry != ''
-            GROUP BY LexicalEntry
-            ORDER BY cnt DESC
-            """,
-            (b, c),
-        )
-        chapter_rows = cursor.fetchall()
-        if not chapter_rows:
-            return [], []
-        top_words = chapter_rows[:15]
-        entries = [r[0] for r in chapter_rows]
-        placeholders = ",".join("?" for _ in entries)
-        cursor.execute(
-            f"SELECT LexicalEntry, COUNT(*) as total_cnt FROM morphology WHERE LexicalEntry IN ({placeholders}) GROUP BY LexicalEntry HAVING total_cnt <= 3 ORDER BY total_cnt ASC",
-            entries,
-        )
-        rare_map = dict(cursor.fetchall())
-        rare_words = [(r[0], r[1], r[2], r[3], rare_map[r[0]]) for r in chapter_rows if r[0] in rare_map]
-    return top_words, rare_words
 
 def word_morphology(gui=None, b=1, c=1, v=1, area=2, **_):
 
@@ -176,43 +148,3 @@ def word_morphology(gui=None, b=1, c=1, v=1, area=2, **_):
                                 color='primary',
                                 on_click=partial(open_lexicon, app.storage.user['hebrew_lexicon'] if b < 40 else app.storage.user['greek_lexicon'], lexicalEntries[-1]),
                             ).props('text-color=white').classes('cursor-pointer font-bold shadow-sm')
-
-        # Chapter Vocabulary & Rare Words (lazy-loaded on expand)
-        vocab_loaded = {'done': False}
-        async def load_vocab(e):
-            if not e.value or vocab_loaded['done']:
-                return
-            vocab_loaded['done'] = True
-            vocab_container.clear()
-            with vocab_container:
-                ui.spinner(size='sm')
-            top_words, rare_words = await run.io_bound(fetch_chapter_vocabulary, b, c, app.storage.client["custom"])
-            vocab_container.clear()
-            with vocab_container:
-                if not top_words:
-                    ui.label(get_translation('No data found.'))
-                    return
-                ui.label(get_translation('Top Chapter Lemmas')).classes('font-bold text-sm mt-1')
-                with ui.row().classes('w-full gap-2 flex-wrap'):
-                    for entry, lexeme, gloss, cnt in top_words:
-                        first_entry = entry.split(",")[0]
-                        lex_entry = entry.split(",")[-2] if entry.endswith(",") and len(entry.split(",")) > 1 else first_entry
-                        ui.chip(
-                            f"{lexeme} ({cnt}) — {gloss}",
-                            icon='search',
-                            on_click=partial(open_lexicon, app.storage.user['hebrew_lexicon'] if b < 40 else app.storage.user['greek_lexicon'], lex_entry),
-                        ).props('outline').classes('cursor-pointer')
-                if rare_words:
-                    ui.label(get_translation('Rare Words in Chapter (<= 3x in Bible)')).classes('font-bold text-sm mt-3')
-                    with ui.row().classes('w-full gap-2 flex-wrap'):
-                        for entry, lexeme, gloss, ch_cnt, total_cnt in rare_words:
-                            lex_entry = entry.split(",")[-2] if entry.endswith(",") and len(entry.split(",")) > 1 else entry.split(",")[0]
-                            badge_label = "1x (hapax)" if total_cnt == 1 else f"{total_cnt}x"
-                            ui.chip(
-                                f"{lexeme} [{badge_label}] — {gloss}",
-                                color='deep-orange' if total_cnt == 1 else 'amber-8',
-                                on_click=partial(open_lexicon, app.storage.user['hebrew_lexicon'] if b < 40 else app.storage.user['greek_lexicon'], lex_entry),
-                            ).props('text-color=white').classes('cursor-pointer')
-
-        with ui.expansion(get_translation('Chapter Vocabulary & Rare Words'), icon='analytics', value=False, on_value_change=load_vocab).classes('w-full rounded-lg border border-gray-200'):
-            vocab_container = ui.column().classes('w-full gap-2')

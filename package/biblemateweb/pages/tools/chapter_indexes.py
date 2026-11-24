@@ -1,11 +1,142 @@
 import apsw
 import re, os, asyncio, html as html_lib
 from nicegui import ui, app, run
-from biblemateweb import BIBLEMATEWEB_DATA, get_translation, download_txt, get_morphology_db
+from biblemateweb import BIBLEMATEWEB_DATA, get_translation, download_txt, get_morphology_db, get_tagged_translations_db
 from functools import partial
 from biblemateweb.fx.bible import BibleSelector
 from biblemateweb.pages.tools.indexes import render_exlb_chips
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
+
+
+_NON_TRANSLATION_COLS = {
+    "WordID", "ClauseID", "Book", "Chapter", "Verse", "Word", "LexicalEntry",
+    "MorphologyCode", "Morphology", "Lexeme", "Transliteration", "Pronunciation",
+    "Interlinear", "Translation", "Gloss", "BDBE", "BDBEContextSpecific",
+    "CHALOT", "CHALOTContextSpecific", "HALOT", "HALOTContextSpecific",
+    "BDAG", "BDAGContextSpecific", "LSJ", "LSJContextSpecific",
+    "eStrong", "eStrongContextSpecific",
+}
+
+_COMMON_STOPWORDS = {
+    "the", "a", "an", "and", "or", "but", "of", "in", "on", "at", "to", "for",
+    "from", "by", "with", "as", "is", "are", "was", "were", "be", "been", "being",
+    "he", "she", "it", "they", "them", "his", "her", "its", "their", "this", "that",
+    "these", "those", "who", "whom", "which", "not", "no", "so", "if", "then",
+    "when", "all", "into", "unto", "upon", "out", "up", "over", "have", "has", "had",
+    "do", "does", "did", "will", "shall", "would", "should", "may", "might", "can",
+    "could", "i", "you", "we", "us", "my", "your", "our", "me", "him", "there",
+    "的", "了", "和", "與", "在", "是", "有", "也", "都", "就", "而", "及", "以",
+    "於", "于", "為", "为", "之", "其", "這", "这", "那", "他", "她", "它",
+    "們", "们", "我", "你", "不", "沒", "没", "把", "被", "從", "从", "向",
+    "對", "对", "給", "给", "到", "著", "着",
+}
+
+_PUNCT_STRIP = ".,;:!?'\"()[]{}「」『』《》〈〉、。，；：！？（）【】“”‘’—–- \t\n\r"
+
+
+def fetch_chapter_vocabulary(b, c, custom=None):
+    """Fetch top and rare original-language lemmas for a Bible chapter."""
+    db = get_morphology_db(custom)
+    with apsw.Connection(db) as connn:
+        cursor = connn.cursor()
+        cursor.execute(
+            """
+            SELECT LexicalEntry, Lexeme, Gloss, COUNT(*) as cnt
+            FROM morphology
+            WHERE Book=? AND Chapter=? AND LexicalEntry != ''
+            GROUP BY LexicalEntry
+            ORDER BY cnt DESC
+            """,
+            (b, c),
+        )
+        chapter_rows = cursor.fetchall()
+        if not chapter_rows:
+            return [], []
+        top_words = chapter_rows[:15]
+        entries = [r[0] for r in chapter_rows]
+        placeholders = ",".join("?" for _ in entries)
+        cursor.execute(
+            f"SELECT LexicalEntry, COUNT(*) as total_cnt FROM morphology WHERE LexicalEntry IN ({placeholders}) GROUP BY LexicalEntry HAVING total_cnt <= 3 ORDER BY total_cnt ASC",
+            entries,
+        )
+        rare_map = dict(cursor.fetchall())
+        rare_words = [(r[0], r[1], r[2], r[3], rare_map[r[0]]) for r in chapter_rows if r[0] in rare_map]
+    return top_words, rare_words
+
+
+def fetch_chapter_translation_vocabulary(b, c, active_bible, ui_language="eng", custom=None):
+    """Fetch tagged translation vocabulary for a Bible chapter, falling back by UI language."""
+    db = get_tagged_translations_db(custom)
+    fallback_col = {"tc": "CUV", "sc": "CUVs"}.get(ui_language, "NET")
+    with apsw.Connection(db) as connn:
+        cursor = connn.cursor()
+        cursor.execute("PRAGMA table_info(morphology)")
+        cols = {row[1] for row in cursor.fetchall()}
+        trans_cols = cols - _NON_TRANSLATION_COLS
+        if active_bible in trans_cols:
+            version_col = active_bible
+            matched = True
+        elif fallback_col in trans_cols:
+            version_col = fallback_col
+            matched = False
+        else:
+            return None, False, [], [], []
+
+        cursor.execute(
+            f'SELECT Verse, LexicalEntry, Lexeme, Gloss, "{version_col}" FROM morphology WHERE Book=? AND Chapter=? AND "{version_col}" != "" ORDER BY WordID',
+            (b, c),
+        )
+        rows = cursor.fetchall()
+        if not rows:
+            return version_col, matched, [], [], []
+
+        entries = list({r[1] for r in rows if r[1]})
+        rare_entries = {}
+        if entries:
+            placeholders = ",".join("?" for _ in entries)
+            cursor.execute(
+                f"SELECT LexicalEntry, COUNT(*) as total_cnt FROM morphology WHERE LexicalEntry IN ({placeholders}) GROUP BY LexicalEntry HAVING total_cnt <= 3",
+                entries,
+            )
+            rare_entries = dict(cursor.fetchall())
+
+    grouped = {}
+    for verse, entry, lexeme, gloss, raw_text in rows:
+        cleaned = str(raw_text).strip(_PUNCT_STRIP)
+        if not cleaned:
+            continue
+        key = cleaned.lower() if cleaned.isascii() else cleaned
+        item = grouped.get(key)
+        if item is None:
+            item = {
+                "word": cleaned,
+                "count": 0,
+                "verses": [],
+                "lemmas": [],
+                "rare_count": None,
+                "is_stopword": key in _COMMON_STOPWORDS,
+            }
+            grouped[key] = item
+        item["count"] += 1
+        if verse not in item["verses"]:
+            item["verses"].append(verse)
+        if lexeme:
+            lemma_label = f"{lexeme} ({gloss})" if gloss else lexeme
+            if lemma_label not in item["lemmas"]:
+                item["lemmas"].append(lemma_label)
+        if entry in rare_entries:
+            rc = rare_entries[entry]
+            if item["rare_count"] is None or rc < item["rare_count"]:
+                item["rare_count"] = rc
+
+    all_items = sorted(grouped.values(), key=lambda x: (-x["count"], x["verses"][0]))
+    filtered_top = [i for i in all_items if not i["is_stopword"]][:20]
+    unfiltered_top = all_items[:20]
+    rare_items = [i for i in all_items if i["rare_count"] is not None and not i["is_stopword"]]
+    if not rare_items:
+        rare_items = [i for i in all_items if i["rare_count"] is not None]
+    rare_items.sort(key=lambda x: (x["rare_count"], -x["count"], x["verses"][0]))
+    return version_col, matched, filtered_top, unfiltered_top, rare_items
 
 
 def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
@@ -126,6 +257,145 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
 
             # --- RENDER EXPANSIONS ---
             found_any = False
+
+            def open_lexicon(module, entry):
+                nonlocal gui
+                app.storage.user['favorite_lexicon'] = module
+                app.storage.user['tool_query'] = entry
+                gui.select_empty_area2_tab()
+                gui.load_area_2_content(title='lexicons')
+
+            def search_bible_word(bible_version, word):
+                nonlocal gui
+                app.storage.user['tool_book_text'] = bible_version
+                app.storage.user['tool_query'] = word
+                gui.select_empty_area2_tab()
+                gui.load_area_2_content(title='Verses')
+
+            # --- CHAPTER TRANSLATION VOCABULARY (expanded by default) ---
+            active_bible = gui.get_area_1_bible_text() if gui else app.storage.user.get('primary_bible', 'NET')
+            ui_lang = app.storage.user.get('ui_language', 'eng')
+            trans_vocab_loaded = {'done': False}
+
+            async def load_trans_vocab(e):
+                if not e.value or trans_vocab_loaded['done']:
+                    return
+                trans_vocab_loaded['done'] = True
+                trans_vocab_container.clear()
+                with trans_vocab_container:
+                    ui.spinner(size='sm')
+                version_col, matched, filtered_top, unfiltered_top, rare_items = await run.io_bound(
+                    fetch_chapter_translation_vocabulary,
+                    book_id,
+                    chapter,
+                    active_bible,
+                    ui_lang,
+                    app.storage.client["custom"],
+                )
+                trans_vocab_container.clear()
+                with trans_vocab_container:
+                    if not version_col or (not unfiltered_top and not rare_items):
+                        ui.label(get_translation('No data found.')).classes('p-2 italic')
+                        return
+
+                    if not matched:
+                        ui.label(
+                            f"{get_translation('Showing')} {version_col} ({active_bible} {get_translation('is not in tagged translations')})"
+                        ).classes('text-xs text-gray-500 italic')
+
+                    def _chip_tooltip(item):
+                        vv = ", ".join(str(v_num) for v_num in item["verses"][:10])
+                        if len(item["verses"]) > 10:
+                            vv += ", ..."
+                        lemmas_str = "; ".join(item["lemmas"][:3])
+                        return f"vv. {vv}" + (f" · {lemmas_str}" if lemmas_str else "")
+
+                    hide_common = {'value': True}
+                    chips_area = ui.column().classes('w-full gap-2')
+
+                    def render_trans_chips():
+                        chips_area.clear()
+                        top_list = filtered_top if (hide_common['value'] and filtered_top) else unfiltered_top
+                        with chips_area:
+                            if top_list:
+                                ui.label(get_translation('Key Words in Chapter')).classes('font-bold text-sm mt-1')
+                                with ui.row().classes('w-full gap-2 flex-wrap'):
+                                    for item in top_list:
+                                        c = ui.chip(
+                                            f"{item['word']} ({item['count']})",
+                                            icon='search',
+                                            on_click=partial(search_bible_word, version_col, item['word']),
+                                        ).props('outline').classes('cursor-pointer')
+                                        c.tooltip(_chip_tooltip(item))
+                            if rare_items:
+                                ui.label(get_translation('Rare-Lemma Words in Chapter (<= 3x in Bible)')).classes('font-bold text-sm mt-3')
+                                with ui.row().classes('w-full gap-2 flex-wrap'):
+                                    for item in rare_items:
+                                        rc = item['rare_count']
+                                        badge = "1x (hapax)" if rc == 1 else f"{rc}x"
+                                        c = ui.chip(
+                                            f"{item['word']} [{badge}]",
+                                            icon='search',
+                                            color='deep-orange' if rc == 1 else 'amber-8',
+                                            on_click=partial(search_bible_word, version_col, item['word']),
+                                        ).props('text-color=white').classes('cursor-pointer')
+                                        c.tooltip(_chip_tooltip(item))
+
+                    def on_toggle_common(ev):
+                        hide_common['value'] = bool(ev.value)
+                        render_trans_chips()
+
+                    ui.switch(get_translation('Hide common words'), value=True, on_change=on_toggle_common).classes('text-sm')
+                    render_trans_chips()
+
+            with ui.expansion(get_translation('Chapter Translation Vocabulary'), icon='translate', value=True, on_value_change=load_trans_vocab) \
+                    .classes('w-full border rounded-lg shadow-sm') \
+                    .props('header-class="font-bold text-lg text-secondary"'):
+                trans_vocab_container = ui.column().classes('w-full p-2 gap-2')
+            ui.timer(0.05, lambda: load_trans_vocab(type('E', (), {'value': True})()), once=True)
+
+            # --- CHAPTER VOCABULARY & RARE WORDS (lazy-loaded on expand) ---
+            vocab_loaded = {'done': False}
+
+            async def load_vocab(e):
+                if not e.value or vocab_loaded['done']:
+                    return
+                vocab_loaded['done'] = True
+                vocab_container.clear()
+                with vocab_container:
+                    ui.spinner(size='sm')
+                top_words, rare_words = await run.io_bound(fetch_chapter_vocabulary, book_id, chapter, app.storage.client["custom"])
+                vocab_container.clear()
+                with vocab_container:
+                    if not top_words:
+                        ui.label(get_translation('No data found.')).classes('p-2 italic')
+                        return
+                    ui.label(get_translation('Top Chapter Lemmas')).classes('font-bold text-sm mt-1')
+                    with ui.row().classes('w-full gap-2 flex-wrap'):
+                        for entry, lexeme, gloss, cnt in top_words:
+                            first_entry = entry.split(",")[0]
+                            lex_entry = entry.split(",")[-2] if entry.endswith(",") and len(entry.split(",")) > 1 else first_entry
+                            ui.chip(
+                                f"{lexeme} ({cnt}) — {gloss}",
+                                icon='search',
+                                on_click=partial(open_lexicon, app.storage.user['hebrew_lexicon'] if book_id < 40 else app.storage.user['greek_lexicon'], lex_entry),
+                            ).props('outline').classes('cursor-pointer')
+                    if rare_words:
+                        ui.label(get_translation('Rare Words in Chapter (<= 3x in Bible)')).classes('font-bold text-sm mt-3')
+                        with ui.row().classes('w-full gap-2 flex-wrap'):
+                            for entry, lexeme, gloss, ch_cnt, total_cnt in rare_words:
+                                lex_entry = entry.split(",")[-2] if entry.endswith(",") and len(entry.split(",")) > 1 else entry.split(",")[0]
+                                badge_label = "1x (hapax)" if total_cnt == 1 else f"{total_cnt}x"
+                                ui.chip(
+                                    f"{lexeme} [{badge_label}] — {gloss}",
+                                    color='deep-orange' if total_cnt == 1 else 'amber-8',
+                                    on_click=partial(open_lexicon, app.storage.user['hebrew_lexicon'] if book_id < 40 else app.storage.user['greek_lexicon'], lex_entry),
+                                ).props('text-color=white').classes('cursor-pointer')
+
+            with ui.expansion(get_translation('Chapter Vocabulary & Rare Words'), icon='analytics', value=False, on_value_change=load_vocab) \
+                    .classes('w-full border rounded-lg shadow-sm') \
+                    .props('header-class="font-bold text-lg text-secondary"'):
+                vocab_container = ui.column().classes('w-full p-2 gap-2')
 
             # --- CHAPTER PEOPLE RELATIONSHIP GRAPH (lazy-loaded on expand, before Bible People) ---
             people_html = results.get("Bible People") or ""
@@ -278,7 +548,7 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                 content = results.get(title)
                 
                 # Check if this should be open by default
-                is_open = (title == "Bible Topics")
+                is_open = False
                 
                 # Create the Expansion with specific icon
                 with ui.expansion(get_translation(title), icon=config['icon'], value=is_open) \
@@ -359,18 +629,31 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                         lines.append(clean)
                         lines.append("")
                 try:
-                    morph_db = get_morphology_db(app.storage.client["custom"])
-                    with apsw.Connection(morph_db) as connn:
-                        cur = connn.cursor()
-                        cur.execute(
-                            "SELECT Lexeme, Gloss, COUNT(*) as cnt FROM morphology WHERE Book=? AND Chapter=? AND LexicalEntry != '' GROUP BY LexicalEntry ORDER BY cnt DESC LIMIT 15",
-                            (book_id, chapter),
-                        )
-                        top_lemmas = cur.fetchall()
+                    top_lemmas, rare_lemmas = await run.io_bound(fetch_chapter_vocabulary, book_id, chapter, app.storage.client["custom"])
                     if top_lemmas:
                         lines.append(f"## {get_translation('Top Chapter Lemmas')}")
-                        for lexeme, gloss, cnt in top_lemmas:
+                        for _, lexeme, gloss, cnt in top_lemmas:
                             lines.append(f"- {lexeme} ({cnt}x): {gloss}")
+                        lines.append("")
+                    if rare_lemmas:
+                        lines.append(f"## {get_translation('Rare Words in Chapter (<= 3x in Bible)')}")
+                        for _, lexeme, gloss, ch_cnt, total_cnt in rare_lemmas:
+                            badge = "1x (hapax)" if total_cnt == 1 else f"{total_cnt}x"
+                            lines.append(f"- {lexeme} [{badge}]: {gloss}")
+                        lines.append("")
+                    v_col, _, trans_top, _, _ = await run.io_bound(
+                        fetch_chapter_translation_vocabulary,
+                        book_id,
+                        chapter,
+                        active_bible,
+                        lang,
+                        app.storage.client["custom"],
+                    )
+                    if v_col and trans_top:
+                        lines.append(f"## {get_translation('Key Words in Chapter')} ({v_col})")
+                        for item in trans_top:
+                            vv = ", ".join(str(v_num) for v_num in item["verses"])
+                            lines.append(f"- {item['word']} ({item['count']}x) [vv. {vv}]")
                         lines.append("")
                 except Exception:
                     pass
