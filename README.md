@@ -10,6 +10,9 @@ BibleMate AI Web provides a unified web interface combining the best features of
 
 > **Note:** For CLI Version, MCP Server, Agent Mode backend, Partner Mode, and Bible Data, see [BibleMate AI](https://github.com/eliranwong/biblemate)
 
+> [!IMPORTANT]
+> **Seamless Integration with [BibleMate Agentic Workspace](https://github.com/eliranwong/biblemate-agentic-workspace) (Studio Mode):** **BibleMate Web** and **BibleMate Agentic Workspace** are the two flagship projects of the BibleMate ecosystem—and they work together seamlessly on a **single server**. When `~/biblemate` is set up, BibleMate Web auto-detects your installed agentic backends (`agy`, `claude`, `codex`, `grok`, `gemini_api`) and lets you launch **Studio Mode** as a standalone tool tab or side-by-side inside **Multi-Tool Workspace** (`AI: Studio Mode`). See the [Studio Mode Guide](docs/english/ai_features/studio_mode.md).
+
 <img width="1842" height="964" alt="biblemateweb_screenshot" src="https://github.com/user-attachments/assets/d86e74da-c7f1-432a-a4de-124f3c6daf99" />
 
 ## Table of Contents
@@ -54,6 +57,7 @@ BibleMate AI Web provides a unified web interface combining the best features of
 - **Chat Mode**: Conversational AI assistant for Bible study questions
 - **Partner Mode**: Enhanced collaboration with extended context
 - **Agent Mode**: Autonomous AI agent with tool selection and multi-step reasoning
+- **Studio Mode**: Single-server integration with [BibleMate Agentic Workspace](https://github.com/eliranwong/biblemate-agentic-workspace) (`agy`, `claude`, `codex`, `grok`, `gemini_api`), available as a standalone tool tab or `AI: Studio Mode` inside **Multi-Tool Workspace** ([guide](docs/english/ai_features/studio_mode.md))
 - **Multi-backend Support**: OpenAI, Anthropic, Google AI, Azure, Cohere, DeepSeek, Mistral, xAI
 
 ### User Experience
@@ -96,6 +100,10 @@ To enable semantic search for BibleMateWeb, we need to install Ollama server and
 ```
 ollama pull paraphrase-multilingual
 ```
+
+### Enabling Studio Mode (BibleMate Agentic Workspace)
+
+To bring **BibleMate Agentic Workspace** directly into **BibleMate Web** on the same server, download and unzip [`manual_setup.zip`](https://github.com/eliranwong/antigravity-biblemate-workspace/raw/main/manual_setup.zip) into `~/biblemate` and ensure at least one backend (`agy`, `claude`, `codex`, `grok`, or `GEMINI_API_KEY`) is configured. See the full [Studio Mode Setup Guide](docs/english/ai_features/studio_mode.md).
 
 The web UI will be available at **http://localhost:33355**
 
