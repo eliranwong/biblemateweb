@@ -3,6 +3,7 @@ import traceback
 import uuid
 from nicegui import ui, app
 from biblemateweb import get_translation
+from biblemateweb.pages.ai.agentic_workspace import is_workspace_available
 
 
 # Curated tools/search pages available as panes inside Multi-Tool Workspace.
@@ -38,6 +39,10 @@ AVAILABLE_PANE_TOOLS = [
     ("names", "Search: Names", False),
     ("parallels", "Search: Parallels", False),
     ("promises", "Search: Promises", False),
+    ("chat", "AI: Chat Mode", False),
+    ("partner", "AI: Partner Mode", False),
+    ("agent", "AI: Agent Mode", False),
+    ("studio", "AI: Studio Mode", False),
 ]
 
 TOOL_DEFAULTS = {key: {"label": label, "sync": sync} for key, label, sync in AVAILABLE_PANE_TOOLS}
@@ -290,7 +295,7 @@ def multi_tool(gui=None, bt=None, b=1, c=1, v=1, q="", tab2=None, **_):
     tool_options = {
         key: get_translation(label)
         for key, label, _ in AVAILABLE_PANE_TOOLS
-        if gui is None or key in gui.tools
+        if (gui is None or key in gui.tools) and (key != "studio" or is_workspace_available())
     }
 
     def render_pane_body(pane):
@@ -298,6 +303,10 @@ def multi_tool(gui=None, bt=None, b=1, c=1, v=1, q="", tab2=None, **_):
         if container is None:
             return
         container.clear()
+        if pane["tool"] == "studio":
+            container.classes(add="book-fill studio-fill")
+        else:
+            container.classes(remove="book-fill studio-fill")
         if pane.get("collapsed"):
             return
         tool_fn = gui.tools.get(pane["tool"]) if gui else None

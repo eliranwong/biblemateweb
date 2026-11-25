@@ -1,0 +1,66 @@
+Metadata-Version: 2.4
+Name: biblemateweb
+Version: 1.7.5
+Summary: BibleMate AI - Automate Your Bible Study
+Home-page: https://biblemate.ai
+Author: Eliran Wong
+Author-email: support@marvel.bible
+License: GNU General Public License (GPL)
+Project-URL: Source, https://github.com/eliranwong/biblemateweb
+Project-URL: Tracker, https://github.com/eliranwong/biblemateweb/issues
+Project-URL: Documentation, https://github.com/eliranwong/biblemateweb/wiki
+Project-URL: Funding, https://www.paypal.me/MarvelBible
+Keywords: mcp agent biblemate ai anthropic azure chatgpt cohere deepseek genai github googleai groq llamacpp mistral ollama openai vertexai xai
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: End Users/Desktop
+Classifier: Topic :: Utilities
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Software Development :: Build Tools
+Classifier: License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
+Requires-Python: >=3.10
+Requires-Dist: agentmake>=1.2.24
+Requires-Dist: biblemate>=0.2.77
+Requires-Dist: biblematedata>=0.1.2
+Requires-Dist: nicegui<4,>=3.2.0
+Requires-Dist: apsw<3.54.1,>=3.50.4.0; python_version < "3.11"
+Requires-Dist: apsw>=3.50.4.0; python_version >= "3.11"
+Requires-Dist: markdown2
+Requires-Dist: qrcode
+Requires-Dist: pillow<13,>=12.0.0; python_version < "3.11"
+Requires-Dist: pillow>=12.0.0; python_version >= "3.11"
+Requires-Dist: authlib
+Requires-Dist: google-api-python-client
+Requires-Dist: google-auth-httplib2
+Requires-Dist: google-auth-oauthlib
+Requires-Dist: pypandoc
+Requires-Dist: openpyxl
+Provides-Extra: genai
+Requires-Dist: google-genai>=2.9.0; extra == "genai"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license
+Dynamic: project-url
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# BibleMate AI Web
+
+**AI-powered Bible study web application with advanced search, original language tools, and autonomous agent capabilities.**
+
+BibleMate AI Web provides a unified web interface combining the best features of [BibleMate AI](https://github.com/eliranwong/biblemate) and [UniqueBible](https://github.com/eliranwong/UniqueBible). This repository contains the Web UI, HTTP Server, and API Server components.
+
+
+Read more at https://github.com/eliranwong/biblemateweb
+
+Demo: https://app.biblemate.ai

@@ -1,0 +1,6 @@
+[console_scripts]
+biblemateapi = biblemateweb.api_client:main
+biblemategui = biblemateweb.main:main
+biblemateweb = biblemateweb.main:main
+bmapi = biblemateweb.api_client:main
+bmweb = biblemateweb.main:main

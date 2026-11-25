@@ -9,6 +9,7 @@ BibleMate AI Web 中的所有 AI 功能。对话、伙伴、代理以及生成�
 | [对话模式](chat_mode.md) | 对话式圣经助手 |
 | [伙伴模式](partner_mode.md) | 需经您逐步批准的多步骤研经模式 |
 | [代理模式](agent_mode.md) | 自主运行的多步骤研经模式 |
+| [工作室模式](studio_mode.md) | 集成 `biblemate-agentic-workspace`（CLI/SDK 代理、技能、笔记与导出） |
 
 ## 对话模式选项
 

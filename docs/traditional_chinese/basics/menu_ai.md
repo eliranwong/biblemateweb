@@ -10,5 +10,6 @@
 | 對話模式 | 透過對話詢問問題 |
 | 夥伴模式 | 與互動式夥伴一同研經 |
 | 代理模式 | 自主研究代理 |
+| 工作室模式 | 整合 BibleMate Agentic Workspace（需安裝工作區且具備自訂資料存取權限） |
 
 若要使用您自己的 AI 服務提供商，請參閱[自帶金鑰 (BYOK)](../user_preferences/api_key_setup.md)。更多資訊：[AI 選單](../layout/ai_menu.md)。

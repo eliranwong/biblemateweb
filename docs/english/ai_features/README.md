@@ -9,6 +9,7 @@ Everything AI in BibleMate AI Web. Chat, Partner, Agent and the generated conten
 | [Chat Mode](chat_mode.md) | Conversational Bible assistant |
 | [Partner Mode](partner_mode.md) | Multi-step study where you approve each step |
 | [Agent Mode](agent_mode.md) | Multi-step study run autonomously |
+| [Studio Mode](studio_mode.md) | Integrated `biblemate-agentic-workspace` (CLI/SDK agents, skills, notes & export) |
 
 ## Chat Mode options
 

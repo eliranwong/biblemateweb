@@ -405,4 +405,10 @@ translation_sc = {
     "Pane Height": "面板高度",
     "Chapter Study (Multi-Tool)": "整章研读（多工具）",
     "Verse Deep Dive (Multi-Tool)": "经节精研（多工具）",
+    "Studio Mode": "工作室模式",
+    "AI: Chat Mode": "AI：对话模式",
+    "AI: Partner Mode": "AI：伙伴模式",
+    "AI: Agent Mode": "AI：代理模式",
+    "AI: Studio Mode": "AI：工作室模式",
+    "Backend": "后端",
 }

@@ -7,4 +7,4 @@ BibleMate AI Web provides a unified web interface combining the best features of
 
 Read more at https://github.com/eliranwong/biblemateweb
 
-Demo: https://web.biblemate.ai
+Demo: https://app.biblemate.ai

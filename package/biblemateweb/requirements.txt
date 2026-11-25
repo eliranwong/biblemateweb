@@ -17,3 +17,4 @@ google-auth-httplib2
 google-auth-oauthlib
 pypandoc
 openpyxl
+google-antigravity

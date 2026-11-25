@@ -2,6 +2,7 @@
 from nicegui import ui, app
 from biblemateweb import config, BIBLEMATEWEB_APP_DIR, USER_DEFAULT_SETTINGS, getBibleVersionList, getCommentaryVersionList, getTranslationBibleVersionList, getLexiconList, getClauseVersionList
 from biblemateweb.pages.home import *
+from biblemateweb.pages.ai.agentic_workspace import render_workspace_page
 from biblemateweb.js.tooltip import TOOLTIP_JS
 from biblemateweb.css.original import get_original_css
 from biblemateweb.css.tooltip import get_tooltip_css
@@ -70,6 +71,16 @@ async def auth(request: Request):
     except Exception as e:
         ui.notify(f"Login failed: {e}")
         return RedirectResponse('/')
+
+@ui.page('/agentic-workspace')
+def page_agentic_workspace(
+    backend: str | None = None,
+    ref: str = '',
+    dark: int | None = None,
+    t: str | None = None,
+):
+    dark_bool = None if dark is None else bool(dark)
+    render_workspace_page(backend=backend, ref=ref, dark=dark_bool, t=t)
 
 # Home Page
 @ui.page('/')
@@ -320,6 +331,9 @@ def page_home(
                 max-height: 100% !important;
                 width: 100% !important;
                 max-width: 100% !important;
+            }}
+            .studio-fill .q-scrollarea__content {{
+                padding: 0 !important;
             }}
             .book-shell {{
                 height: 100%;

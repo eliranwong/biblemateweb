@@ -9,6 +9,7 @@ from biblemateweb.pages.ai.partner import ai_partner
 from biblemateweb.pages.ai.partner_cli import ai_partner_cli
 from biblemateweb.pages.ai.agent import ai_agent
 from biblemateweb.pages.ai.agent_cli import ai_agent_cli
+from biblemateweb.pages.ai.agentic_workspace import ai_agentic_workspace, is_workspace_available
 
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
@@ -103,6 +104,8 @@ class BibleMateWeb:
             "chat": ai_chat,
             "partner": ai_partner_cli if config.disable_partner_mode and not app.storage.user["api_key"].strip() else ai_partner,
             "agent": ai_agent_cli if config.disable_agent_mode and not app.storage.user["api_key"].strip() else ai_agent,
+            "studio": ai_agentic_workspace,
+            "workspace": ai_agentic_workspace,
             "morphology": word_morphology,
             "indexes": resource_indexes,
             "chapterindexes": chapter_indexes,
@@ -1023,7 +1026,7 @@ class BibleMateWeb:
             # Get the active tab's scroll area
             active_panel = self.area2_tab_panels[active_tab]
             # Clear and load new content
-            active_panel.classes(remove='book-fill')
+            active_panel.classes(remove='book-fill studio-fill')
             active_panel.clear()
             # load content
             with active_panel:
@@ -1563,9 +1566,12 @@ class BibleMateWeb:
                             ))
                             ui.separator()
                             #ui.menu_item('AI Q&A', on_click=lambda: self.load_area_2_content(self.work_in_progress))
-                            ui.menu_item(get_translation("AI Chat"), on_click=lambda: self.load_area_2_content(title='Chat'))
+                            ui.menu_item(get_translation("Chat Mode"), on_click=lambda: self.load_area_2_content(title='Chat'))
                             ui.menu_item(get_translation("Partner Mode"), on_click=lambda: self.load_area_2_content(title='Partner'))
                             ui.menu_item(get_translation("Agent Mode"), on_click=lambda: self.load_area_2_content(title='Agent'))
+                            if is_workspace_available():
+                                ui.separator()
+                                ui.menu_item(get_translation("Studio Mode"), on_click=lambda: self.load_area_2_content(title='Studio'))
 
                     with ui.button(icon='settings').props('flat color=white round').tooltip(get_translation("Settings")):
                         with ui.menu():
@@ -1943,7 +1949,7 @@ class BibleMateWeb:
                 #    self.load_area_2_content(self.work_in_progress),
                 #    app.storage.user.update(left_drawer_open=False)
                 #)).props('clickable')
-                ui.item(get_translation("AI Chat"), on_click=lambda: (
+                ui.item(get_translation("Chat Mode"), on_click=lambda: (
                     self.load_area_2_content(title='Chat'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
@@ -1955,6 +1961,12 @@ class BibleMateWeb:
                     self.load_area_2_content(title='Agent'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
+                if is_workspace_available():
+                    ui.separator()
+                    ui.item(get_translation("Studio Mode"), on_click=lambda: (
+                        self.load_area_2_content(title='Studio'),
+                        app.storage.user.update(left_drawer_open=False)
+                    )).props('clickable')
 
             # Preferences
             with ui.expansion(get_translation("Settings"), icon='settings').props('header-class="text-secondary"'):

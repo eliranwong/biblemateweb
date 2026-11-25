@@ -700,6 +700,7 @@ USER_DEFAULT_SETTINGS = {
     'reading_plan_completed': [],
     'ai_backend': 'default',
     'ai_model': '',
+    'workspace_backend': 'agy',
     'api_endpoint': '',
     'api_key': '',
     'ui_language': 'eng',

@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-GPLv3-green)](https://www.gnu.org/licenses/gpl-3.0.html)
-[![Website](https://img.shields.io/badge/demo-web.biblemate.ai-orange)](https://web.biblemate.ai)
+[![Website](https://img.shields.io/badge/demo-app.biblemate.ai-orange)](https://app.biblemate.ai)
 
 **AI-powered Bible study web application with advanced search, original language tools, and autonomous agent capabilities.**
 
@@ -122,7 +122,7 @@ The web UI will be available at **http://localhost:33355**
 
 ## Demo
 
-Try BibleMate AI Web without installation: **[web.biblemate.ai](https://web.biblemate.ai)**
+Try BibleMate AI Web without installation: **[app.biblemate.ai](https://app.biblemate.ai)**
 
 
 ## API Usage
@@ -260,7 +260,7 @@ Notes are stored in users' Google Drive AppData folder (hidden, app-specific sto
 
 **Resources:**
 - [Google Drive Notes Setup Guide](docs/english/server_setup/google_drive_notes_setup.md)
-- [Demo](https://web.biblemate.ai)
+- [Demo](https://app.biblemate.ai)
 
 ### Document Export (DOCX)
 
