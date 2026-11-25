@@ -304,8 +304,72 @@ def compare_chapter(gui=None, bt=None, b=1, c=1, v=1, area=2, q='', **_):
     # --- Top Controls ---
     bible_selector = BibleSelector(version_options=available_versions)
 
+    async def export_docx():
+        selected = [ver for ver in (versions_select.value or []) if ver in available_versions]
+        if not selected:
+            ui.notify(get_translation("Nothing to download"), type='negative')
+            return
+        cur_b, cur_c = state['b'], state['c']
+        verse_by_verse = bool(app.storage.user.get('compare_chapter_verse_by_verse', False))
+        lang = app.storage.user.get('ui_language', 'eng')
+        chapter_ref = BibleVerseParser(False, language=lang).bcvToVerseReference(cur_b, cur_c, 1, isChapter=True)
+
+        def _clean_cell(text):
+            plain = re.sub(r"<[^<>]+?>", " ", text or "")
+            plain = html_lib.unescape(plain)
+            plain = re.sub(r"\s+", " ", plain).strip()
+            return plain.replace("|", "\\|")
+
+        lines = [f"# {chapter_ref}", ""]
+        if not verse_by_verse:
+            lines.append("| " + " | ".join(selected) + " |")
+            lines.append("| " + " | ".join("---" for _ in selected) + " |")
+            cells = []
+            for ver in selected:
+                db_path = getBiblePath(ver)
+                verses = getBibleChapterVerses(db_path, cur_b, cur_c) if db_path else []
+                if verses:
+                    cell_text = " ".join(f"**{vv}** {_clean_cell(vtext)}" for _, _, vv, vtext in verses)
+                else:
+                    raw_html = getBibleChapter(db_path, cur_b, cur_c) if db_path else ""
+                    cell_text = _clean_cell(raw_html)
+                cells.append(cell_text)
+            lines.append("| " + " | ".join(cells) + " |")
+        else:
+            version_verse_maps = []
+            all_verse_nums = set()
+            for ver in selected:
+                db_path = getBiblePath(ver)
+                vmap = {}
+                if db_path:
+                    try:
+                        for _, _, vv, vtext in getBibleChapterVerses(db_path, cur_b, cur_c):
+                            vmap[vv] = _clean_cell(vtext)
+                            all_verse_nums.add(vv)
+                    except Exception:
+                        pass
+                version_verse_maps.append(vmap)
+
+            lines.append("| # | " + " | ".join(selected) + " |")
+            lines.append("| --- | " + " | ".join("---" for _ in selected) + " |")
+            for vv in sorted(all_verse_nums):
+                cells = [vmap.get(vv, "") for vmap in version_verse_maps]
+                lines.append(f"| {vv} | " + " | ".join(cells) + " |")
+
+        await download_docx("\n".join(lines))
+
     def additional_items():
         ui.button(get_translation('Go'), on_click=go_to_selected)
+        ui.switch(
+            get_translation("Verse-by-Verse"),
+            on_change=lambda _: render_table(),
+        ).bind_value(app.storage.user, 'compare_chapter_verse_by_verse')
+        ui.switch(
+            get_translation("Diff"),
+            on_change=lambda _: render_table(),
+        ).bind_value(app.storage.user, 'compare_chapter_diff') \
+         .bind_visibility_from(app.storage.user, 'compare_chapter_verse_by_verse')
+        ui.button("📥 DOCX", on_click=export_docx).props('outline dense')
 
     bible_selector.create_ui(
         active_bible if active_bible in available_versions else available_versions[0],
@@ -317,81 +381,14 @@ def compare_chapter(gui=None, bt=None, b=1, c=1, v=1, area=2, q='', **_):
         show_verses=False,
     )
 
-    with ui.row().classes('w-full items-center gap-3 px-2 py-1 flex-wrap'):
+    with ui.row().classes('w-full items-center px-2 py-1'):
         versions_select = ui.select(
             available_versions,
             value=initial_versions,
             multiple=True,
             with_input=True,
             on_change=lambda _: render_table(),
-        ).classes('grow min-w-[220px]').props('use-chips outlined dense clearable')
-
-        ui.switch(
-            get_translation("Verse-by-Verse"),
-            on_change=lambda _: render_table(),
-        ).bind_value(app.storage.user, 'compare_chapter_verse_by_verse')
-
-        ui.switch(
-            get_translation("Diff"),
-            on_change=lambda _: render_table(),
-        ).bind_value(app.storage.user, 'compare_chapter_diff') \
-         .bind_visibility_from(app.storage.user, 'compare_chapter_verse_by_verse')
-
-        async def export_docx():
-            selected = [ver for ver in (versions_select.value or []) if ver in available_versions]
-            if not selected:
-                ui.notify(get_translation("Nothing to download"), type='negative')
-                return
-            cur_b, cur_c = state['b'], state['c']
-            verse_by_verse = bool(app.storage.user.get('compare_chapter_verse_by_verse', False))
-            lang = app.storage.user.get('ui_language', 'eng')
-            chapter_ref = BibleVerseParser(False, language=lang).bcvToVerseReference(cur_b, cur_c, 1, isChapter=True)
-
-            def _clean_cell(text):
-                plain = re.sub(r"<[^<>]+?>", " ", text or "")
-                plain = html_lib.unescape(plain)
-                plain = re.sub(r"\s+", " ", plain).strip()
-                return plain.replace("|", "\\|")
-
-            lines = [f"# {chapter_ref}", ""]
-            if not verse_by_verse:
-                lines.append("| " + " | ".join(selected) + " |")
-                lines.append("| " + " | ".join("---" for _ in selected) + " |")
-                cells = []
-                for ver in selected:
-                    db_path = getBiblePath(ver)
-                    verses = getBibleChapterVerses(db_path, cur_b, cur_c) if db_path else []
-                    if verses:
-                        cell_text = " ".join(f"**{vv}** {_clean_cell(vtext)}" for _, _, vv, vtext in verses)
-                    else:
-                        raw_html = getBibleChapter(db_path, cur_b, cur_c) if db_path else ""
-                        cell_text = _clean_cell(raw_html)
-                    cells.append(cell_text)
-                lines.append("| " + " | ".join(cells) + " |")
-            else:
-                version_verse_maps = []
-                all_verse_nums = set()
-                for ver in selected:
-                    db_path = getBiblePath(ver)
-                    vmap = {}
-                    if db_path:
-                        try:
-                            for _, _, vv, vtext in getBibleChapterVerses(db_path, cur_b, cur_c):
-                                vmap[vv] = _clean_cell(vtext)
-                                all_verse_nums.add(vv)
-                        except Exception:
-                            pass
-                    version_verse_maps.append(vmap)
-
-                lines.append("| # | " + " | ".join(selected) + " |")
-                lines.append("| --- | " + " | ".join("---" for _ in selected) + " |")
-                for vv in sorted(all_verse_nums):
-                    cells = [vmap.get(vv, "") for vmap in version_verse_maps]
-                    lines.append(f"| {vv} | " + " | ".join(cells) + " |")
-
-            await download_docx("\n".join(lines))
-
-        ui.button("📥 DOCX", on_click=export_docx).props('outline dense')
+        ).classes('w-full').props('use-chips outlined dense clearable')
 
     dummy_label = ui.label().style('position: absolute; width: 0; height: 0; overflow: hidden;')
     table_container = ui.column().classes('w-full')

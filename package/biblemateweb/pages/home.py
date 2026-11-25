@@ -1083,6 +1083,22 @@ class BibleMateWeb:
         app.storage.user['tool_book_text'] = self.get_area_1_bible_text()
         self.load_area_2_content(title=tool, sync=True)
 
+    def open_verse_comparison(self):
+        active_bible = self.get_area_1_bible_text()
+        active_bible_tab = self.get_active_area1_tab()
+        if active_bible_tab in app.storage.user:
+            b = app.storage.user[active_bible_tab].get("b", app.storage.user.get("bible_book_number", 1))
+            c = app.storage.user[active_bible_tab].get("c", app.storage.user.get("bible_chapter_number", 1))
+            v = app.storage.user[active_bible_tab].get("v", app.storage.user.get("bible_verse_number", 1))
+        else:
+            b = app.storage.user.get("bible_book_number", 1)
+            c = app.storage.user.get("bible_chapter_number", 1)
+            v = app.storage.user.get("bible_verse_number", 1)
+        ref = BibleVerseParser(False, language=app.storage.user['ui_language']).bcvToVerseReference(b, c, v)
+        bible_versions = get_comparison_bibles(active_bible=active_bible)
+        app.storage.user["tool_query"] = f"{','.join(bible_versions)}:::{ref}"
+        self.load_area_2_content(title="Verses", sync=False)
+
     def change_area_1_bible_chapter(self, version=None, book=1, chapter=1, verse=1):
         if version is None:
             version = self.get_area_1_bible_text()
@@ -1461,11 +1477,15 @@ class BibleMateWeb:
                             ui.menu_item(get_translation("Chapter Indexes"), on_click=lambda: self.load_area_2_content(title='Chapterindexes', sync=True))
                             ui.menu_item(get_translation("Verse Indexes"), on_click=lambda: self.load_area_2_content(title='Indexes', sync=True))
                             ui.separator()
+                            ui.menu_item(get_translation("Chapter Comparison"), on_click=lambda: self.open_sync_tool('Comparechapter'))
+                            ui.menu_item(get_translation("Verse Comparison"), on_click=self.open_verse_comparison)
+                            ui.separator()
+                            ui.menu_item(get_translation("Bookmarks"), on_click=self.open_bookmarks_dialog)
+                            ui.menu_item(get_translation("Bible Reading Plan"), on_click=lambda: self.load_area_2_content(title='Reading', sync=False))
+                            ui.separator()
                             if config.google_client_id and config.google_client_secret:
                                 ui.menu_item(get_translation("Bible Notes"), on_click=lambda: self.load_area_2_content(title='Notes', sync=True))
                             ui.menu_item(get_translation("Notepad"), on_click=lambda: self.load_area_2_content(title='Notepad', sync=True))
-                            ui.menu_item(get_translation("Bookmarks"), on_click=self.open_bookmarks_dialog)
-                            ui.menu_item(get_translation("Bible Reading Plan"), on_click=lambda: self.load_area_2_content(title='Reading', sync=False))
                     
                     with ui.button(icon='search').props('flat color=white round').tooltip(get_translation("Search")):
                         with ui.menu():
@@ -1769,6 +1789,20 @@ class BibleMateWeb:
                 )).props('clickable')
                 ui.item(get_translation("Verse Indexes"), on_click=lambda: (
                     self.load_area_2_content(title='Indexes', sync=True),
+                    app.storage.user.update(left_drawer_open=False)
+                )).props('clickable')
+                ui.separator()
+                ui.item(get_translation("Chapter Comparison"), on_click=lambda: (
+                    self.open_sync_tool('Comparechapter'),
+                    app.storage.user.update(left_drawer_open=False)
+                )).props('clickable')
+                ui.item(get_translation("Verse Comparison"), on_click=lambda: (
+                    self.open_verse_comparison(),
+                    app.storage.user.update(left_drawer_open=False)
+                )).props('clickable')
+                ui.separator()
+                ui.item(get_translation("Bookmarks"), on_click=lambda: (
+                    self.open_bookmarks_dialog(),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
                 ui.item(get_translation("Bible Reading Plan"), on_click=lambda: (
