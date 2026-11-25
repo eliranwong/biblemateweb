@@ -402,4 +402,6 @@ translation_tc = {
     "Search: Promises": "搜索：聖經應許",
     "Columns": "欄數",
     "Pane Height": "面板高度",
+    "Chapter Study (Multi-Tool)": "整章研讀（多工具）",
+    "Verse Deep Dive (Multi-Tool)": "經節精研（多工具）",
 }

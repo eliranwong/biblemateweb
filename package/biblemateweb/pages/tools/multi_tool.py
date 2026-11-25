@@ -189,12 +189,35 @@ def multi_tool(gui=None, bt=None, b=1, c=1, v=1, q="", tab2=None, **_):
         return bt, int(b or 1), int(c or 1), int(v or 1)
 
     cur_bt, cur_b, cur_c, cur_v = _area1_bcv()
+    if bt:
+        cur_bt = bt
+    if b:
+        cur_b = int(b)
+    if c:
+        cur_c = int(c)
+    if v:
+        cur_v = int(v)
 
-    # Load workspace state: tab storage -> multitool_last -> default built-in preset
+    def _find_preset(name):
+        if not name:
+            return None
+        needle = name.strip().lower()
+        for k, val in BUILTIN_PRESETS.items():
+            if k.lower() == needle:
+                return val
+        for k, val in (app.storage.user.get("multitool_custom_presets") or {}).items():
+            if k.lower() == needle:
+                return val
+        return None
+
+    # Load workspace state: tab storage -> preset in q -> multitool_last -> default built-in preset
     tab_record = app.storage.user.get(active_tab2)
+    q_preset = _find_preset(q)
     saved_ws = None
     if isinstance(tab_record, dict) and isinstance(tab_record.get("panes"), list) and tab_record["panes"]:
         saved_ws = tab_record
+    elif q_preset is not None:
+        saved_ws = q_preset
     elif isinstance(app.storage.user.get("multitool_last"), dict) and app.storage.user["multitool_last"].get("panes"):
         saved_ws = app.storage.user["multitool_last"]
     else:
@@ -202,8 +225,8 @@ def multi_tool(gui=None, bt=None, b=1, c=1, v=1, q="", tab2=None, **_):
 
     saved_cols = (
         saved_ws.get("cols")
-        if saved_ws.get("cols") in (1, 2, 3, 4)
-        else app.storage.user.get("multitool_cols", 2)
+        if (q_preset is None or (isinstance(tab_record, dict) and tab_record.get("panes"))) and saved_ws.get("cols") in (1, 2, 3, 4)
+        else app.storage.user.get("multitool_cols", saved_ws.get("cols", 2))
     )
     saved_height = (
         saved_ws.get("height_scale")

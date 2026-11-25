@@ -621,6 +621,13 @@ class BibleMateWeb:
             app.storage.user["tool_chapter_number"] = c
             app.storage.user["tool_verse_number"] = v
             open_tool("Comparechapter")
+        def open_chapter_study():
+            app.storage.user["tool_book_text"] = bible_ver
+            app.storage.user["tool_book_number"] = b
+            app.storage.user["tool_chapter_number"] = c
+            app.storage.user["tool_verse_number"] = v
+            app.storage.user["tool_query"] = "Chapter Study"
+            open_tool("Multitool")
         with ui.context_menu() as menu:
             ui.menu_item(f'📋 {get_translation("Copy")}', on_click=lambda: self.copy_text(get_chapter_content()))
             ui.menu_item(f'🔖 {get_translation("Bookmark Chapter")}', on_click=lambda: self.toggle_bookmark(bible_ver, b, c, v, is_chapter=True))
@@ -636,6 +643,8 @@ class BibleMateWeb:
             if config.google_client_id and config.google_client_secret:
                 ui.separator()
                 ui.menu_item(f'📝 {get_translation("Edit Note" if note else "Add Note")}', on_click=open_chapter_note)
+            ui.separator()
+            ui.menu_item(f'🧩 {get_translation("Chapter Study (Multi-Tool)")}', on_click=open_chapter_study)
         menu.open()
 
     def toggle_bookmark(self, bible, b, c, v, is_chapter=False):
@@ -838,6 +847,13 @@ class BibleMateWeb:
             ref, verse_content = get_verse_content()[1:].split("] ", 1)
             self.ask_biblemate(f"[{ref}] {verse_content}")
         verse_bible_ver = os.path.basename(db)[:-6]
+        def open_verse_deep_dive():
+            app.storage.user["tool_book_text"] = verse_bible_ver
+            app.storage.user["tool_book_number"] = b
+            app.storage.user["tool_chapter_number"] = c
+            app.storage.user["tool_verse_number"] = v
+            app.storage.user["tool_query"] = "Verse Deep Dive"
+            open_tool("Multitool")
         with ui.context_menu() as menu:
             ui.menu_item(f'📋 {get_translation("Copy")}', on_click=lambda: self.copy_text(get_verse_content()))
             ui.menu_item(f'🔖 {get_translation("Bookmark Verse")}', on_click=lambda: self.toggle_bookmark(verse_bible_ver, b, c, v, is_chapter=False))
@@ -875,6 +891,8 @@ class BibleMateWeb:
             else:
                 ui.menu_item(f'📝 {get_translation("Add Note")}', on_click=add_to_notepad)
             ui.menu_item(f'💬 {get_translation("Ask BibleMate")}', on_click=ask_biblemate)
+            ui.separator()
+            ui.menu_item(f'🧩 {get_translation("Verse Deep Dive (Multi-Tool)")}', on_click=open_verse_deep_dive)
         menu.open()
 
     async def replace_url(self):

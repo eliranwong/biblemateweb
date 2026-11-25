@@ -403,4 +403,6 @@ translation_sc = {
     "Search: Promises": "搜索：圣经应许",
     "Columns": "栏数",
     "Pane Height": "面板高度",
+    "Chapter Study (Multi-Tool)": "整章研读（多工具）",
+    "Verse Deep Dive (Multi-Tool)": "经节精研（多工具）",
 }
