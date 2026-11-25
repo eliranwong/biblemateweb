@@ -19,6 +19,7 @@ Tools open in the **Tool Area** from the **Tools** menu (`build` icon), from ver
 | Morphology | `morphology` | [tool_morphology](tool_morphology.md) |
 | Chapter Indexes | `chapterindexes` | [tool_chapter_indexes](tool_chapter_indexes.md) |
 | Compare Chapter | `comparechapter` | [tool_compare_chapter](tool_compare_chapter.md) |
+| Multi-Tool Workspace | `multitool` | [tool_multi_tool](tool_multi_tool.md) |
 | Verse Indexes | `indexes` | [tool_indexes](tool_indexes.md) |
 | Bible Notes (Google Drive) | `notes` | [tool_notes](tool_notes.md) |
 | Notepad | `notepad` | [tool_notepad](tool_notepad.md) |

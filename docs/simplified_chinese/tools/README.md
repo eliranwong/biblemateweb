@@ -19,6 +19,7 @@
 | 形态学分析 | `morphology` | [形态学分析](tool_morphology.md) |
 | 全章索引 | `chapterindexes` | [全章索引](tool_chapter_indexes.md) |
 | 整章译本对照 | `comparechapter` | [整章译本对照](tool_compare_chapter.md) |
+| 多工具工作区 | `multitool` | [多工具工作区](tool_multi_tool.md) |
 | 单节索引 | `indexes` | [单节索引](tool_indexes.md) |
 | 圣经笔记（Google 云端硬盘） | `notes` | [圣经笔记](tool_notes.md) |
 | 笔记本 | `notepad` | [笔记本](tool_notepad.md) |

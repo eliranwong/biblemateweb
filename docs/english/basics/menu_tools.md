@@ -14,5 +14,6 @@ Icon: `build`. Opens study tools in the **Tool Area**.
 - **Comparison:** Chapter Comparison, Verse Comparison.
 - **Bookmarks & Reading Plan:** Bookmarks (with Highlights & Reading History), Bible Reading Plan (365-day reading plan with progress tracking and multilingual references).
 - **Notes:** Bible Notes (when Google Drive is configured), Notepad.
+- **Multi-Tool Workspace**
 
 Most tools open at the verse you are reading. Full list with guides: [Tools](../layout/tools_window.md).

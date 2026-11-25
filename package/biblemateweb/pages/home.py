@@ -44,6 +44,7 @@ from biblemateweb.pages.tools.notepad import notepad
 from biblemateweb.pages.tools.notes import notes
 from biblemateweb.pages.tools.summary import chapter_summary
 from biblemateweb.pages.tools.compare_chapter import compare_chapter
+from biblemateweb.pages.tools.multi_tool import multi_tool
 from biblemateweb.pages.tools.analysis import book_analysis
 
 from biblemateweb.pages.search.bible_verses import search_bible_verses
@@ -87,12 +88,14 @@ class BibleMateWeb:
         # Tab number
         self.area1_tab_loaded = self.area1_tab_counter = 0
         self.area2_tab_loaded = self.area2_tab_counter = 0
+        self._multitool_sync_callbacks = {}
 
         # tools
         self.tools = {
             "analysis": book_analysis,
             "summary": chapter_summary,
             "comparechapter": compare_chapter,
+            "multitool": multi_tool,
             "notes": notes,
             "notepad": notepad,
             "parousia": parousia,
@@ -1134,9 +1137,16 @@ class BibleMateWeb:
             content = bible_translation
         self.load_area_1_content(content=content, title=version)
         if sync_area2 and app.storage.user.get("sync"):
-            args = app.storage.user.get(self.get_active_area2_tab(), {})
+            active_tab2 = self.get_active_area2_tab()
+            args = app.storage.user.get(active_tab2, {})
             title2 = args.get("title", "")
-            if args.get("b") != book or args.get("c") != chapter:
+            if title2.lower() == "multitool":
+                if args.get("b") != book or args.get("c") != chapter or args.get("v") != verse:
+                    self.update_active_area2_tab_records(b=book, c=chapter, v=verse)
+                    cb = self._multitool_sync_callbacks.get(active_tab2)
+                    if cb:
+                        cb(book, chapter, verse)
+            elif args.get("b") != book or args.get("c") != chapter:
                 if not self.is_tool(title2):
                     self.change_area_2_bible_chapter(args.get("bt"), book, chapter, verse)
                 elif title2.lower() in self.CHAPTER_SYNC_TOOLS:
@@ -1503,6 +1513,8 @@ class BibleMateWeb:
                             if config.google_client_id and config.google_client_secret:
                                 ui.menu_item(get_translation("Bible Notes"), on_click=lambda: self.load_area_2_content(title='Notes', sync=True))
                             ui.menu_item(get_translation("Notepad"), on_click=lambda: self.load_area_2_content(title='Notepad', sync=True))
+                            ui.separator()
+                            ui.menu_item(get_translation("Multi-Tool Workspace"), on_click=lambda: self.open_sync_tool('Multitool'))
                     
                     with ui.button(icon='search').props('flat color=white round').tooltip(get_translation("Search")):
                         with ui.menu():
@@ -1834,6 +1846,11 @@ class BibleMateWeb:
                     )).props('clickable')
                 ui.item(get_translation("Notepad"), on_click=lambda: (
                     self.load_area_2_content(title='Notepad', sync=True),
+                    app.storage.user.update(left_drawer_open=False)
+                )).props('clickable')
+                ui.separator()
+                ui.item(get_translation("Multi-Tool Workspace"), on_click=lambda: (
+                    self.open_sync_tool('Multitool'),
                     app.storage.user.update(left_drawer_open=False)
                 )).props('clickable')
 
