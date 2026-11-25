@@ -16,7 +16,13 @@ API 客户端命令：`biblemateapi`、`bmapi`（[API 客户端](../integrations
 
 ## 保持持续运行
 
-带自动检查的后台启动（如 [`scripts/auto_start.sh`](../../scripts/auto_start.sh) 所示）：
+带端口自动检查的后台启动（通过 [`scripts/startup.sh`](../../scripts/startup.sh)，在 `~/biblemate` 目录中启动 `biblemateweb`（端口 `33355`）及已安装的 `~/biblemate/web_app_*.py` 工作室模式应用（端口 `33381`–`33384`））：
+
+```bash
+bash scripts/startup.sh
+```
+
+或使用最简独立检查启动 `biblemateweb`：
 
 ```bash
 if ! pgrep -f "/bin/biblemateweb" > /dev/null; then

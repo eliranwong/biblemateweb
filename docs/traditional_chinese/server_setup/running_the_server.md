@@ -16,7 +16,13 @@ API 客戶端命令：`biblemateapi`、`bmapi`（[API 客戶端](../integrations
 
 ## 保持持續運行
 
-帶自動檢查的背景啟動（如 [`scripts/auto_start.sh`](../../scripts/auto_start.sh) 所示）：
+帶連接埠自動檢查的背景啟動（透過 [`scripts/startup.sh`](../../scripts/startup.sh)，在 `~/biblemate` 目錄中啟動 `biblemateweb`（連接埠 `33355`）及已安裝的 `~/biblemate/web_app_*.py` 工作室模式應用（連接埠 `33381`–`33384`））：
+
+```bash
+bash scripts/startup.sh
+```
+
+或使用最簡獨立檢查啟動 `biblemateweb`：
 
 ```bash
 if ! pgrep -f "/bin/biblemateweb" > /dev/null; then

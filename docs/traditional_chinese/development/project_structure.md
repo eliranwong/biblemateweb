@@ -4,7 +4,7 @@
 biblemateweb/
 ├── README.md, README_pypi.md, CLAUDE.md
 ├── docs/                    documentation
-├── scripts/                 auto_start.sh, promises_indexes.py
+├── scripts/                 startup.sh, promises_indexes.py
 ├── tests/                   prototypes and experiments
 └── package/
     ├── setup.py             entry points: biblemateweb, bmweb, biblemategui, biblemateapi, bmapi

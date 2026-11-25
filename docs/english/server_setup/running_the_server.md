@@ -16,7 +16,13 @@ The server listens on `config.port` (default `33355`). Set `config.hot_reload=Tr
 
 ## Keep it running
 
-Background start with auto-check (as in [`scripts/auto_start.sh`](../../scripts/auto_start.sh)):
+Background start with port auto-check (via [`scripts/startup.sh`](../../scripts/startup.sh), which starts `biblemateweb` on port `33355` and any installed `~/biblemate/web_app_*.py` Studio Mode apps on ports `33381`–`33384` inside `~/biblemate`):
+
+```bash
+bash scripts/startup.sh
+```
+
+Or for a minimal standalone `biblemateweb` check:
 
 ```bash
 if ! pgrep -f "/bin/biblemateweb" > /dev/null; then
