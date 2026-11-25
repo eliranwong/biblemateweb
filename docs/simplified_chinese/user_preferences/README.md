@@ -25,6 +25,7 @@
 | [ODB OT Translation](odb_ot_trans.md) | 常用资源 | `odb_ot_trans` |
 | [ODB NT Translation](odb_nt_trans.md) | 常用资源 | `odb_nt_trans` |
 | [经文对照版本](verse_comparison.md) | 常用资源 | `verse_comparison_mode`, `verse_comparison_bibles` |
+| [整章对照版本](chapter_comparison.md) | 常用资源 | `chapter_comparison_mode`, `chapter_comparison_bibles` |
 | [相似词条](top_similar_entries.md) | 语义搜索 | `top_similar_entries` |
 | [相似经文](top_similar_verses.md) | 语义搜索 | `top_similar_verses` |
 | [AI 后端](ai_backend.md) | AI Backend | `ai_backend` |

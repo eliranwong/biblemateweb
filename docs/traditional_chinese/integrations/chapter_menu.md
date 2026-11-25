@@ -7,10 +7,10 @@
 | 📋 **複製** | 複製整章內容：包含標題及每節經文，格式為 `[n] text` |
 | 📡 **聖經廣播** | AI 生成的該章廣播（[聖經廣播](../tools/tool_podcast.md)） |
 | 🔊 **聖經語音** | 該章的語音朗讀錄音（[聖經語音](../tools/tool_audio.md)） |
+| 👀 **整章譯本對照** | 多譯本並排整章對照（[整章譯本對照](../tools/tool_compare_chapter.md)，可於[整章對照版本](../user_preferences/chapter_comparison.md)設定預設譯本） |
 | 💎 **全章摘要** | AI 摘要（[指南](../ai_features/chapter_summary.md)） |
 | 🗺️ **全章地圖** | 開啟地圖並帶入該章參照（`Reference:1-180`）（[地圖](../search/search_bible_maps.md)） |
 | 📑 **全章索引** | 涵蓋整章的資源（[全章索引](../tools/tool_chapter_indexes.md)） |
 | 📝 **新增筆記／編輯筆記** | 篇章筆記（僅在已設定 Google 雲端硬碟筆記時可用）（[筆記](google_drive_notes.md)） |
 
 - **書籤與記事本**：在章標題點擊右鍵可選擇 **加入本章書籤** 或 **加入記事本**（可於 **工具 → 書籤** 管理已儲存的書籤）。
-- **整章譯本對照**：在章標題點擊右鍵並選擇 **整章譯本對照**，即可依您的**經文對照版本**偏好設定並排比較整章經文。

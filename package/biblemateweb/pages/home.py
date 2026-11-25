@@ -43,6 +43,7 @@ from biblemateweb.pages.tools.morphology import word_morphology
 from biblemateweb.pages.tools.notepad import notepad
 from biblemateweb.pages.tools.notes import notes
 from biblemateweb.pages.tools.summary import chapter_summary
+from biblemateweb.pages.tools.compare_chapter import compare_chapter
 from biblemateweb.pages.tools.analysis import book_analysis
 
 from biblemateweb.pages.search.bible_verses import search_bible_verses
@@ -91,6 +92,7 @@ class BibleMateWeb:
         self.tools = {
             "analysis": book_analysis,
             "summary": chapter_summary,
+            "comparechapter": compare_chapter,
             "notes": notes,
             "notepad": notepad,
             "parousia": parousia,
@@ -611,10 +613,11 @@ class BibleMateWeb:
             open_tool("Notes")
         bible_ver = os.path.basename(db)[:-6]
         def compare_chapter():
-            ref = BibleVerseParser(False, language=app.storage.user['ui_language']).bcvToVerseReference(b, c, v, isChapter=True)
-            bible_versions = get_comparison_bibles(active_bible=bible_ver)
-            app.storage.user["tool_query"] = f"{','.join(bible_versions)}:::{ref}:1-180"
-            open_tool("Verses")
+            app.storage.user["tool_book_text"] = bible_ver
+            app.storage.user["tool_book_number"] = b
+            app.storage.user["tool_chapter_number"] = c
+            app.storage.user["tool_verse_number"] = v
+            open_tool("Comparechapter")
         with ui.context_menu() as menu:
             ui.menu_item(f'📋 {get_translation("Copy")}', on_click=lambda: self.copy_text(get_chapter_content()))
             ui.menu_item(f'🔖 {get_translation("Bookmark Chapter")}', on_click=lambda: self.toggle_bookmark(bible_ver, b, c, v, is_chapter=True))

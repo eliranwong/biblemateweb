@@ -637,6 +637,10 @@ USER_DEFAULT_SETTINGS = {
     'odb_nt_trans': 'NET',
     'verse_comparison_mode': 'default',
     'verse_comparison_bibles': [],
+    'chapter_comparison_mode': 'default',
+    'chapter_comparison_bibles': [],
+    'compare_chapter_verse_by_verse': False,
+    'compare_chapter_diff': False,
     'bookmarks': [],
     'reading_history': [],
     'verse_highlights': {},
@@ -706,6 +710,26 @@ def get_comparison_bibles(active_bible=None, custom=None):
     if active_bible:
         versions.append(active_bible)
     return sorted(list(set(versions)))
+
+def get_chapter_comparison_bibles(active_bible=None, custom=None):
+    """Return Bible versions for chapter comparison, placing active_bible first when provided."""
+    if custom is None:
+        try:
+            custom = bool(app.storage.client.get("custom", False))
+        except RuntimeError:
+            custom = False
+    available = getBibleVersionList(custom)
+    if app.storage.user.get("chapter_comparison_mode") == "custom":
+        selected = [b for b in (app.storage.user.get("chapter_comparison_bibles") or []) if b in available]
+        if selected:
+            if active_bible and active_bible in available:
+                return [active_bible] + [b for b in selected if b != active_bible]
+            return selected
+    candidates = []
+    for ver in (active_bible, app.storage.user.get("primary_bible", "NET"), app.storage.user.get("secondary_bible", "KJV"), "OHGBi"):
+        if ver and ver in available and ver not in candidates:
+            candidates.append(ver)
+    return candidates
 
 
 HIGHLIGHT_PALETTE = {

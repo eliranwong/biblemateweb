@@ -44,6 +44,7 @@ BibleMate AI Web 的完整文档 —— 一款由 AI 驱动的圣经研读 Web �
 - [圣经语音播放器](tools/tool_audio.md)
 - [参考书籍](tools/tool_books.md)
 - [全章索引](tools/tool_chapter_indexes.md)
+- [整章译本对照](tools/tool_compare_chapter.md)
 - [圣经时序](tools/tool_chronology.md)
 - [圣经注释](tools/tool_commentary.md)
 - [单节索引](tools/tool_indexes.md)

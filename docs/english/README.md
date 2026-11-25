@@ -40,6 +40,7 @@ Complete documentation for BibleMate AI Web – an AI-powered Bible study web ap
 - [Bible Audio Player](tools/tool_audio.md)
 - [Books](tools/tool_books.md)
 - [Chapter Indexes](tools/tool_chapter_indexes.md)
+- [Compare Chapter](tools/tool_compare_chapter.md)
 - [Bible Chronology](tools/tool_chronology.md)
 - [Bible Commentary](tools/tool_commentary.md)
 - [Verse Indexes](tools/tool_indexes.md)

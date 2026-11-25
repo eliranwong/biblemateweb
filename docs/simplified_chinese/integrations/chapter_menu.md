@@ -7,10 +7,10 @@
 | 📋 **复制** | 复制整章内容：包含标题及每节经文，格式为 `[n] text` |
 | 📡 **圣经广播** | AI 生成的该章广播（[圣经广播](../tools/tool_podcast.md)） |
 | 🔊 **圣经语音** | 该章的语音朗读录音（[圣经语音](../tools/tool_audio.md)） |
+| 👀 **整章译本对照** | 多译本并排整章对照（[整章译本对照](../tools/tool_compare_chapter.md)，可于[整章对照版本](../user_preferences/chapter_comparison.md)设置默认译本） |
 | 💎 **全章摘要** | AI 摘要（[指南](../ai_features/chapter_summary.md)） |
 | 🗺️ **全章地图** | 开启地图并带入该章引用（`Reference:1-180`）（[地图](../search/search_bible_maps.md)） |
 | 📑 **全章索引** | 涵盖整章的资源（[全章索引](../tools/tool_chapter_indexes.md)） |
 | 📝 **新增笔记／编辑笔记** | 篇章笔记（仅在已配置 Google 云端硬盘笔记时可用）（[笔记](google_drive_notes.md)） |
 
 - **书签与记事本**：在章标题点击右键可选择 **加入本章书签** 或 **加入记事本**（可于 **工具 → 书签** 管理已保存的书签）。
-- **整章译本对照**：在章标题点击右键并选择 **整章译本对照**，即可按您的**经文对照版本**偏好设置并排比较整章经文。

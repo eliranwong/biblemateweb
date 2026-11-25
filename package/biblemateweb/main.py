@@ -634,6 +634,21 @@ def page_Settings(
                     .bind_value(app.storage.user, 'verse_comparison_bibles') \
                     .bind_visibility_from(app.storage.user, 'verse_comparison_mode', value='custom') \
                     .tooltip('Select Bible versions to open for verse comparison. Leave empty to use Default.')
+            with ui.column().classes('w-full px-4 pb-4 gap-2'):
+                ui.label(get_translation('Chapter Comparison')).classes('font-semibold text-sm')
+                ui.radio(
+                    {'default': get_translation('Default'), 'custom': get_translation('Custom')},
+                    value=app.storage.user.get('chapter_comparison_mode', 'default'),
+                ).props('inline').bind_value(app.storage.user, 'chapter_comparison_mode')
+                ui.select(
+                    label=get_translation('Comparison Versions'),
+                    options=getBibleVersionList(app.storage.client["custom"]),
+                    multiple=True,
+                ).props('use-chips clearable') \
+                    .classes('w-full') \
+                    .bind_value(app.storage.user, 'chapter_comparison_bibles') \
+                    .bind_visibility_from(app.storage.user, 'chapter_comparison_mode', value='custom') \
+                    .tooltip('Select Bible versions to open for chapter comparison. Leave empty to use Default.')
 
         # --- Semantic Searches ---
         with ui.expansion(get_translation("Semantic Searches"), icon='search').classes('w-full rounded-lg'):
