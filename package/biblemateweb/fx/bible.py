@@ -389,8 +389,8 @@ class BibleSelector:
         return (self.selected_version, self.selected_book, self.selected_chapter, self.selected_verse)
 
 
-def build_export_verses_text(verses, markdown_table: bool = False):
-    """Format verse dicts for export, preferring VersesPlain when present in the .bible DB."""
+def _load_plain_verse_cache(verses):
+    """Load VersesPlain text per Bible DB for the books referenced in verses."""
     plain_cache = {}
     by_bible = {}
     for item in verses:
@@ -417,34 +417,48 @@ def build_export_verses_text(verses, markdown_table: bool = False):
                 plain_cache[bible_ver] = {(r[0], r[1], r[2]): r[3] for r in cur.fetchall()}
         except Exception:
             pass
+    return plain_cache, by_bible
 
-    def _clean_item_text(item):
-        bible_ver = item.get('bible', '')
-        plain_map = plain_cache.get(bible_ver)
-        if plain_map is not None and (item['b'], item['c'], item['v']) in plain_map:
-            text = plain_map[(item['b'], item['c'], item['v'])]
-        else:
-            text = item.get('content', '')
-        return re.sub(r"<[^<>]+?>", "", str(text)).strip()
+
+def _clean_verse_item_text(item, plain_cache):
+    """Extract plain verse text for an item, preferring VersesPlain when cached."""
+    bible_ver = item.get('bible', '')
+    plain_map = plain_cache.get(bible_ver)
+    if plain_map is not None and (item['b'], item['c'], item['v']) in plain_map:
+        text = plain_map[(item['b'], item['c'], item['v'])]
+    else:
+        text = item.get('content', '')
+    return re.sub(r"<[^<>]+?>", "", str(text)).strip()
+
+
+def _group_verses_for_table(verses, plain_cache):
+    """Group verse items by (b, c, v) into ordered versions, references, and text map."""
+    versions = []
+    grouped = {}
+    ref_map = {}
+    for item in verses:
+        ver = item.get('bible', '')
+        if ver and ver not in versions:
+            versions.append(ver)
+        coord = (item.get('b'), item.get('c'), item.get('v'))
+        if coord not in grouped:
+            grouped[coord] = {}
+            ref_map[coord] = item.get('ref', '')
+        grouped[coord][ver] = _clean_verse_item_text(item, plain_cache)
+    return versions, grouped, ref_map
+
+
+def build_export_verses_text(verses, markdown_table: bool = False):
+    """Format verse dicts for export, preferring VersesPlain when present in the .bible DB."""
+    plain_cache, by_bible = _load_plain_verse_cache(verses)
 
     if markdown_table:
-        versions = []
-        grouped = {}
-        ref_map = {}
-        for item in verses:
-            ver = item.get('bible', '')
-            if ver and ver not in versions:
-                versions.append(ver)
-            coord = (item.get('b'), item.get('c'), item.get('v'))
-            if coord not in grouped:
-                grouped[coord] = {}
-                ref_map[coord] = item.get('ref', '')
-            grouped[coord][ver] = _clean_item_text(item).replace("|", "\\|").replace("\n", " ")
+        versions, grouped, ref_map = _group_verses_for_table(verses, plain_cache)
         header = "| Reference | " + " | ".join(versions) + " |"
         sep = "| --- | " + " | ".join("---" for _ in versions) + " |"
         rows = [header, sep]
         for coord, ver_texts in grouped.items():
-            cells = [ver_texts.get(ver, "") for ver in versions]
+            cells = [ver_texts.get(ver, "").replace("|", "\\|").replace("\n", " ") for ver in versions]
             rows.append(f"| {ref_map[coord]} | " + " | ".join(cells) + " |")
         return "\n".join(rows)
 
@@ -452,7 +466,47 @@ def build_export_verses_text(verses, markdown_table: bool = False):
     lines = []
     for item in verses:
         bible_ver = item.get('bible', '')
-        clean_text = _clean_item_text(item)
+        clean_text = _clean_verse_item_text(item, plain_cache)
         prefix = f"[{item['ref']} {bible_ver}]" if multi_bible and bible_ver else f"[{item['ref']}]"
         lines.append(f"{prefix} {clean_text}")
     return "\n\n".join(lines)
+
+
+def build_export_verses_xlsx(verses) -> bytes:
+    """Build an .xlsx Excel workbook comparing verses across Bible versions."""
+    import io
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font
+    from openpyxl.utils import get_column_letter
+
+    plain_cache, _ = _load_plain_verse_cache(verses)
+    versions, grouped, ref_map = _group_verses_for_table(verses, plain_cache)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Verses"
+
+    headers = ["Reference", *versions]
+    ws.append(headers)
+    header_font = Font(bold=True)
+    for col_idx in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.font = header_font
+        cell.alignment = Alignment(vertical="top")
+
+    wrap_align = Alignment(wrap_text=True, vertical="top")
+    for coord, ver_texts in grouped.items():
+        row = [ref_map[coord], *[ver_texts.get(ver, "") for ver in versions]]
+        ws.append(row)
+        row_idx = ws.max_row
+        for col_idx in range(1, len(headers) + 1):
+            ws.cell(row=row_idx, column=col_idx).alignment = wrap_align
+
+    ws.freeze_panes = "A2"
+    ws.column_dimensions["A"].width = 18
+    for col_idx in range(2, len(headers) + 1):
+        ws.column_dimensions[get_column_letter(col_idx)].width = 50
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()

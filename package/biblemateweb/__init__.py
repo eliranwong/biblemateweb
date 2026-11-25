@@ -171,6 +171,19 @@ async def download_docx(content):
     else:
         ui.notify(get_translation("Nothing to download"), type='negative')
 
+async def download_xlsx(xlsx_bytes: bytes):
+    if xlsx_bytes:
+        filename = await FilenameDialog().open_with_filename()
+        if filename is None or not filename.strip():
+            return
+        filename = filename.strip()
+        if not filename.lower().endswith('.xlsx'):
+            filename += '.xlsx'
+        ui.download(xlsx_bytes, filename=filename)
+        ui.notify(get_translation("Downloaded!"), type='positive')
+    else:
+        ui.notify(get_translation("Nothing to download"), type='negative')
+
 async def loading(func, *args, **kwargs):
     n = ui.notification(timeout=None)
     try:

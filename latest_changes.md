@@ -24,7 +24,7 @@ Concise summary of features added or updated in the last three days, with their 
    - Docs: `docs/english/tools/tool_indexes.md`
 
 5. **Search Bible Verses Improvements**
-   - **Export Verses & Export Table**: Exports visible/filtered verses (preferring `VersesPlain` when available, otherwise `Verses`), plus **Export Table** for grouped Markdown comparison tables.
+   - **Export Verses & Export Table**: Exports visible/filtered verses (preferring `VersesPlain` when available, otherwise `Verses`), plus **Export Table** for grouped Excel (`.xlsx`) comparison tables.
    - **Highlight Differences**: Toggle word-level diff highlighting when viewing multiple translations for the same verse(s).
    - **Distribution Analysis**: Added **OT | NT** totals and on-demand book loading when clicking books beyond `verses_limit` (unloaded books appear in lighter blue).
    - Docs: `docs/english/search/search_bible_verses.md`

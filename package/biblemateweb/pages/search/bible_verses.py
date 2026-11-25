@@ -1,7 +1,7 @@
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
-from biblemateweb.fx.bible import build_export_verses_text, get_bible_content, getBiblePath
-from biblemateweb import BIBLEMATEWEB_DATA, config, download_txt, get_comparison_bibles, get_morphology_db, get_translation, resolve_verses_additional_options
+from biblemateweb.fx.bible import build_export_verses_text, build_export_verses_xlsx, get_bible_content, getBiblePath
+from biblemateweb import BIBLEMATEWEB_DATA, config, download_txt, download_xlsx, get_comparison_bibles, get_morphology_db, get_translation, resolve_verses_additional_options
 from collections import Counter
 from functools import partial
 from nicegui import ui, app, run
@@ -999,13 +999,17 @@ def search_bible_verses(gui=None, q='', **_):
             morph_chart.set_visibility(False)
         analysis_expansion.set_visibility(False)
 
-        async def export_filtered_verses(markdown_table=False):
+        async def export_filtered_verses(as_xlsx=False):
             verses = list(results_state['filtered_verses'])
             if not verses:
                 ui.notify(get_translation('No verses found.'), type='info')
                 return
-            content = await run.io_bound(build_export_verses_text, verses, markdown_table)
-            await download_txt(content)
+            if as_xlsx:
+                xlsx_bytes = await run.io_bound(build_export_verses_xlsx, verses)
+                await download_xlsx(xlsx_bytes)
+            else:
+                content = await run.io_bound(build_export_verses_text, verses, False)
+                await download_txt(content)
 
         def on_toggle_diff_mode(e):
             results_state['diff_mode'] = bool(e.value)

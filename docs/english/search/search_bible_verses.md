@@ -525,4 +525,4 @@ Use wildcards for flexible matching:
 - **Export Verses**: Click **Export Verses** above the results list to download the currently displayed (or filtered) verses. When a `.bible` database includes the optional `VersesPlain` table, its plain-text `Scripture` is used; otherwise it falls back to the `Verses` table with HTML tags stripped.
 - **Morphology Breakdown Chart**: When searching by morphology (`E...|` or `G...|`), a second bar chart appears inside **Distribution Analysis** showing the frequency of each grammatical form.
 - **Compare Translations**: Click **Compare Translations** in any verse chip's menu to view that verse side by side across your active, primary, secondary, and selected Bible translations with word-level differences highlighted.
-- **Export Table (Comparison)**: When multiple translations are displayed for the same verse(s), click **Export Table** to download a grouped Markdown comparison table.
+- **Export Table (Comparison)**: When multiple translations are displayed for the same verse(s), click **Export Table** to download a grouped Excel (`.xlsx`) comparison table.
