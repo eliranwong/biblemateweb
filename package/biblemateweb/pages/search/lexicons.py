@@ -1,4 +1,4 @@
-from biblemateweb import config, getLexiconList, get_translation
+from biblemateweb import config, download_docx, download_txt, getLexiconList, get_translation, html_to_plain_text
 from nicegui import ui, app, run
 import re, apsw
 from biblemateweb.data.cr_books import cr_books
@@ -188,6 +188,12 @@ def search_bible_lexicons(gui=None, q='', **_):
             content = re.sub(r'<img src="getImage.php\?resource=([A-Z]+?)&id=(.+?)"/>', replace_img, content)
 
             # display
+            if content:
+                with ui.row().classes('w-full justify-end gap-2 mb-1'):
+                    ui.button('DOCX', icon='description', on_click=lambda c=content: download_docx(html_to_plain_text(c))) \
+                        .props('outline size=sm color=secondary')
+                    ui.button('TXT', icon='download', on_click=lambda c=content: download_txt(html_to_plain_text(c))) \
+                        .props('outline size=sm color=primary')
             ui.html(f'<div class="content-text">{content}</div>', sanitize=False)
 
         # Clear input so user can start typing to filter immediately

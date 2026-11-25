@@ -1,6 +1,6 @@
 from nicegui import ui, app
 from biblemateweb.data.bible_events import bible_events
-from biblemateweb import get_translation
+from biblemateweb import build_xlsx_table, download_txt, download_xlsx, get_translation
 
 def bible_chronology(gui=None, **_):
     #ui.page_title('Bible Chronology')
@@ -26,8 +26,22 @@ def bible_chronology(gui=None, **_):
         
         return link_component
 
+    async def export_chronology(as_xlsx=False):
+        if as_xlsx:
+            rows = [[item['year'], item['event'], item['reference']] for item in bible_events]
+            await download_xlsx(build_xlsx_table(["Year", "Event", "Reference"], rows, sheet_name="Chronology", widths=[18, 50, 24]))
+        else:
+            lines = ["# Bible Chronology", ""]
+            for item in bible_events:
+                lines.append(f"- **{item['year']}** — {item['event']} ({item['reference']})")
+            await download_txt("\n".join(lines))
+
     with ui.card().classes('w-full'):
-        ui.label('📜 Bible Chronology').classes('text-2xl font-bold mb-4')
+        with ui.row().classes('w-full items-center justify-between mb-4'):
+            ui.label('📜 Bible Chronology').classes('text-2xl font-bold')
+            with ui.row().classes('items-center gap-2'):
+                ui.button(get_translation('Export Table'), icon='table_chart', on_click=lambda: export_chronology(True)).props('outline size=sm color=secondary')
+                ui.button('TXT', icon='download', on_click=lambda: export_chronology(False)).props('outline size=sm color=primary')
         with ui.timeline(side='right'):
             for item in bible_events:
                 # Create the interactive link

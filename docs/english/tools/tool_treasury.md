@@ -387,4 +387,4 @@ The Treasury was compiled by:
 ## **Quick Actions**
 
 - **Open References in Verses**: Click **Open References in Verses** at the top of a Treasury entry to load all referenced verses together in the **Verses** page in the next tab.
-- **Export Treasury**: Click **Export Treasury** to download the current Treasury entry as plain text.
+- **Export Treasury**: Click **Export Treasury** (`.txt`) or **DOCX** (`.docx`) to download the current Treasury entry.

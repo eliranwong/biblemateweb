@@ -372,6 +372,8 @@ def chapter_indexes(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                 else:
                     app.storage.user['tool_book_text'], app.storage.user['tool_book_number'], app.storage.user['tool_chapter_number'], app.storage.user['tool_verse_number'] = selection
                     gui.load_area_2_content(title="Chapterindexes", sync=False)
+                    if gui:
+                        gui.sync_chapter_tool_to_area1(selection[1], selection[2], selection[3])
             ui.button(get_translation('Go'), on_click=lambda: change_indexes(bible_selector.get_selection()))
         bible_selector.create_ui("KJV", b, c, v, additional_items=additional_items, show_versions=False, show_verses=False)
 

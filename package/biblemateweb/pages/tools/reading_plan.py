@@ -143,7 +143,10 @@ def reading_plan(gui=None, q='', **_):
             def open_all_in_verses():
                 if not gui or not passages:
                     return
-                app.storage.user["tool_query"] = "; ".join(p["ref"] for p in passages)
+                app.storage.user["tool_query"] = "; ".join(
+                    f"{p['ref']}:1-180" if ":" not in p["ref"] else p["ref"]
+                    for p in passages
+                )
                 gui.select_next_area2_tab()
                 gui.load_area_2_content(title='Verses')
 

@@ -1,6 +1,6 @@
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
-from biblemateweb import BIBLEMATEWEB_DATA, download_txt, get_translation
-from biblemateweb.fx.bible import build_export_verses_text, get_bible_content
+from biblemateweb import BIBLEMATEWEB_DATA, download_docx, download_txt, download_xlsx, get_translation
+from biblemateweb.fx.bible import build_export_verses_text, build_export_verses_xlsx, get_bible_content
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from collections import Counter
 from functools import partial
@@ -277,6 +277,8 @@ def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
                     if xref_verses_cache:
                         xref_expansion.set_visibility(True)
                         export_xrefs_btn.set_visibility(True)
+                        export_xrefs_docx_btn.set_visibility(True)
+                        export_xrefs_xlsx_btn.set_visibility(True)
                         if xref_expansion.value:
                             update_xref_chart()
 
@@ -360,7 +362,7 @@ def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
             xref_chart = ui.echart({}, on_point_click=handle_xref_chart_click).classes('w-full cursor-pointer')
         xref_expansion.set_visibility(False)
 
-        async def export_visible_xrefs():
+        async def export_visible_xrefs(fmt='txt'):
             visible_verses = [
                 row.verse_data for row in verses_container.default_slot.children
                 if hasattr(row, 'verse_data') and row.visible
@@ -368,14 +370,33 @@ def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
             if not visible_verses:
                 ui.notify(get_translation('No verses found.'), type='info')
                 return
-            content = await run.io_bound(build_export_verses_text, visible_verses)
-            await download_txt(content)
+            if fmt == 'xlsx':
+                xlsx_bytes = await run.io_bound(build_export_verses_xlsx, visible_verses)
+                await download_xlsx(xlsx_bytes)
+            elif fmt == 'docx':
+                content = await run.io_bound(build_export_verses_text, visible_verses)
+                await download_docx(content)
+            else:
+                content = await run.io_bound(build_export_verses_text, visible_verses)
+                await download_txt(content)
 
-        with ui.row().classes('w-full justify-end'):
+        with ui.row().classes('w-full justify-end gap-2'):
+            export_xrefs_xlsx_btn = ui.button(
+                get_translation('Export Table'),
+                icon='table_chart',
+                on_click=lambda: export_visible_xrefs('xlsx'),
+            ).props('outline size=sm color=secondary')
+            export_xrefs_xlsx_btn.set_visibility(False)
+            export_xrefs_docx_btn = ui.button(
+                'DOCX',
+                icon='description',
+                on_click=lambda: export_visible_xrefs('docx'),
+            ).props('outline size=sm color=secondary')
+            export_xrefs_docx_btn.set_visibility(False)
             export_xrefs_btn = ui.button(
                 get_translation('Export Cross-References'),
                 icon='download',
-                on_click=export_visible_xrefs,
+                on_click=lambda: export_visible_xrefs('txt'),
             ).props('outline size=sm color=primary')
             export_xrefs_btn.set_visibility(False)
 

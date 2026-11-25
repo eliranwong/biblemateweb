@@ -1,9 +1,19 @@
 from nicegui import ui, app
-from biblemateweb import config, getBibleVersionList, BIBLEMATEWEB_DATA
+from biblemateweb import (
+    BIBLEMATEWEB_DATA,
+    build_xlsx_table,
+    config,
+    download_docx,
+    download_txt,
+    download_xlsx,
+    getBibleVersionList,
+    get_translation,
+    html_to_plain_text,
+)
 from typing import List, Optional
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
-import re, apsw, os
+import re, apsw, os, html as html_lib
 from biblemate.api.bible import BibleVectorDatabase
 
 
@@ -510,3 +520,101 @@ def build_export_verses_xlsx(verses) -> bytes:
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()
+
+
+def _clean_bible_verse_text(text: str) -> str:
+    plain = re.sub(r"<[^<>]+?>", " ", text or "")
+    plain = html_lib.unescape(plain)
+    return re.sub(r"\s+", " ", plain).strip()
+
+
+def chapter_html_to_markdown(chapter_html: str) -> str:
+    """Convert Bible-table chapter HTML into Markdown preserving headings, paragraphs, and verse numbers."""
+    if not chapter_html:
+        return ""
+    md = chapter_html
+    md = re.sub(r"<script.*?>.*?</script>", "", md, flags=re.DOTALL | re.IGNORECASE)
+    md = re.sub(r"<style.*?>.*?</style>", "", md, flags=re.DOTALL | re.IGNORECASE)
+    md = re.sub(r"<vid\b[^>]*>(.*?)</vid>", r"**\1**", md, flags=re.DOTALL | re.IGNORECASE)
+    md = re.sub(r"<h[1-6][^>]*>(.*?)</h[1-6]>", lambda m: f"\n\n## {re.sub(r'<[^<>]+?>', '', m.group(1)).strip()}\n\n", md, flags=re.DOTALL | re.IGNORECASE)
+    md = re.sub(r"<u>\s*<b>(.*?)</b>\s*</u>", lambda m: f"\n\n### {re.sub(r'<[^<>]+?>', '', m.group(1)).strip()}\n\n", md, flags=re.DOTALL | re.IGNORECASE)
+    md = re.sub(r"<(?:b|strong)\b[^>]*>(.*?)</(?:b|strong)>", r"**\1**", md, flags=re.DOTALL | re.IGNORECASE)
+    md = re.sub(r"<(?:i|em)\b[^>]*>(.*?)</(?:i|em)>", r"*\1*", md, flags=re.DOTALL | re.IGNORECASE)
+    md = re.sub(r"(?:<br\s*/?>\s*){2,}", "\n\n", md, flags=re.IGNORECASE)
+    md = re.sub(r"<br\s*/?>", "\n", md, flags=re.IGNORECASE)
+    md = re.sub(r"</(?:p|div|blockquote|li|tr)>", "\n\n", md, flags=re.IGNORECASE)
+    md = re.sub(r"<p\b[^>]*>", "\n\n", md, flags=re.IGNORECASE)
+    md = re.sub(r"<[^<>]+?>", "", md)
+    md = html_lib.unescape(md)
+    lines = [re.sub(r"[ \t]+", " ", line).strip() for line in md.splitlines()]
+    md = "\n".join(lines)
+    md = re.sub(r"\n{3,}", "\n\n", md)
+    return md.strip()
+
+
+def build_export_chapter_xlsx(db: str, b: int, c: int, bible_name: str = "", lang: str = "eng") -> bytes:
+    """Build a verse-by-verse .xlsx workbook for a Bible chapter."""
+    chapter_ref = BibleVerseParser(False, language=lang).bcvToVerseReference(b, c, 1, isChapter=True)
+    verses = getBibleChapterVerses(db, b, c) if db else []
+    headers = ["Reference", bible_name or "Scripture"]
+    rows = [[f"{chapter_ref}:{vv}", _clean_bible_verse_text(vtext)] for _, _, vv, vtext in verses]
+    return build_xlsx_table(headers, rows, sheet_name=chapter_ref, widths=[18, 70])
+
+
+def _get_bible_table_chapter(db: str, b: int, c: int) -> str:
+    """Return raw Scripture HTML from the Bible table if present, else empty string."""
+    if not db:
+        return ""
+    try:
+        with apsw.Connection(db) as connn:
+            cursor = connn.cursor()
+            cursor.execute("SELECT Scripture FROM Bible WHERE Book=? AND Chapter=? LIMIT 1", (b, c))
+            row = cursor.fetchone()
+            return row[0] if row and row[0] else ""
+    except Exception:
+        return ""
+
+
+def build_export_chapter_docx_md(db: str, b: int, c: int, bible_name: str = "", lang: str = "eng", fallback_html: str = "") -> str:
+    """Build Markdown for chapter DOCX export, preferring the Bible table and falling back to Verses."""
+    chapter_ref = BibleVerseParser(False, language=lang).bcvToVerseReference(b, c, 1, isChapter=True)
+    chapter_html = _get_bible_table_chapter(db, b, c)
+    if chapter_html:
+        body = chapter_html_to_markdown(chapter_html)
+        return f"# {chapter_ref} ({bible_name})\n\n{body}"
+    verses = getBibleChapterVerses(db, b, c) if db else []
+    if verses:
+        body = "\n\n".join(f"**{vv}** {_clean_bible_verse_text(vtext)}" for _, _, vv, vtext in verses)
+        return f"# {chapter_ref} ({bible_name})\n\n{body}"
+    return html_to_plain_text(fallback_html)
+
+
+def add_chapter_export_menu_items(get_selection, db: str, fallback_html: str = ""):
+    """Add DOCX, Table (verse-by-verse Excel), and TXT chapter export items to a Bible page menu."""
+    async def _export(fmt: str):
+        sel_ver, cur_b, cur_c, _ = get_selection()
+        bible_name = sel_ver or (os.path.basename(db)[:-6] if db else "")
+        lang = app.storage.user.get('ui_language', 'eng')
+        chapter_ref = BibleVerseParser(False, language=lang).bcvToVerseReference(cur_b, cur_c, 1, isChapter=True)
+        if fmt == 'xlsx':
+            verses = getBibleChapterVerses(db, cur_b, cur_c) if db else []
+            if not verses:
+                ui.notify(get_translation("Nothing to download"), type='warning')
+                return
+            await download_xlsx(build_export_chapter_xlsx(db, cur_b, cur_c, bible_name, lang=lang))
+        elif fmt == 'docx':
+            md = build_export_chapter_docx_md(db, cur_b, cur_c, bible_name, lang=lang, fallback_html=fallback_html)
+            await download_docx(md)
+        else:
+            verses = getBibleChapterVerses(db, cur_b, cur_c) if db else []
+            if verses:
+                body = "\n".join(f"[{vv}] {_clean_bible_verse_text(vtext)}" for _, _, vv, vtext in verses)
+                txt = f"# {chapter_ref} ({bible_name})\n\n{body}"
+            else:
+                txt = html_to_plain_text(fallback_html)
+            await download_txt(txt)
+
+    ui.separator()
+    ui.menu_item(f'📄 {get_translation("Export")} DOCX', on_click=lambda: _export('docx'))
+    ui.menu_item(f'📊 {get_translation("Export Table")}', on_click=lambda: _export('xlsx'))
+    ui.menu_item(f'📥 {get_translation("Export")} TXT', on_click=lambda: _export('txt'))

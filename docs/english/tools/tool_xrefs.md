@@ -435,4 +435,4 @@ NT quoting or alluding to OT:
 - Expand the **Distribution Analysis** section above the cross-reference results to view a horizontal bar chart showing how the cross-references are distributed across Bible books (or by chapter when all cross-references belong to a single book).
 - Click the **Download** icon in the top-right corner of the chart to save it as a high-resolution PNG image.
 - **OT | NT Summary**: Displays Old Testament and New Testament cross-reference totals inside **Distribution Analysis**.
-- **Export Cross-References**: Click **Export Cross-References** above the results list to download the currently visible (or filtered) cross-reference verses, preferring `VersesPlain` when available and falling back to `Verses`.
+- **Export Cross-References**: Click **Export Cross-References** (`.txt`), **DOCX** (`.docx`), or **Export Table** (`.xlsx`) above the results list to download the currently visible (or filtered) cross-reference verses, preferring `VersesPlain` when available and falling back to `Verses`.

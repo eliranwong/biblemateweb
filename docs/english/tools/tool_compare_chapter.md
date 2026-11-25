@@ -4,7 +4,7 @@ The **Compare Chapter** tool displays a Bible chapter side by side across multip
 
 ## How to Open
 
-- **Chapter Tools menu**: Right-click a chapter title (or open the three-dot menu → `Chapter Tools`) and select `👀 Compare Chapter`.
+- **Chapter Tools menu**: Right-click a chapter title (or open the three-dot menu → `Chapter Tools`) and select `👀 Chapter Comparison`.
 - **Quick Search**: `comparechapter` (or `comparechapter:::KJV,NET,CUV` to pre-select versions).
 
 ## Features
@@ -17,4 +17,4 @@ The **Compare Chapter** tool displays a Bible chapter side by side across multip
   - Your toggle choice is saved in `compare_chapter_verse_by_verse` for future sessions.
 - **Diff Toggle** *(when Verse-by-Verse is on)*: Highlights word-level differences in columns 2+ relative to the first column (`compare_chapter_diff`).
 - **Mutual Highlighting & Links**: Hovering over tagged words (`heb`, `grk`, `en`, `zh`) highlights corresponding words across columns, and Strong's numbers, study notes, cross-references, and verse highlights remain interactive.
-- **DOCX Export**: Click `📥 DOCX` to export the current chapter comparison table as a Word (`.docx`) document.
+- **Export (DOCX / XLSX / TXT)**: Click `📥 DOCX` for a Word document, `📥 XLSX` for an Excel workbook (preserving Verse-by-Verse rows when enabled), or `📥 TXT` for plain text.

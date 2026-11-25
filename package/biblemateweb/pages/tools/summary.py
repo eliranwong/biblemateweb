@@ -1,6 +1,6 @@
 from nicegui import ui, app, run
 import os, re, apsw, markdown2, asyncio
-from biblemateweb import BIBLEMATEWEB_DATA, get_translation
+from biblemateweb import BIBLEMATEWEB_DATA, download_docx, download_txt, get_translation
 from biblemateweb.fx.bible import BibleSelector
 
 def fetch_summary(b, c, lang="eng"):
@@ -38,6 +38,8 @@ def chapter_summary(gui=None, b=1, c=1, v=1, area=2, **_):
             else:
                 _, app.storage.user['tool_book_number'], app.storage.user['tool_chapter_number'], app.storage.user['tool_verse_number'] = selection
                 gui.load_area_2_content(title="Summary", sync=False)
+                if gui:
+                    gui.sync_chapter_tool_to_area1(selection[1], selection[2], selection[3])
         ui.button(get_translation('Go'), on_click=lambda: change_summary_chapter(bible_selector.get_selection()))
     bible_selector.create_ui("KJV", b, c, v, additional_items=additional_items, show_versions=False, show_verses=False)
 
@@ -63,11 +65,16 @@ def chapter_summary(gui=None, b=1, c=1, v=1, area=2, **_):
             content = re.sub(pattern, '#', content, flags=re.DOTALL)
             pattern = r'\n---\s*\nIf you\’d like\,\s*.*$'
             content = re.sub(pattern, '', content, flags=re.DOTALL)
+        raw_md = content
         # convert md to html
         content = markdown2.markdown(content, extras=["tables","fenced-code-blocks","toc","codelite"])
         content = content.replace("<h1>", "<h2>").replace("</h1>", "</h2>")
         # convert links
         content = re.sub(r'''(onclick|ondblclick)="(bcv)\((.*?)\)"''', r'''\1="emitEvent('\2', [\3]); return false;"''', content)
+        # export buttons
+        with ui.row().classes('w-full justify-end gap-2'):
+            ui.button("DOCX", icon='description', on_click=lambda: download_docx(raw_md)).props('outline size=sm color=secondary')
+            ui.button("TXT", icon='download', on_click=lambda: download_txt(raw_md)).props('outline size=sm color=primary')
         # display content
         ui.html(f'<div class="content-text">{content}</div>', sanitize=False)
         # dismiss notification

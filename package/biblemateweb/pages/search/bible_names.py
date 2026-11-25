@@ -1,4 +1,4 @@
-from biblemateweb import BIBLEMATEWEB_DATA, get_translation
+from biblemateweb import BIBLEMATEWEB_DATA, build_xlsx_table, download_txt, download_xlsx, get_translation, html_to_plain_text
 from biblemateweb.data.bible_names import bible_names
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 import numpy as np
@@ -297,6 +297,25 @@ def search_bible_names(gui=None, q='', **_):
             ui.icon('history') \
                 .on('click', handle_up_arrow) \
                 .classes('text-sm cursor-pointer text-secondary').tooltip(get_translation('Restore last entry'))
+
+    async def export_names(as_xlsx=False):
+        visible_rows = []
+        for row in names_container.default_slot.children:
+            if hasattr(row, 'name_data') and row.visible:
+                name = row.name_data
+                meaning = html_to_plain_text(re.sub("^<b>.*?</b> - ", "", bible_names.get(name, "")))
+                visible_rows.append([name, meaning])
+        if not visible_rows:
+            ui.notify(get_translation("Nothing to download"), type='warning')
+            return
+        if as_xlsx:
+            await download_xlsx(build_xlsx_table(["Name", "Meaning"], visible_rows, sheet_name="Bible Names", widths=[24, 60]))
+        else:
+            await download_txt("\n".join(f"{n}: {m}" for n, m in visible_rows))
+
+    with ui.row().classes('w-full max-w-3xl mx-auto justify-end gap-2 px-4'):
+        ui.button(get_translation('Export Table'), icon='table_chart', on_click=lambda: export_names(True)).props('outline size=sm color=secondary')
+        ui.button('TXT', icon='download', on_click=lambda: export_names(False)).props('outline size=sm color=primary')
 
     # --- Main Content Area ---
     with ui.column().classes('w-full items-center'):

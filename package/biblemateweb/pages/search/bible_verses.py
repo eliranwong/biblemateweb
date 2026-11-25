@@ -1,7 +1,7 @@
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from biblemateweb.fx.bible import build_export_verses_text, build_export_verses_xlsx, get_bible_content, getBiblePath
-from biblemateweb import BIBLEMATEWEB_DATA, config, download_txt, download_xlsx, get_comparison_bibles, get_morphology_db, get_translation, resolve_verses_additional_options
+from biblemateweb import BIBLEMATEWEB_DATA, config, download_docx, download_txt, download_xlsx, get_comparison_bibles, get_morphology_db, get_translation, resolve_verses_additional_options
 from collections import Counter
 from functools import partial
 from nicegui import ui, app, run
@@ -14,6 +14,7 @@ def search_bible_verses(gui=None, q='', **_):
     default_placeholder = get_translation("Search for words or refs")
     multiple_bibles = None
     export_verses_btn = None
+    export_docx_btn = None
     limit_notice_label = None
     diff_mode_switch = None
     ot_nt_label = None
@@ -137,6 +138,8 @@ def search_bible_verses(gui=None, q='', **_):
             load_more_btn.set_visibility(False)
         if export_verses_btn is not None:
             export_verses_btn.set_visibility(bool(results_state['filtered_verses']))
+        if export_docx_btn is not None:
+            export_docx_btn.set_visibility(bool(results_state['filtered_verses']))
         if diff_mode_switch is not None:
             seen_coords = {}
             has_multi_ver = False
@@ -999,14 +1002,18 @@ def search_bible_verses(gui=None, q='', **_):
             morph_chart.set_visibility(False)
         analysis_expansion.set_visibility(False)
 
-        async def export_filtered_verses(as_xlsx=False):
+        async def export_filtered_verses(fmt='txt'):
             verses = list(results_state['filtered_verses'])
             if not verses:
                 ui.notify(get_translation('No verses found.'), type='info')
                 return
-            if as_xlsx:
+            if fmt == 'xlsx':
                 xlsx_bytes = await run.io_bound(build_export_verses_xlsx, verses)
                 await download_xlsx(xlsx_bytes)
+            elif fmt == 'docx':
+                use_table = bool(export_table_btn and export_table_btn.visible)
+                content = await run.io_bound(build_export_verses_text, verses, use_table)
+                await download_docx(content)
             else:
                 content = await run.io_bound(build_export_verses_text, verses, False)
                 await download_txt(content)
@@ -1030,13 +1037,19 @@ def search_bible_verses(gui=None, q='', **_):
                 export_table_btn = ui.button(
                     get_translation('Export Table'),
                     icon='table_chart',
-                    on_click=lambda: export_filtered_verses(True),
+                    on_click=lambda: export_filtered_verses('xlsx'),
                 ).props('outline size=sm color=secondary')
                 export_table_btn.set_visibility(False)
+                export_docx_btn = ui.button(
+                    'DOCX',
+                    icon='description',
+                    on_click=lambda: export_filtered_verses('docx'),
+                ).props('outline size=sm color=secondary')
+                export_docx_btn.set_visibility(False)
                 export_verses_btn = ui.button(
                     get_translation('Export Verses'),
                     icon='download',
-                    on_click=lambda: export_filtered_verses(False),
+                    on_click=lambda: export_filtered_verses('txt'),
                 ).props('outline size=sm color=primary')
                 export_verses_btn.set_visibility(False)
 

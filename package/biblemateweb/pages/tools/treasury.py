@@ -1,5 +1,5 @@
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
-from biblemateweb import BIBLEMATEWEB_DATA, download_txt, get_translation
+from biblemateweb import BIBLEMATEWEB_DATA, download_docx, download_txt, get_translation, html_to_plain_text
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from biblemateweb.data.cr_books import cr_books
 from nicegui import ui, app
@@ -110,14 +110,12 @@ def treasury(gui=None, b=1, c=1, v=1, q='', **_):
                 gui.select_next_area2_tab()
                 gui.load_area_2_content(title='Verses')
 
-            async def export_treasury():
-                plain = re.sub(r"<br\s*/?>", "\n", content)
-                plain = re.sub(r"</(?:p|div|h[1-6]|li|tr|hr)>", "\n", plain)
-                plain = re.sub(r"<[^<>]+?>", " ", plain)
-                plain = html_lib.unescape(plain)
-                plain = re.sub(r"[ \t]+", " ", plain)
-                plain = re.sub(r"\n{3,}", "\n\n", plain).strip()
-                await download_txt(plain)
+            async def export_treasury(as_docx=False):
+                plain = html_to_plain_text(content)
+                if as_docx:
+                    await download_docx(plain)
+                else:
+                    await download_txt(plain)
 
             with ui.row().classes('w-full items-center justify-end gap-2 mb-1'):
                 if extracted_refs:
@@ -127,9 +125,14 @@ def treasury(gui=None, b=1, c=1, v=1, q='', **_):
                         on_click=open_refs_in_verses,
                     ).props('outline size=sm color=primary')
                 ui.button(
+                    'DOCX',
+                    icon='description',
+                    on_click=lambda: export_treasury(True),
+                ).props('outline size=sm color=secondary')
+                ui.button(
                     get_translation('Export Treasury'),
                     icon='download',
-                    on_click=export_treasury,
+                    on_click=lambda: export_treasury(False),
                 ).props('outline size=sm color=primary')
 
             # convert links, e.g. <ref onclick="bcv(3,19,26)">

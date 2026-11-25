@@ -1,4 +1,4 @@
-from biblemateweb import BIBLEMATEWEB_DATA, load_vectors_from_db, get_translation
+from biblemateweb import BIBLEMATEWEB_DATA, download_docx, download_txt, html_to_plain_text, load_vectors_from_db, get_translation
 from nicegui import ui, app, run
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
 import numpy as np
@@ -197,11 +197,15 @@ def search_bible_characters(gui=None, q='', **_):
                 gui.select_empty_area2_tab()
                 gui.load_area_2_content(title='Relationships')
 
-            with ui.row().classes('w-full justify-center q-my-md'):
+            with ui.row().classes('w-full justify-center items-center gap-2 q-my-md'):
                 ui.button(get_translation('Show All Verses'), icon='auto_stories', on_click=lambda: gui.show_all_verses(path)) \
                     .props('size=lg rounded color=primary')
                 ui.button(get_translation('Relationships'), icon='search', on_click=lambda: search_action(path)) \
                     .props('size=lg rounded color=primary')
+                ui.button('DOCX', icon='description', on_click=lambda c=content: download_docx(html_to_plain_text(c))) \
+                    .props('outline size=sm color=secondary')
+                ui.button('TXT', icon='download', on_click=lambda c=content: download_txt(html_to_plain_text(c))) \
+                    .props('outline size=sm color=primary')
 
         # Clear input so user can start typing to filter immediately
         last_entry = path

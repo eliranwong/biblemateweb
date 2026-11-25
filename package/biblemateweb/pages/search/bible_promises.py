@@ -1,5 +1,5 @@
-from biblemateweb import BIBLEMATEWEB_DATA, load_topic_vectors_from_db, get_translation
-from biblemateweb.fx.bible import get_bible_content
+from biblemateweb import BIBLEMATEWEB_DATA, download_docx, download_txt, download_xlsx, load_topic_vectors_from_db, get_translation
+from biblemateweb.fx.bible import build_export_verses_text, build_export_verses_xlsx, get_bible_content
 from functools import partial
 from nicegui import ui, app, run
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
@@ -273,6 +273,7 @@ def search_bible_promises(gui=None, q='', **_):
                     ui.html(v['content'], sanitize=False).classes('grow min-w-0 leading-relaxed pl-2 text-base break-words')
 
         # Clear input so user can start typing to filter immediately
+        export_row.set_visibility(True)
         last_entry = path
         input_field.value = ""
         input_field.props(f'''placeholder="{get_translation('Type to filter')} {len(verses)} {get_translation('results')}..."''')
@@ -355,7 +356,31 @@ def search_bible_promises(gui=None, q='', **_):
         ui.timer(0, get_all_promises_topics, once=True)
         n.dismiss()
 
-    topic_label = ui.label().classes('text-2xl font-serif hidden')
+    async def export_promise_verses(fmt='txt'):
+        visible_verses = [
+            row.verse_data for row in verses_container.default_slot.children
+            if hasattr(row, 'verse_data') and row.visible
+        ]
+        if not visible_verses:
+            ui.notify(get_translation('No verses found.'), type='info')
+            return
+        if fmt == 'xlsx':
+            xlsx_bytes = await run.io_bound(build_export_verses_xlsx, visible_verses)
+            await download_xlsx(xlsx_bytes)
+        elif fmt == 'docx':
+            content = await run.io_bound(build_export_verses_text, visible_verses)
+            await download_docx(f"# {topic_label.text}\n\n{content}" if topic_label.text else content)
+        else:
+            content = await run.io_bound(build_export_verses_text, visible_verses)
+            await download_txt(f"# {topic_label.text}\n\n{content}" if topic_label.text else content)
+
+    with ui.row().classes('w-full items-center justify-between gap-2'):
+        topic_label = ui.label().classes('text-2xl font-serif hidden')
+        with ui.row().classes('items-center gap-2 ml-auto') as export_row:
+            ui.button(get_translation('Export Table'), icon='table_chart', on_click=lambda: export_promise_verses('xlsx')).props('outline size=sm color=secondary')
+            ui.button('DOCX', icon='description', on_click=lambda: export_promise_verses('docx')).props('outline size=sm color=secondary')
+            ui.button('TXT', icon='download', on_click=lambda: export_promise_verses('txt')).props('outline size=sm color=primary')
+        export_row.set_visibility(False)
 
     # --- Main Content Area ---
     with ui.column().classes('w-full items-center'):

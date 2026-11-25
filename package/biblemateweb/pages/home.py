@@ -2,7 +2,7 @@ import os, traceback, re, apsw, base64, io, qrcode
 from nicegui import app, ui
 from functools import partial
 
-from biblemateweb import config, BIBLEMATEWEB_APP_DIR, HIGHLIGHT_PALETTE, getBibleVersionList, get_comparison_bibles, get_translation
+from biblemateweb import config, BIBLEMATEWEB_APP_DIR, HIGHLIGHT_PALETTE, getBibleVersionList, get_comparison_bibles, get_translation, html_to_plain_text
 
 from biblemateweb.pages.ai.chat import ai_chat
 from biblemateweb.pages.ai.partner import ai_partner
@@ -537,7 +537,7 @@ class BibleMateWeb:
     def add_to_notepad(self, context):
         app.storage.user["tool_query"] = context
         self.select_empty_area2_tab()
-        self.load_area_2_content(title="note", sync=False)
+        self.load_area_2_content(title="Notepad", sync=False)
 
     def ask_biblemate(self, context):
         app.storage.user["tool_query"] = context
@@ -598,7 +598,7 @@ class BibleMateWeb:
                 cursor.execute(query, (b, c))
                 fetches = cursor.fetchall()
             if not fetches: return ref
-            verses = [f"[{verse}] {scripture}" for verse, scripture in fetches]
+            verses = [f"[{verse}] {html_to_plain_text(scripture)}" for verse, scripture in fetches]
             return f"# {ref}\n\n" + "\n".join(verses)
         def open_tool(title):
             self.select_empty_area2_tab()
@@ -626,7 +626,7 @@ class BibleMateWeb:
             ui.menu_item(f'📡 {get_translation("Bible Podcast")}', on_click=lambda: open_tool("Podcast"))
             ui.menu_item(f'🔊 {get_translation("Bible Audio")}', on_click=self.open_sync_tool)
             ui.separator()
-            ui.menu_item(f'👀 {get_translation("Compare Chapter")}', on_click=compare_chapter)
+            ui.menu_item(f'👀 {get_translation("Chapter Comparison")}', on_click=compare_chapter)
             ui.menu_item(f'💎 {get_translation("Chapter Summary")}', on_click=lambda: open_tool("Summary"))
             ui.menu_item(f'🗺️ {get_translation("Chapter Map")}', on_click=open_map)
             ui.menu_item(f'📑 {get_translation("Chapter Indexes")}', on_click=lambda: open_tool("Chapterindexes"))
@@ -838,6 +838,7 @@ class BibleMateWeb:
         with ui.context_menu() as menu:
             ui.menu_item(f'📋 {get_translation("Copy")}', on_click=lambda: self.copy_text(get_verse_content()))
             ui.menu_item(f'🔖 {get_translation("Bookmark Verse")}', on_click=lambda: self.toggle_bookmark(verse_bible_ver, b, c, v, is_chapter=False))
+            ui.menu_item(f'📒 {get_translation("Add to Notepad")}', on_click=add_to_notepad)
             with ui.menu_item(f'🖍️ {get_translation("Highlight")}', auto_close=False):
                 with ui.menu().props('anchor="top end" self="top start"'):
                     for cname, cinfo in HIGHLIGHT_PALETTE.items():
@@ -1099,7 +1100,19 @@ class BibleMateWeb:
         app.storage.user["tool_query"] = f"{','.join(bible_versions)}:::{ref}"
         self.load_area_2_content(title="Verses", sync=False)
 
-    def change_area_1_bible_chapter(self, version=None, book=1, chapter=1, verse=1):
+    CHAPTER_SYNC_TOOLS = ("podcast", "audio", "comparechapter", "summary", "chapterindexes")
+
+    def sync_chapter_tool_to_area1(self, book, chapter, verse=1):
+        """Sync a chapter change from an Area 2 chapter tool to Area 1 when sync is enabled."""
+        if not app.storage.user.get("sync"):
+            return
+        self.update_active_area2_tab_records(b=book, c=chapter, v=verse)
+        active_tab1 = self.get_active_area1_tab()
+        area1_args = app.storage.user.get(active_tab1, {})
+        if area1_args.get("b") != book or area1_args.get("c") != chapter:
+            self.change_area_1_bible_chapter(None, book, chapter, verse, sync_area2=False)
+
+    def change_area_1_bible_chapter(self, version=None, book=1, chapter=1, verse=1, sync_area2=True):
         if version is None:
             version = self.get_area_1_bible_text()
         app.storage.user['bible_book_text'] = version
@@ -1120,10 +1133,14 @@ class BibleMateWeb:
         else:
             content = bible_translation
         self.load_area_1_content(content=content, title=version)
-        if app.storage.user["sync"]:
-            args = app.storage.user[self.get_active_area2_tab()]
-            if not self.is_tool(args.get("title")) and (not args.get("b") == book or not args.get("c") == chapter):
-                self.change_area_2_bible_chapter(args.get("bt"), book, chapter, verse)
+        if sync_area2 and app.storage.user.get("sync"):
+            args = app.storage.user.get(self.get_active_area2_tab(), {})
+            title2 = args.get("title", "")
+            if args.get("b") != book or args.get("c") != chapter:
+                if not self.is_tool(title2):
+                    self.change_area_2_bible_chapter(args.get("bt"), book, chapter, verse)
+                elif title2.lower() in self.CHAPTER_SYNC_TOOLS:
+                    self.load_area_2_content(title=title2, sync=True, update_url=False)
 
     def change_area_2_bible_chapter(self, version=None, book=1, chapter=1, verse=1, sync=True):
         if version is None:

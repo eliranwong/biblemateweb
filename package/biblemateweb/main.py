@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from nicegui import ui, app
-from biblemateweb import config, BIBLEMATEWEB_APP_DIR, USER_DEFAULT_SETTINGS, getBibleVersionList, getTranslationBibleVersionList, getLexiconList, getClauseVersionList
+from biblemateweb import config, BIBLEMATEWEB_APP_DIR, USER_DEFAULT_SETTINGS, getBibleVersionList, getCommentaryVersionList, getTranslationBibleVersionList, getLexiconList, getClauseVersionList
 from biblemateweb.pages.home import *
 from biblemateweb.js.tooltip import TOOLTIP_JS
 from biblemateweb.css.original import get_original_css
@@ -649,6 +649,15 @@ def page_Settings(
                     .bind_value(app.storage.user, 'chapter_comparison_bibles') \
                     .bind_visibility_from(app.storage.user, 'chapter_comparison_mode', value='custom') \
                     .tooltip('Select Bible versions to open for chapter comparison. Leave empty to use Default.')
+            with ui.column().classes('w-full px-4 pb-4 gap-2'):
+                ui.select(
+                    label=f"{get_translation('Favorite Commentaries')} (max 3)",
+                    options=getCommentaryVersionList(app.storage.client["custom"]),
+                    multiple=True,
+                ).props('use-chips clearable max-values=3') \
+                    .classes('w-full') \
+                    .bind_value(app.storage.user, 'favorite_commentaries') \
+                    .tooltip('Select up to 3 favorite commentaries for quick switching. Leave empty for default (AI Commentary, CBSC, BI).')
 
         # --- Semantic Searches ---
         with ui.expansion(get_translation("Semantic Searches"), icon='search').classes('w-full rounded-lg'):

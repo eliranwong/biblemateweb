@@ -1,5 +1,5 @@
 from nicegui import ui, app
-from biblemateweb import BIBLEMATEWEB_DATA, download_txt, getCommentaryVersionList, get_translation, markdown2html
+from biblemateweb import BIBLEMATEWEB_DATA, download_docx, download_txt, getCommentaryVersionList, get_translation, html_to_plain_text, markdown2html
 from biblemateweb.data.cr_books import cr_books
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
@@ -165,24 +165,23 @@ def bible_commentary(gui=None, b=1, c=1, v=1, q='', **_):
         with content_container:
             current_mod = app.storage.user.get('favorite_commentary', 'AIC')
             aic_mod = gui.get_aic() if gui else 'AIC'
+            fav_mods = app.storage.user.get('favorite_commentaries') or [aic_mod, 'CBSC', 'BI']
             quick_mods = []
-            for cand in [aic_mod, 'CBSC', 'BKC', 'JFB', 'MHC']:
+            for cand in fav_mods:
                 if cand in client_commentaries and cand not in quick_mods:
                     quick_mods.append(cand)
 
             def _plain_commentary_text():
-                plain = re.sub(r"<br\s*/?>", "\n", content)
-                plain = re.sub(r"</(?:p|div|h[1-6]|li|tr|hr)>", "\n", plain)
-                plain = re.sub(r"<[^<>]+?>", " ", plain)
-                plain = html_lib.unescape(plain)
-                plain = re.sub(r"[ \t]+", " ", plain)
-                plain = re.sub(r"\n{3,}", "\n\n", plain).strip()
+                plain = html_to_plain_text(content)
                 return f"# {last_entry} ({current_mod})\n\n{plain}" if plain else ""
 
-            async def export_commentary():
+            async def export_commentary(as_docx=False):
                 txt = _plain_commentary_text()
                 if txt:
-                    await download_txt(txt)
+                    if as_docx:
+                        await download_docx(txt)
+                    else:
+                        await download_txt(txt)
 
             def switch_commentary(mod):
                 change_module(mod)
@@ -205,9 +204,14 @@ def bible_commentary(gui=None, b=1, c=1, v=1, q='', **_):
                             on_click=lambda: gui.copy_text(_plain_commentary_text()),
                         ).props('outline size=sm')
                         ui.button(
+                            "DOCX",
+                            icon='description',
+                            on_click=lambda: export_commentary(True),
+                        ).props('outline size=sm color=secondary')
+                        ui.button(
                             get_translation('Export Commentary'),
                             icon='download',
-                            on_click=export_commentary,
+                            on_click=lambda: export_commentary(False),
                         ).props('outline size=sm color=primary')
 
             # convert links, e.g. <ref onclick="bcv(3,19,26)">

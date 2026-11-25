@@ -42,6 +42,13 @@ See [Bible Verse Search](../search/search_bible_verses.md).
 
 See [Google Drive Notes](google_drive_notes.md).
 
+### Chapter Export
+| Item | Description |
+|---|---|
+| 📄 **Export DOCX** | Export the whole chapter as a Word (`.docx`) document (uses the `Bible` table when available to preserve headings and paragraph divisions, falling back to `Verses`) |
+| 📊 **Export Table** | Export the whole chapter verse by verse as an Excel (`.xlsx`) workbook |
+| 📥 **Export TXT** | Export the whole chapter as plain text (`.txt`) |
+
 ## Tips
 
 - The tools act on the book/chapter/verse **currently chosen in the selectors**, so you can pick a verse in the dropdown and use the menu without scrolling.

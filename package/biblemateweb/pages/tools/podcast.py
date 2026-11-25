@@ -129,10 +129,12 @@ def bibles_podcast(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
         bt = gui.get_area_1_bible_text()
 
     def next_book(selected_b):
-        nonlocal gui
+        nonlocal gui, area
         new_b = selected_b+1 if selected_b < 66 else 1
         app.storage.user["tool_book_number"], app.storage.user["tool_chapter_number"], app.storage.user["tool_verse_number"] = new_b, 1, 1
         gui.load_area_2_content(title="Podcast", sync=False)
+        if gui and area == 2:
+            gui.sync_chapter_tool_to_area1(new_b, 1, 1)
 
     # version
     version = "KJV"
@@ -147,6 +149,8 @@ def bibles_podcast(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
             else:
                 app.storage.user['tool_book_text'], app.storage.user['tool_book_number'], app.storage.user['tool_chapter_number'], app.storage.user['tool_verse_number'] = selection
                 gui.load_area_2_content(title="Podcast", sync=False)
+                if gui:
+                    gui.sync_chapter_tool_to_area1(selection[1], selection[2], selection[3])
         ui.button(get_translation('Go'), on_click=lambda: change_audio_chapter(bible_selector.get_selection()))
     bible_selector.create_ui(version, b, c, v, additional_items=additional_items, show_versions=False, show_verses=False)
     # audio folder

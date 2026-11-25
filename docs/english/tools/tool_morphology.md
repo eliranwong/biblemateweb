@@ -9,7 +9,7 @@ Word Morphology displays the grammatical form and structure of each Hebrew (Old 
 ## **How to Use the Morphology Tool**
 
 1. **Select a Verse**: Use the Bible selector to choose a specific verse.
-2. **Click "Go"**: Load the morphological analysis for that verse.
+2. **Click "Go"**: Load the morphological analysis for that verse (or click **Export Table** next to **Go** to download the verse's morphology data as an Excel `.xlsx` workbook).
 3. **View Word Data**: Each word is displayed with its form, lexical entry, and morphological tags.
 4. **Select Morphology**: Click morphology chips to select/deselect grammatical features for searching.
 5. **Search**: Click a search button to find verses with similar morphological patterns.

@@ -8,7 +8,7 @@ from biblemateweb.translations.sc import translation_sc
 from biblemateweb.dialogs.filename_dialog import FilenameDialog
 from nicegui import app, ui
 from typing import List
-import os, glob, apsw, re, asyncio, json, markdown2, traceback, tempfile, pypandoc
+import os, glob, apsw, re, asyncio, json, markdown2, traceback, tempfile, pypandoc, io, html as html_lib
 import numpy as np
 
 BIBLE_BOOKS = [BibleBooks.abbrev["eng"][str(i)][0] for i in range(1,67)]
@@ -183,6 +183,54 @@ async def download_xlsx(xlsx_bytes: bytes):
         ui.notify(get_translation("Downloaded!"), type='positive')
     else:
         ui.notify(get_translation("Nothing to download"), type='negative')
+
+
+def html_to_plain_text(html_content: str) -> str:
+    """Convert HTML content into clean plain text / Markdown-friendly paragraphs."""
+    if not html_content:
+        return ""
+    plain = re.sub(r"<br\s*/?>", "\n", html_content)
+    plain = re.sub(r"</(?:p|div|h[1-6]|li|tr|hr)>", "\n", plain)
+    plain = re.sub(r"<[^<>]+?>", " ", plain)
+    plain = html_lib.unescape(plain)
+    plain = re.sub(r"[ \t]+", " ", plain)
+    plain = re.sub(r"\n{3,}", "\n\n", plain)
+    return "\n".join(line.strip() for line in plain.splitlines()).strip()
+
+
+def build_xlsx_table(headers: list[str], rows: list[list], sheet_name: str = "Sheet1", widths: list[int] | None = None) -> bytes:
+    """Build a formatted .xlsx workbook from headers and row lists."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font
+    from openpyxl.utils import get_column_letter
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = sheet_name[:31]
+
+    ws.append(headers)
+    header_font = Font(bold=True)
+    header_align = Alignment(vertical="top")
+    for col_idx in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.font = header_font
+        cell.alignment = header_align
+
+    wrap_align = Alignment(wrap_text=True, vertical="top")
+    for row in rows:
+        ws.append(row)
+        row_idx = ws.max_row
+        for col_idx in range(1, len(headers) + 1):
+            ws.cell(row=row_idx, column=col_idx).alignment = wrap_align
+
+    ws.freeze_panes = "A2"
+    if widths:
+        for col_idx, width in enumerate(widths, start=1):
+            ws.column_dimensions[get_column_letter(col_idx)].width = width
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
 
 async def loading(func, *args, **kwargs):
     n = ui.notification(timeout=None)
@@ -625,6 +673,7 @@ USER_DEFAULT_SETTINGS = {
     'primary_bible': 'NET',
     'secondary_bible': 'KJV',
     'favorite_commentary': 'AIC',
+    'favorite_commentaries': [],
     'favorite_encyclopedia': 'ISB',
     'favorite_lexicon': 'Morphology',
     'hebrew_lexicon': 'TBESH',

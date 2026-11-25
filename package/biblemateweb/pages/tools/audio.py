@@ -164,6 +164,8 @@ def bibles_audio(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
                     previous_chapter = i
         app.storage.user["tool_book_text"], app.storage.user["tool_book_number"], app.storage.user["tool_chapter_number"], app.storage.user["tool_verse_number"] = selected_text, new_b, new_c, 1
         gui.load_area_2_content(title="Audio", sync=False)
+        if gui and area == 2:
+            gui.sync_chapter_tool_to_area1(new_b, new_c, 1)
 
     # version options
     version_options = getAudioVersionList(app.storage.client["custom"])
@@ -189,6 +191,8 @@ def bibles_audio(gui=None, bt=None, b=1, c=1, v=1, area=2, **_):
             else:
                 app.storage.user['tool_book_text'], app.storage.user['tool_book_number'], app.storage.user['tool_chapter_number'], app.storage.user['tool_verse_number'] = selection
                 gui.load_area_2_content(title="Audio", sync=False)
+                if gui:
+                    gui.sync_chapter_tool_to_area1(selection[1], selection[2], selection[3])
         ui.button(get_translation('Go'), on_click=lambda: change_audio_chapter(bible_selector.get_selection()))
     bible_selector.create_ui(version, b, c, v, additional_items=additional_items)
     # Text file list

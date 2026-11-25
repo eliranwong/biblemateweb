@@ -1,6 +1,6 @@
 from nicegui import ui, app, run
 import os, asyncio, apsw
-from biblemateweb import BIBLEMATEWEB_DATA, get_translation
+from biblemateweb import BIBLEMATEWEB_DATA, download_docx, download_txt, get_translation, html_to_plain_text
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 
 def get_db_file(lang="eng"):
@@ -45,27 +45,41 @@ def book_analysis(gui=None, b=1, q="", **_):
         await asyncio.sleep(0)
         contents = await run.io_bound(get_contents, b, app.storage.user['ui_language'])
 
-        with ui.row().classes('w-full justify-center'):
-            book_options = {i: BibleBooks.abbrev[app.storage.user['ui_language']][str(i)][-1] for i in range(1,67)}
+        sections = {
+            "Overview": "info",
+            "Structural Outline": "account_tree",
+            "Logical Flow": "low_priority",
+            "Historical Setting": "history_edu",
+            "Themes": "style",
+            "Keywords": "vpn_key",
+            "Theology": "auto_stories",
+            "Canonical Placement": "format_list_numbered",
+            "Practical Living": "volunteer_activism",
+            "Summary": "summarize",
+        }
+        book_options = {i: BibleBooks.abbrev[app.storage.user['ui_language']][str(i)][-1] for i in range(1,67)}
+
+        def _build_export_md():
+            if not contents:
+                return ""
+            parts = [f"# {book_options.get(b, '')}"]
+            for idx, section in enumerate(sections.keys()):
+                if idx < len(contents):
+                    parts.append(f"## {get_translation(section)}\n\n{html_to_plain_text(contents[idx])}")
+            return "\n\n".join(parts)
+
+        with ui.row().classes('w-full items-center justify-between gap-2'):
             ui.select(
                 options=book_options,
                 value=b,
                 on_change=on_book_change,
             )
+            if contents:
+                with ui.row().classes('items-center gap-2'):
+                    ui.button("DOCX", icon='description', on_click=lambda: download_docx(_build_export_md())).props('outline size=sm color=secondary')
+                    ui.button("TXT", icon='download', on_click=lambda: download_txt(_build_export_md())).props('outline size=sm color=primary')
 
         if contents:
-            sections = {
-                "Overview": "info",
-                "Structural Outline": "account_tree",
-                "Logical Flow": "low_priority",
-                "Historical Setting": "history_edu",
-                "Themes": "style",
-                "Keywords": "vpn_key",
-                "Theology": "auto_stories",
-                "Canonical Placement": "format_list_numbered",
-                "Practical Living": "volunteer_activism",
-                "Summary": "summarize",
-            }
             # display content
             index = 0
             for section, icon in sections.items():

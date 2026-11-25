@@ -526,3 +526,4 @@ Use wildcards for flexible matching:
 - **Morphology Breakdown Chart**: When searching by morphology (`E...|` or `G...|`), a second bar chart appears inside **Distribution Analysis** showing the frequency of each grammatical form.
 - **Compare Translations**: Click **Compare Translations** in any verse chip's menu to view that verse side by side across your active, primary, secondary, and selected Bible translations with word-level differences highlighted.
 - **Export Table (Comparison)**: When multiple translations are displayed for the same verse(s), click **Export Table** to download a grouped Excel (`.xlsx`) comparison table.
+- **DOCX Export**: Click **DOCX** above the results list to download the currently displayed (or filtered) verses as a Word (`.docx`) document (formatted as a comparison table when multiple translations are shown for the same verse).

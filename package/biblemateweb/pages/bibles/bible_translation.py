@@ -294,6 +294,7 @@ def bible_translation(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, tit
                     ui.menu_item(f'📝 {get_translation("Book Note")}', on_click=lambda: open_tool((bible_selector.selected_version, bible_selector.selected_book, 0, 0), title="Notes"))
                     ui.menu_item(f'📝 {get_translation("Chapter Note")}', on_click=lambda: open_tool((bible_selector.selected_version, bible_selector.selected_book, bible_selector.selected_chapter, 0), title="Notes"))
                     ui.menu_item(f'📝 {get_translation("Verse Note")}', on_click=lambda: open_tool(bible_selector.get_selection(), title="Notes"))
+                add_chapter_export_menu_items(bible_selector.get_selection, db, fallback_html=content)
 
     bible_selector.create_ui(title, b, c, v, additional_items=additional_items)
 

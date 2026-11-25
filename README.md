@@ -61,7 +61,7 @@ BibleMate AI Web provides a unified web interface combining the best features of
 - **Audio Bible**: Listen to Bible chapters (multiple versions)
 - **Personal Notes, Bookmarks & Highlights**: Google Drive integration for synced study notes, local Notepad, color-coded verse **Highlights** (light/dark mode aware), **Bookmarks**, **Reading History**, and a **365-Day Bible Reading Plan**
 - **Customizable UI & Comparison**: Dark mode, colors, fonts, layout options, **Compare Chapter**, and customizable **Verse Comparison** versions with word-diff highlighting
-- **Export**: Download content as TXT or DOCX (requires pandoc), including Chapter Study Sheets, Verses (`VersesPlain` when available), Markdown Comparison Tables, Cross-References, Treasury, and Commentaries
+- **Export**: Download content as TXT, Excel (`.xlsx`), or DOCX (requires pandoc), including whole Bible chapters (from the three-dots menu), Chapter Study Sheets, Verses (`VersesPlain` when available), Chapter Comparison, Morphology tables, Cross-References, Treasury, Commentaries, Chapter Summary, Book Analysis, Chronology, and Search entries/lists
 - **Distribution Analysis**: Interactive book/chapter charts with OT/NT totals and on-demand book loading for large search results
 - **Deep Linking**: Share specific verses, chapters, and tool states via URL
 

@@ -1,7 +1,10 @@
 from nicegui import ui, app
 from biblemateweb import (
     apply_verse_highlights_html,
+    build_xlsx_table,
     download_docx,
+    download_txt,
+    download_xlsx,
     getBibleVersionList,
     get_chapter_comparison_bibles,
     get_translation,
@@ -256,6 +259,8 @@ def compare_chapter(gui=None, bt=None, b=1, c=1, v=1, area=2, q='', **_):
         bible_selector.chapter_select.update()
 
         render_table()
+        if gui and area == 2:
+            gui.sync_chapter_tool_to_area1(new_b, new_c, new_v)
 
     def go_to_selected():
         _, sel_b, sel_c, _ = bible_selector.get_selection()
@@ -266,6 +271,8 @@ def compare_chapter(gui=None, bt=None, b=1, c=1, v=1, area=2, q='', **_):
         app.storage.user['tool_chapter_number'] = sel_c
         app.storage.user['tool_verse_number'] = 1
         render_table()
+        if gui and area == 2:
+            gui.sync_chapter_tool_to_area1(sel_b, sel_c, 1)
 
     def previous_chapter():
         db = _nav_db()
@@ -358,6 +365,80 @@ def compare_chapter(gui=None, bt=None, b=1, c=1, v=1, area=2, q='', **_):
 
         await download_docx("\n".join(lines))
 
+    async def export_xlsx():
+        selected = [ver for ver in (versions_select.value or []) if ver in available_versions]
+        if not selected:
+            ui.notify(get_translation("Nothing to download"), type='negative')
+            return
+        cur_b, cur_c = state['b'], state['c']
+        verse_by_verse = bool(app.storage.user.get('compare_chapter_verse_by_verse', False))
+        lang = app.storage.user.get('ui_language', 'eng')
+        chapter_ref = BibleVerseParser(False, language=lang).bcvToVerseReference(cur_b, cur_c, 1, isChapter=True)
+
+        def _clean_cell(text):
+            plain = re.sub(r"<[^<>]+?>", " ", text or "")
+            plain = html_lib.unescape(plain)
+            return re.sub(r"\s+", " ", plain).strip()
+
+        if not verse_by_verse:
+            headers = selected
+            row = []
+            for ver in selected:
+                db_path = getBiblePath(ver)
+                verses = getBibleChapterVerses(db_path, cur_b, cur_c) if db_path else []
+                if verses:
+                    row.append("\n".join(f"[{vv}] {_clean_cell(vtext)}" for _, _, vv, vtext in verses))
+                else:
+                    raw_html = getBibleChapter(db_path, cur_b, cur_c) if db_path else ""
+                    row.append(_clean_cell(raw_html))
+            rows = [row]
+            widths = [50 for _ in selected]
+        else:
+            version_verse_maps = []
+            all_verse_nums = set()
+            for ver in selected:
+                db_path = getBiblePath(ver)
+                vmap = {}
+                if db_path:
+                    try:
+                        for _, _, vv, vtext in getBibleChapterVerses(db_path, cur_b, cur_c):
+                            vmap[vv] = _clean_cell(vtext)
+                            all_verse_nums.add(vv)
+                    except Exception:
+                        pass
+                version_verse_maps.append(vmap)
+            headers = ["#", *selected]
+            rows = [[vv, *[vmap.get(vv, "") for vmap in version_verse_maps]] for vv in sorted(all_verse_nums)]
+            widths = [8, *[50 for _ in selected]]
+
+        await download_xlsx(build_xlsx_table(headers, rows, sheet_name=chapter_ref, widths=widths))
+
+    async def export_txt():
+        selected = [ver for ver in (versions_select.value or []) if ver in available_versions]
+        if not selected:
+            ui.notify(get_translation("Nothing to download"), type='negative')
+            return
+        cur_b, cur_c = state['b'], state['c']
+        lang = app.storage.user.get('ui_language', 'eng')
+        chapter_ref = BibleVerseParser(False, language=lang).bcvToVerseReference(cur_b, cur_c, 1, isChapter=True)
+
+        def _clean_cell(text):
+            plain = re.sub(r"<[^<>]+?>", " ", text or "")
+            plain = html_lib.unescape(plain)
+            return re.sub(r"\s+", " ", plain).strip()
+
+        sections = [f"# {chapter_ref}"]
+        for ver in selected:
+            db_path = getBiblePath(ver)
+            verses = getBibleChapterVerses(db_path, cur_b, cur_c) if db_path else []
+            if verses:
+                body = "\n".join(f"[{vv}] {_clean_cell(vtext)}" for _, _, vv, vtext in verses)
+            else:
+                raw_html = getBibleChapter(db_path, cur_b, cur_c) if db_path else ""
+                body = _clean_cell(raw_html)
+            sections.append(f"## {ver}\n\n{body}")
+        await download_txt("\n\n".join(sections))
+
     def additional_items():
         ui.button(get_translation('Go'), on_click=go_to_selected)
         ui.switch(
@@ -370,6 +451,8 @@ def compare_chapter(gui=None, bt=None, b=1, c=1, v=1, area=2, q='', **_):
         ).bind_value(app.storage.user, 'compare_chapter_diff') \
          .bind_visibility_from(app.storage.user, 'compare_chapter_verse_by_verse')
         ui.button("📥 DOCX", on_click=export_docx).props('outline dense')
+        ui.button("📥 XLSX", on_click=export_xlsx).props('outline dense')
+        ui.button("📥 TXT", on_click=export_txt).props('outline dense')
 
     bible_selector.create_ui(
         active_bible if active_bible in available_versions else available_versions[0],

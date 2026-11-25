@@ -7,6 +7,8 @@ Click a **verse number** in a Bible (or right-click a verse; also via ⋮ → `V
 | Item | Description |
 |---|---|
 | 📋 **Copy** | Copies the verse as `[Reference] text` (tags removed) to the clipboard |
+| 🔖 **Bookmark Verse** | Bookmarks the verse (manage saved bookmarks from **Tools → Bookmarks**) |
+| 📒 **Add to Notepad** | Sends the verse (`[Reference] text`, HTML tags stripped) to the [Notepad](../tools/tool_notepad.md) |
 | 🔊 **Bible Audio** | Plays the chapter audio synced to your Bible ([Audio](../tools/tool_audio.md)) |
 | 🔗 **Cross-references** | Related passages for the verse ([Xrefs](../tools/tool_xrefs.md)) |
 | 🏦 **Treasury** | Treasury of Scripture Knowledge entries ([Treasury](../tools/tool_treasury.md)) |
