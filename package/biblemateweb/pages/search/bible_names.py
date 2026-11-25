@@ -36,7 +36,7 @@ def load_names_vectors_from_db(db_file, sql_table):
 async def fetch_bible_names_matches_async(search_term, spin=True):
     if spin:
         n = ui.notification("Loading ...", timeout=None, spinner=True)
-    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
+    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlbn.db")
     sql_table = exlbn_table(app.storage.user.get("ui_language", "eng"))
     embedding_model = "paraphrase-multilingual"
     options = []
@@ -90,7 +90,7 @@ async def fetch_bible_names_matches_async(search_term, spin=True):
     return options
 
 def fetch_bible_names_matches(search_term):
-    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
+    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlbn.db")
     sql_table = exlbn_table(app.storage.user.get("ui_language", "eng"))
     embedding_model="paraphrase-multilingual"
     options = []

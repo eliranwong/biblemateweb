@@ -23,8 +23,8 @@ def fetch_bible_topics_entry(path, language="eng"):
 
 async def fetch_bible_topics_matches_async(query):
     n = ui.notification(get_translation('Loading...'), timeout=None, spinner=True)
-    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
     sql_table = exlbt_table(app.storage.user.get("ui_language", "eng"))
+    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", f"{sql_table}.db")
     embedding_model = "paraphrase-multilingual"
     path = ""
     options = []
@@ -75,8 +75,8 @@ async def fetch_bible_topics_matches_async(query):
     return path, options
 
 def fetch_bible_topics_matches(query):
-    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
     sql_table = exlbt_table(app.storage.user.get("ui_language", "eng"))
+    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", f"{sql_table}.db")
     embedding_model="paraphrase-multilingual"
     path = ""
     options = []
@@ -114,10 +114,11 @@ def fetch_bible_topics_matches(query):
     return path, options
 
 def fetch_all_topics(language="eng"):
-    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
+    sql_table = exlbt_table(language)
+    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", f"{sql_table}.db")
     with apsw.Connection(db_file) as connn:
         cursor = connn.cursor()
-        sql_query = f"SELECT entry FROM {exlbt_table(language)}"
+        sql_query = f"SELECT entry FROM {sql_table}"
         cursor.execute(sql_query)
         all_entries = [i[0] for i in cursor.fetchall()]
     all_entries = list(set([i for i in all_entries if i]))

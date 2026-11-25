@@ -36,7 +36,7 @@ def fetch_bible_locations_entry(path, language="eng"):
 
 async def fetch_bible_locations_matches_async(query):
     n = ui.notification(get_translation('Loading...'), timeout=None, spinner=True)
-    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
+    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlbl.db")
     sql_table = exlbl_table(app.storage.user.get("ui_language", "eng"))
     embedding_model = "paraphrase-multilingual"
     path = ""
@@ -88,7 +88,7 @@ async def fetch_bible_locations_matches_async(query):
     return path, options
 
 def fetch_bible_locations_matches(query):
-    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
+    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlbl.db")
     sql_table = exlbl_table(app.storage.user.get("ui_language", "eng"))
     embedding_model="paraphrase-multilingual"
     path=""

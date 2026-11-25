@@ -22,7 +22,10 @@ API：`semantic:::{bibles_books}*:::{search_string}`，例如 `semantic:::love o
 
 | 搜索 | 向量数据 |
 |---|---|
-| 主题、人物、地点、名字 | `~/biblemate/data/vectors/exlb.db` |
+| 主题 | `~/biblemate/data/vectors/exlbt.db`、`exlbt_tc.db`、`exlbt_sc.db` |
+| 人物 | `~/biblemate/data/vectors/exlbp.db` |
+| 地点 | `~/biblemate/data/vectors/exlbl.db` |
+| 名字 | `~/biblemate/data/vectors/exlbn.db` |
 | 平行经文、圣经应许 | `~/biblemate/data/vectors/collection.db` |
 | 圣经字典 | `~/biblemate/data/vectors/dictionary.db` |
 | 百科全书 | `~/biblemate/data/vectors/encyclopedia.db` |

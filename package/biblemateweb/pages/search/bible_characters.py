@@ -22,7 +22,7 @@ def fetch_bible_characters_entry(path, language="eng"):
 
 async def fetch_bible_characters_matches_async(query):
     n = ui.notification(get_translation('Loading...'), timeout=None, spinner=True)
-    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
+    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlbp.db")
     sql_table = exlbp_table(app.storage.user.get("ui_language", "eng"))
     embedding_model = "paraphrase-multilingual"
     path = ""
@@ -75,7 +75,7 @@ async def fetch_bible_characters_matches_async(query):
     return path, options
 
 def fetch_bible_characters_matches(query):
-        db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
+        db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlbp.db")
         sql_table = exlbp_table(app.storage.user.get("ui_language", "eng"))
         embedding_model="paraphrase-multilingual"
         path=""
@@ -114,7 +114,7 @@ def fetch_bible_characters_matches(query):
         return path, options
 
 def fetch_all_characters(language="eng"):
-    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
+    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlbp.db")
     with apsw.Connection(db_file) as connn:
         cursor = connn.cursor()
         sql_query = f"SELECT entry FROM {exlbp_table(language)}"

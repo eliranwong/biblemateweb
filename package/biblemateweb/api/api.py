@@ -245,7 +245,7 @@ def get_topics_content(query, language, custom):
     return html2md(html)
 
 def get_names_content(query, language, custom):
-    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlb.db")
+    db_file = os.path.join(BIBLEMATEWEB_DATA, "vectors", "exlbn.db")
     sql_table = f"exlbn_{language}" if language in ("tc", "sc") else "exlbn"
     with apsw.Connection(db_file) as connn:
         cursor = connn.cursor()

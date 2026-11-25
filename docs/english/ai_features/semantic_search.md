@@ -22,7 +22,10 @@ These look up an exact entry first. If none matches, they search by meaning and 
 
 | Search | Vector data |
 |---|---|
-| Topics, Characters, Locations, Names | `~/biblemate/data/vectors/exlb.db` |
+| Topics | `~/biblemate/data/vectors/exlbt.db`, `exlbt_tc.db`, `exlbt_sc.db` |
+| Characters | `~/biblemate/data/vectors/exlbp.db` |
+| Locations | `~/biblemate/data/vectors/exlbl.db` |
+| Names | `~/biblemate/data/vectors/exlbn.db` |
 | Parallels, Promises | `~/biblemate/data/vectors/collection.db` |
 | Dictionaries | `~/biblemate/data/vectors/dictionary.db` |
 | Encyclopedias | `~/biblemate/data/vectors/encyclopedia.db` |
