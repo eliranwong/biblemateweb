@@ -1,5 +1,5 @@
 from biblemateweb import BIBLEMATEWEB_DATA, download_docx, download_txt, download_xlsx, load_topic_vectors_from_db, get_translation
-from biblemateweb.fx.bible import build_export_verses_text, build_export_verses_xlsx, get_bible_content
+from biblemateweb.fx.bible import add_bible_word_tooltips, build_export_verses_text, build_export_verses_xlsx, get_bible_content
 from functools import partial
 from nicegui import ui, app, run
 from agentmake.utils.rag import get_embeddings, cosine_similarity_matrix
@@ -270,7 +270,8 @@ def search_bible_parallels(gui=None, q='', **_):
                         chip.on('remove', lambda _, r=row, ref=v['ref']: remove_verse_row(r, ref))
 
                     # --- Content ---
-                    ui.html(v['content'], sanitize=False).classes('grow min-w-0 leading-relaxed pl-2 text-base break-words')
+                    content = add_bible_word_tooltips(v['content'], v.get('bible', ''))
+                    ui.html(content, sanitize=False).classes('grow min-w-0 leading-relaxed pl-2 text-base break-words')
 
         # Clear input so user can start typing to filter immediately
         export_row.set_visibility(True)

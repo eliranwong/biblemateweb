@@ -1,6 +1,6 @@
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
-from biblemateweb.fx.bible import build_export_verses_text, build_export_verses_xlsx, get_bible_content, getBiblePath
+from biblemateweb.fx.bible import add_bible_word_tooltips, build_export_verses_text, build_export_verses_xlsx, get_bible_content, getBiblePath
 from biblemateweb import BIBLEMATEWEB_DATA, config, download_docx, download_txt, download_xlsx, get_comparison_bibles, get_morphology_db, get_translation, resolve_verses_additional_options
 from collections import Counter
 from functools import partial
@@ -212,12 +212,7 @@ def search_bible_verses(gui=None, q='', **_):
                         plain_txt = re.sub(r"<[^<>]+?>", "", str(content)).strip()
                         content = _word_diff_html(base_plain_map[coord][1], plain_txt)
                     else:
-                        if "</heb>" in content:
-                            content = re.sub('(<heb id=")(.*?)"', r'\1\2" data-word="\2" class="tooltip-word"', content)
-                            content = content.replace("<heb> </heb>", "<heb>&nbsp;</heb>")
-                            content = f"<div style='display: inline-block; direction: rtl;'>{content}</div>"
-                        elif "</grk>" in content:
-                            content = re.sub('(<grk id=")(.*?)"', r'\1\2" data-word="\2" class="tooltip-word"', content)
+                        content = add_bible_word_tooltips(content, v.get('bible', ''))
                         if highlights and search_query:
                             if app.storage.user["dark_mode"]:
                                 content = re.sub(f"({search_query})", r"<font color='orange'>\1</font>", content, flags=0 if app.storage.user['search_case_sensitivity'] else re.IGNORECASE)

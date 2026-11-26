@@ -218,7 +218,7 @@ class BibleMateWeb:
 
             self.area1_wrapper = ui.column().classes('w-full h-full !gap-0')
             with self.area1_wrapper:
-                self.area1_tabs = ui.tabs().classes('w-full')
+                self.area1_tabs = ui.tabs(on_change=self.on_area1_tab_change).classes('w-full')
                 with self.area1_tabs:
                     if previous_tabs1:
                         for i in range(1, len(previous_tabs1)+1):
@@ -422,6 +422,19 @@ class BibleMateWeb:
             self.area1_wrapper.set_visibility(False)
             self.area2_wrapper.set_visibility(True)
             self.splitter.set_value(0)  # Move self.splitter to maximize Area 2
+
+    def on_area1_tab_change(self, e):
+        """Sync global Bible position when switching Area 1 tabs."""
+        tab_args = app.storage.user.get(e.value)
+        if isinstance(tab_args, dict):
+            if "bt" in tab_args:
+                app.storage.user['bible_book_text'] = tab_args["bt"]
+            if "b" in tab_args:
+                app.storage.user['bible_book_number'] = tab_args["b"]
+            if "c" in tab_args:
+                app.storage.user['bible_chapter_number'] = tab_args["c"]
+            if "v" in tab_args:
+                app.storage.user['bible_verse_number'] = tab_args["v"]
 
     def get_active_area1_tab(self):
         """Get the currently active tab in Area 1"""
@@ -1111,9 +1124,13 @@ class BibleMateWeb:
     def open_area_1_bible_bible(self, bible):
         if refs := BibleVerseParser(False).extractAllReferences(app.storage.user['tool_query']): # to work with text selection
             b, c, v, *_ = refs[0]
-            self.change_area_1_bible_chapter(version=bible, book=b, chapter=c, verse=v)
         else:
-            self.load_area_1_content(title=bible)
+            active_tab = self.get_active_area1_tab()
+            tab_args = app.storage.user.get(active_tab, {})
+            b = tab_args.get("b", app.storage.user.get('bible_book_number', 1))
+            c = tab_args.get("c", app.storage.user.get('bible_chapter_number', 1))
+            v = tab_args.get("v", app.storage.user.get('bible_verse_number', 1))
+        self.change_area_1_bible_chapter(version=bible, book=b, chapter=c, verse=v)
 
     def open_sync_tool(self, tool='Audio'):
         app.storage.user['tool_book_text'] = self.get_area_1_bible_text()
@@ -1146,6 +1163,16 @@ class BibleMateWeb:
         area1_args = app.storage.user.get(active_tab1, {})
         if area1_args.get("b") != book or area1_args.get("c") != chapter:
             self.change_area_1_bible_chapter(None, book, chapter, verse, sync_area2=False)
+
+    def change_area_1_bible_verse(self, _, book, chapter, verse):
+        ui.run_javascript(f'scrollToVerse("v{book}.{chapter}.{verse}")')
+        self.update_active_area1_tab_records(v=verse)
+        app.storage.user['bible_verse_number'] = verse
+
+    def change_area_2_bible_verse(self, _, book, chapter, verse):
+        ui.run_javascript(f'scrollToVerse("v{book}.{chapter}.{verse}")')
+        self.update_active_area2_tab_records(v=verse)
+        app.storage.user['tool_verse_number'] = verse
 
     def change_area_1_bible_chapter(self, version=None, book=1, chapter=1, verse=1, sync_area2=True):
         if version is None:
@@ -1349,6 +1376,7 @@ class BibleMateWeb:
                 client_bibles = getBibleVersionList(app.storage.client["custom"])
                 if search_item in client_bibles:
                     self.open_area_1_bible_bible(search_item)
+                    quick_search.value = ""
                     return
                 refs = parser.extractAllReferences(search_item)
                 if search_item.lower().startswith("bible:::") and refs: # open a parallel bible chapter in area 2

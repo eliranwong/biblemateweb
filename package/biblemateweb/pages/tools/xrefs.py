@@ -1,6 +1,6 @@
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from biblemateweb import BIBLEMATEWEB_DATA, download_docx, download_txt, download_xlsx, get_translation
-from biblemateweb.fx.bible import build_export_verses_text, build_export_verses_xlsx, get_bible_content
+from biblemateweb.fx.bible import add_bible_word_tooltips, build_export_verses_text, build_export_verses_xlsx, get_bible_content
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 from collections import Counter
 from functools import partial
@@ -308,7 +308,8 @@ def xrefs(gui=None, b=1, c=1, v=1, q='', **_):
                                     chip.on('remove', lambda _, r=row, ref=v['ref']: remove_verse_row(r, ref))
 
                                 # --- Content ---
-                                ui.html(v['content'], sanitize=False).classes('grow min-w-0 leading-relaxed pl-2 text-base break-words')
+                                content = add_bible_word_tooltips(v['content'], v.get('bible', ''))
+                                ui.html(content, sanitize=False).classes('grow min-w-0 leading-relaxed pl-2 text-base break-words')
 
                     # Clear input so user can start typing to filter immediately
                     input_field.value = ""

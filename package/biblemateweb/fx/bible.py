@@ -15,6 +15,47 @@ from agentmake.plugins.uba.lib.BibleBooks import BibleBooks
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
 import re, apsw, os, html as html_lib
 from biblemate.api.bible import BibleVectorDatabase
+from biblemateweb.data.lexical_data import lexical_data
+
+
+def _strong_to_lex(match):
+    lexical_entry = match.group(1)
+    if lexical_entry in lexical_data:
+        return rf'<ref data-word="{lexical_entry}" class="tooltip-word">{lexical_data[lexical_entry][0]}'
+    if lexical_entry + "a" in lexical_data:
+        return rf'<ref data-word="{lexical_entry}" class="tooltip-word">{lexical_data[lexical_entry + "a"][0]}'
+    return match.group(0)
+
+
+def add_bible_word_tooltips(content: str, version: str = "") -> str:
+    """Attach tooltip-word attributes to tagged words, Strong's numbers, and study notes in verse HTML."""
+    if not content:
+        return ""
+    content = content.replace("<br<", "<br><").replace("<heb> </heb>", "<heb>&nbsp;</heb>")
+    content = re.sub(
+        r'(<(?:heb|grk|en|zh) id=")(.*?)"',
+        r'\1\2" data-word="\2" class="tooltip-word"',
+        content,
+    )
+    if "<ref onclick='bn(" in content:
+        content = re.sub(
+            rf'''<ref onclick='bn\(([0-9]+?),[ ]*?([0-9]+?),[ ]*?([0-9]+?),[ ]*?"(.*?)"\)'>''',
+            rf'<ref data-word="bn,{version},\1,\2,\3,\4" class="tooltip-word">',
+            content,
+        )
+    elif '<ref onclick="bn(' in content:
+        content = re.sub(
+            rf'''<ref onclick="bn\(([0-9]+?),[ ]*?([0-9]+?),[ ]*?([0-9]+?),[ ]*?'(.*?)'\)">''',
+            rf'<ref data-word="bn,{version},\1,\2,\3,\4" class="tooltip-word">',
+            content,
+        )
+    if "<ref onclick='lex(" in content:
+        content = re.sub(r'''<ref onclick='lex\("(.*?)"\)'>\1''', _strong_to_lex, content)
+    elif '<ref onclick="lex(' in content:
+        content = re.sub(r'''<ref onclick="lex\('(.*?)'\)">\1''', _strong_to_lex, content)
+    if "</heb>" in content:
+        content = f"<div style='display: inline-block; direction: rtl;'>{content}</div>"
+    return content
 
 
 def regexp(expr, item):
@@ -321,7 +362,7 @@ class BibleSelector:
 
         # replace default action
         if self.on_version_changed is not None:
-            return self.on_version_changed(self.selected_version)
+            return self.on_version_changed(self.selected_version, self.selected_book, self.selected_chapter, self.selected_verse)
         
         self.reset_book_dropdown()
         self.reset_chapter_dropdown()

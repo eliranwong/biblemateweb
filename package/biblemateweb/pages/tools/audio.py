@@ -40,12 +40,6 @@ class BibleAudioPlayer:
                 with ui.list().props('bordered separator').classes('w-full'):
                     for *_, verse_num, verse_text in self.text_list:
                         #verse_text = re.sub('<[^<>]*?>', '', verse_text).strip()
-                        # add tooltip
-                        if "</heb>" in verse_text:
-                            verse_text = re.sub('(<heb id=")(.*?)"', r'\1\2" data-word="\2" class="tooltip-word"', verse_text)
-                            verse_text = verse_text.replace("<heb> </heb>", "<heb>&nbsp;</heb>")
-                        elif "</grk>" in verse_text:
-                            verse_text = re.sub('(<grk id=")(.*?)"', r'\1\2" data-word="\2" class="tooltip-word"', verse_text)
                         with ui.item().classes(f'w-full hover:bg-gray-{500 if app.storage.user["dark_mode"] else 50}'):
                             with ui.item_section().props('avatar'):
                                 # Audio control button
@@ -54,9 +48,7 @@ class BibleAudioPlayer:
                                 btn.classes('flat round color=primary')
                                 self.verse_buttons[verse_num] = btn
                             with ui.item_section():
-                                verse_text = f"<vid>{verse_num}</vid> {verse_text}"
-                                if "</heb>" in verse_text:
-                                    verse_text = f"<div style='display: inline-block; direction: rtl;'>{verse_text}</div>"
+                                verse_text = add_bible_word_tooltips(f"<vid>{verse_num}</vid> {verse_text}")
                                 ui.html(verse_text, sanitize=False).classes('text-base')
                                 #ui.item_label(
                                 #    f"{verse_num}. {verse_text}"

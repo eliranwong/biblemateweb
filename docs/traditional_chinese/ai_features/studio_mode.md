@@ -22,7 +22,19 @@
 
 ## 安裝與設定步驟
 
-下載並解壓縮 [`manual_setup.zip`](https://github.com/eliranwong/antigravity-biblemate-workspace/raw/main/manual_setup.zip) 至 `~/biblemate`，或依作業系統執行下列指令：
+### 自動安裝（建議）
+
+執行 `biblematedata` 時，系統會自動將 **BibleMate Agentic Workspace** 與聖經資料庫一併安裝至 `~/biblemate`。
+
+若您僅需安裝工作區（例如已設定好聖經資料庫），可執行：
+
+```bash
+biblematedata --workspace-only
+```
+
+### 手動安裝（`manual_setup.zip`）
+
+您也可以手動下載並解壓縮 [`manual_setup.zip`](https://github.com/eliranwong/antigravity-biblemate-workspace/raw/main/manual_setup.zip) 至 `~/biblemate`，或依作業系統執行下列指令：
 
 ### macOS
 
@@ -47,12 +59,62 @@ curl -L -O https://github.com/eliranwong/antigravity-biblemate-workspace/raw/mai
 在使用工作室模式前，請先安裝並驗證**至少一個**以下後端：
 
 - **Antigravity CLI (`agy`)**：安裝 Antigravity CLI 並登入您的 Google 帳號。
-- **Claude Code CLI (`claude`)**：安裝 Claude Code 並完成登入。
+- **Claude Code CLI (`claude`)**：安裝 Claude Code 並完成登入（或如下方所示搭配 **Ollama** 設定使用）。
 - **Codex CLI (`codex`)**：安裝 Codex CLI 並執行 `codex login`。
 - **Grok Build CLI (`grok`)**：安裝 Grok Build 並執行 `grok login`。
 - **Gemini API (`gemini_api`)**：安裝 `google-antigravity`（`pip install -U google-antigravity`），並在啟動 `biblemateweb` 的終端機中設定環境變數 `GEMINI_API_KEY="your-gemini-api-key"`。
 
 完成上述檔案配置後，重新啟動 `biblemateweb`，系統會自動偵測已安裝的 `web_app_*.py` 後端。
+
+### 搭配 Ollama 使用 Claude Code（`~/.claude/settings.json`）
+
+您可以透過 Ollama 相容於 Anthropic 的 API，讓 **Claude Code (`claude`)** 後端連線至 Ollama 伺服器（支援本機或雲端模型，例如 `glm-5.3-flash:cloud`）。
+
+#### 1. 本機／一般使用（建議做法）
+
+建議直接編輯 **`~/.claude/settings.json`**，而非僅依賴終端機的 `export` 環境變數（避免從系統服務、桌面捷徑或不同終端機啟動 `biblemateweb` 時未繼承環境變數）：
+
+```json
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions"
+  },
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "ollama",
+    "ANTHROPIC_API_KEY": "",
+    "ANTHROPIC_BASE_URL": "http://localhost:11434",
+    "ANTHROPIC_MODEL": "glm-5.3-flash:cloud",
+    "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "256000",
+    "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS": "0",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true
+}
+```
+
+- 設定 `"ANTHROPIC_API_KEY": ""` 與 `"ANTHROPIC_AUTH_TOKEN": "ollama"` 可確保 Claude Code 直接連線至 Ollama，而不會要求 Anthropic Console API 金鑰或 `/login`。
+- `"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"` 可停用遙測、自動更新檢查與非必要的背景請求。
+
+#### 2. Docker 環境（`http://host.docker.internal:11434` 或 `http://ollama:11434`）
+
+當 `biblemateweb` 在 Docker 容器內執行時，若要指向容器外宿主機（Host）上執行的 Ollama，請將 `ANTHROPIC_BASE_URL` 設為 **`http://host.docker.internal:11434`**（若使用 Docker Compose 內的 `ollama` 服務，請改用 **`http://ollama:11434`**）：
+
+- 在 `docker-compose.yml` 中（詳見 [`docker/uniquebible-server/docker-compose.yml`](../../../docker/uniquebible-server/docker-compose.yml) 與 [`docker/AGY_DOCKER_SETUP.md`](../../../docker/AGY_DOCKER_SETUP.md)）：
+  ```yaml
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  environment:
+    ANTHROPIC_AUTH_TOKEN: ollama
+    ANTHROPIC_API_KEY: ""
+    # Points to Ollama running on the host (use http://ollama:11434 if using the Compose ollama service)
+    ANTHROPIC_BASE_URL: http://host.docker.internal:11434
+    ANTHROPIC_MODEL: glm-5.3-flash:cloud
+    CLAUDE_CODE_MAX_CONTEXT_TOKENS: 256000
+    CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS: 0
+    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
+  ```
+- 若將宿主機的 `~/.claude` 掛載進 Docker 容器且在 `~/.claude/settings.json` 中定義了 `"env"`，請將其中的 `ANTHROPIC_BASE_URL` 設為 `"http://host.docker.internal:11434"`（若使用 Compose `ollama` 服務則設為 `"http://ollama:11434"`），或從 `settings.json` 中省略 `ANTHROPIC_BASE_URL`，讓容器使用 `docker-compose.yml` 中的 `ANTHROPIC_BASE_URL` 設定。
 
 ---
 

@@ -1,3 +1,6 @@
+import os
+_INITIAL_ENV = os.environ.copy()
+
 from pathlib import Path
 from agentmake import readTextFile, writeTextFile
 from agentmake.plugins.uba.lib.BibleBooks import BibleBooks

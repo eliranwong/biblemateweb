@@ -359,7 +359,7 @@ What would you like to discuss today? Enter your message below to get started.
                     ui.markdown("---")
 
         with ui.row().classes('w-full flex-nowrap items-end mb-0'):
-            REQUEST_INPUT = ui.textarea(placeholder=get_translation("Enter your request here...")).props('rows=4').classes('flex-grow h-full resize-none').on('keydown.shift.enter.prevent', handle_send_click)
+            REQUEST_INPUT = ui.textarea(placeholder=get_translation("Enter your request here...")).props('rows=4').classes('flex-grow h-full resize-none').on('keydown.ctrl.s.prevent', handle_send_click).on('keydown.meta.s.prevent', handle_send_click)
             with ui.column().classes('h-full justify-between gap-2'):
                 ui.checkbox(get_translation("Auto-scroll")).classes('w-full').bind_value(app.storage.user, 'auto_scroll').props('dense').tooltip(get_translation("Scroll to the end automatically"))
                 SEND_BUTTON = ui.button(get_translation("Send"), on_click=handle_send_click).classes('w-full')

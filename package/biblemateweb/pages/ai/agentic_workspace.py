@@ -1,10 +1,11 @@
+import asyncio
 import importlib.util
 import os
 from urllib.parse import quote
 
 from nicegui import app, ui
 from agentmake.plugins.uba.lib.BibleParser import BibleVerseParser
-from biblemateweb import config, get_translation
+from biblemateweb import _INITIAL_ENV, config, get_translation
 
 WORKSPACE_BACKENDS = {
     'agy': {
@@ -36,6 +37,40 @@ WORKSPACE_BACKENDS = {
 
 _LOADED_MODULES = {}
 _IMAGES_MOUNTED = False
+
+_CLI_BACKEND_STRIP_KEYS = {
+    'claude': ('ANTHROPIC_API_KEY', 'CLAUDE_API_KEY'),
+    'codex': ('OPENAI_API_KEY',),
+    'grok': ('XAI_API_KEY',),
+    'agy': ('GEMINI_API_KEY', 'GOOGLEAI_API_KEY', 'GOOGLE_API_KEY'),
+}
+
+
+class _WorkspaceAsyncioProxy:
+    """Proxy asyncio for CLI workspace modules so agentmake-injected API keys do not override signed-in CLI sessions."""
+
+    def __init__(self, real_asyncio, strip_keys: tuple[str, ...]):
+        self._real = real_asyncio
+        self._strip_keys = strip_keys
+
+    def __getattr__(self, name):
+        return getattr(self._real, name)
+
+    async def create_subprocess_exec(self, *args, **kwargs):
+        if 'exec' in args and '--json' in args and '--skip-git-repo-check' not in args:
+            args_list = list(args)
+            idx = args_list.index('--json')
+            args_list[idx:idx] = ['--skip-git-repo-check', '--trust']
+            args = tuple(args_list)
+        env = kwargs.get('env')
+        clean_env = (env if env is not None else os.environ).copy()
+        for key in self._strip_keys:
+            if key in _INITIAL_ENV:
+                clean_env[key] = _INITIAL_ENV[key]
+            else:
+                clean_env.pop(key, None)
+        kwargs['env'] = clean_env
+        return await self._real.create_subprocess_exec(*args, **kwargs)
 
 
 def get_workspace_dir() -> str:
@@ -126,6 +161,10 @@ def load_workspace_module(backend: str):
     except Exception as exc:
         return None, f"Failed to load '{available[backend]['file']}': {exc}"
 
+    strip_keys = _CLI_BACKEND_STRIP_KEYS.get(backend)
+    if strip_keys and hasattr(mod, 'asyncio'):
+        mod.asyncio = _WorkspaceAsyncioProxy(mod.asyncio, strip_keys)
+
     _LOADED_MODULES[backend] = mod
     return mod, getattr(mod, 'BACKEND_ERROR', None)
 
@@ -178,7 +217,7 @@ def render_workspace_page(backend: str | None = None, ref: str = '', dark: bool 
         if ref:
             app_instance.message_input.props(f'placeholder="Ask about {ref} (or any Bible topic)..."')
     if getattr(app_instance, 'action_button', None) is not None:
-        app_instance.action_button.props('size=sm dense', remove='size=lg').classes(remove='mb-1')
+        app_instance.action_button.props('size=sm dense', remove='size=lg').classes('self-center', remove='mb-1')
 
 
 def _apply_biblemateweb_theme(dark_mode: bool = True) -> None:
@@ -212,6 +251,7 @@ def _apply_biblemateweb_theme(dark_mode: bool = True) -> None:
             min-width: 34px !important;
             min-height: 34px !important;
             margin-bottom: 0 !important;
+            align-self: center !important;
         }
         """
     )

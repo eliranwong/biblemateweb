@@ -23,7 +23,7 @@ def original_reader(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, **_):
     dummy_label1 = None
     dummy_label2 = None
 
-    bible_selector = BibleSelector(on_version_changed=gui.change_area_1_bible_chapter if area == 1 else gui.change_area_2_bible_chapter, on_book_changed=gui.change_area_1_bible_chapter if area == 1 else gui.change_area_2_bible_chapter, on_chapter_changed=gui.change_area_1_bible_chapter if area == 1 else gui.change_area_2_bible_chapter, on_verse_changed=change_bible_chapter_verse)
+    bible_selector = BibleSelector(on_version_changed=gui.change_area_1_bible_chapter if area == 1 else gui.change_area_2_bible_chapter, on_book_changed=gui.change_area_1_bible_chapter if area == 1 else gui.change_area_2_bible_chapter, on_chapter_changed=gui.change_area_1_bible_chapter if area == 1 else gui.change_area_2_bible_chapter, on_verse_changed=gui.change_area_1_bible_verse if area == 1 else gui.change_area_2_bible_verse)
     
     def open_tool(tool):
         nonlocal area, gui
@@ -84,6 +84,7 @@ def original_reader(gui=None, b=1, c=1, v=1, area=1, tab1=None, tab2=None, **_):
         b, c, v = event.args
         bible_selector.verse_select.value = v
         gui.update_active_area1_tab_records(v=v)
+        app.storage.user['bible_verse_number'] = v
         with dummy_label1:
             gui.open_verse_context_menu(db, b, c, v, (str(v) in verses_with_notes))
 

@@ -22,7 +22,19 @@
 
 ## Setup Instructions
 
-Download and unzip [`manual_setup.zip`](https://github.com/eliranwong/antigravity-biblemate-workspace/raw/main/manual_setup.zip) into `~/biblemate`, or run the command for your platform below:
+### Automatic Setup (Recommended)
+
+Running `biblematedata` installs **BibleMate Agentic Workspace** into `~/biblemate` automatically alongside the Bible databases.
+
+If you only want to install the workspace (for example, when Bible databases are already set up), run:
+
+```bash
+biblematedata --workspace-only
+```
+
+### Manual Setup (`manual_setup.zip`)
+
+Alternatively, download and unzip [`manual_setup.zip`](https://github.com/eliranwong/antigravity-biblemate-workspace/raw/main/manual_setup.zip) into `~/biblemate`, or run the command for your platform below:
 
 ### macOS
 
@@ -47,12 +59,62 @@ Download [`manual_setup.zip`](https://github.com/eliranwong/antigravity-biblemat
 Install and authenticate **at least one** of the following before using Studio Mode:
 
 - **Antigravity CLI (`agy`)**: Install Antigravity CLI and sign in with your Google account.
-- **Claude Code CLI (`claude`)**: Install Claude Code and complete sign-in.
+- **Claude Code CLI (`claude`)**: Install Claude Code and complete sign-in (or configure it with **Ollama** as shown below).
 - **Codex CLI (`codex`)**: Install Codex CLI and run `codex login`.
 - **Grok Build CLI (`grok`)**: Install Grok Build and run `grok login`.
 - **Gemini API (`gemini_api`)**: Install `google-antigravity` (`pip install -U google-antigravity`) and export `GEMINI_API_KEY="your-gemini-api-key"` in the shell running `biblemateweb`.
 
 Once the workspace files are in `~/biblemate`, restart `biblemateweb`—it automatically detects the installed `web_app_*.py` backends.
+
+### Using Claude Code with Ollama (`~/.claude/settings.json`)
+
+You can run the **Claude Code (`claude`)** backend against an Ollama server (supporting local or cloud models such as `glm-5.3-flash:cloud`) via Ollama's Anthropic-compatible API.
+
+#### 1. Local / General Use (Recommended)
+
+Rather than relying on shell `export` statements (which may not be inherited when `biblemateweb` is started from a service, desktop launcher, or different terminal), edit **`~/.claude/settings.json`** directly:
+
+```json
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions"
+  },
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "ollama",
+    "ANTHROPIC_API_KEY": "",
+    "ANTHROPIC_BASE_URL": "http://localhost:11434",
+    "ANTHROPIC_MODEL": "glm-5.3-flash:cloud",
+    "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "256000",
+    "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS": "0",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true
+}
+```
+
+- Setting `"ANTHROPIC_API_KEY": ""` and `"ANTHROPIC_AUTH_TOKEN": "ollama"` ensures Claude Code authenticates against Ollama instead of requiring an Anthropic Console API key or `/login`.
+- `"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"` disables telemetry, auto-updater checks, and non-essential background calls when routing through Ollama.
+
+#### 2. Docker (`http://host.docker.internal:11434` or `http://ollama:11434`)
+
+When running `biblemateweb` inside a Docker container, set `ANTHROPIC_BASE_URL` to **`http://host.docker.internal:11434`** to point to Ollama running on the host outside the container (or use **`http://ollama:11434`** if using the Docker Compose `ollama` service):
+
+- In `docker-compose.yml` (see [`docker/uniquebible-server/docker-compose.yml`](../../../docker/uniquebible-server/docker-compose.yml) and [`docker/AGY_DOCKER_SETUP.md`](../../../docker/AGY_DOCKER_SETUP.md)):
+  ```yaml
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  environment:
+    ANTHROPIC_AUTH_TOKEN: ollama
+    ANTHROPIC_API_KEY: ""
+    # Points to Ollama running on the host (use http://ollama:11434 if using the Compose ollama service)
+    ANTHROPIC_BASE_URL: http://host.docker.internal:11434
+    ANTHROPIC_MODEL: glm-5.3-flash:cloud
+    CLAUDE_CODE_MAX_CONTEXT_TOKENS: 256000
+    CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS: 0
+    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
+  ```
+- If you bind-mount `~/.claude` into the Docker container and define `"env"` inside `~/.claude/settings.json`, set `"ANTHROPIC_BASE_URL": "http://host.docker.internal:11434"` (or `"http://ollama:11434"` for the Compose `ollama` service) in `~/.claude/settings.json`, or omit `ANTHROPIC_BASE_URL` from `settings.json` so the container uses `ANTHROPIC_BASE_URL` from `docker-compose.yml`.
 
 ---
 

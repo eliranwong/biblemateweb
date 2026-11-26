@@ -4,16 +4,17 @@
 [![License](https://img.shields.io/badge/license-GPLv3-green)](https://www.gnu.org/licenses/gpl-3.0.html)
 [![Website](https://img.shields.io/badge/demo-app.biblemate.ai-orange)](https://app.biblemate.ai)
 
-**AI-powered Bible study web application with advanced search, original language tools, and autonomous agent capabilities.**
+**Your all-in-one, AI-powered Bible study web platform—uniting deep biblical scholarship, intelligent AI tools, and autonomous agentic workflows in one seamless interface.**
 
-BibleMate AI Web provides a unified web interface combining the best features of [BibleMate AI](https://github.com/eliranwong/biblemate) and [UniqueBible](https://github.com/eliranwong/UniqueBible). This repository contains the Web UI, HTTP Server, and API Server components.
+**BibleMate AI Web** brings together the very best of three flagship Bible study projects into a single, modern web experience (Web UI, HTTP Server, and REST API):
 
-> **Note:** For CLI Version, MCP Server, Agent Mode backend, Partner Mode, and Bible Data, see [BibleMate AI](https://github.com/eliranwong/biblemate)
+1. **Upgraded [UniqueBible](https://github.com/eliranwong/UniqueBible) Data & Scholarship** — Inherits and upgrades the rich biblical data ecosystem of UniqueBible: 100+ translations, original Hebrew (BHS5) & Greek (OGNT) texts with interlinear and morphology analysis, Strong's numbers, 30+ commentaries, lexicons, cross-references, and topical dictionaries—reimagined for fast, anywhere access in your browser.
+2. **[BibleMate AI](https://github.com/eliranwong/biblemate) Biblical Intelligence** — Deeply integrates BibleMate AI's engine with your biblical data, powering semantic verse discovery, conversational **Chat Mode**, collaborative **Partner Mode**, autonomous **Agent Mode**, CLI/MCP tools, and scripture-grounded insights.
+3. **[BibleMate Agentic Workspace](https://github.com/eliranwong/biblemate-agentic-workspace) (Studio Mode)** — Works together seamlessly with BibleMate Agentic Workspace on a **single server**. When `~/biblemate` is set up, BibleMate Web auto-detects your installed agentic backends (`agy`, `claude`, `codex`, `grok`, `gemini_api`) so you can launch **Studio Mode** as a standalone tool tab or side-by-side inside **Multi-Tool Workspace** (`AI: Studio Mode`). See the [Studio Mode Guide](docs/english/ai_features/studio_mode.md).
 
-> [!IMPORTANT]
-> **Seamless Integration with [BibleMate Agentic Workspace](https://github.com/eliranwong/biblemate-agentic-workspace) (Studio Mode):** **BibleMate Web** and **BibleMate Agentic Workspace** are the two flagship projects of the BibleMate ecosystem—and they work together seamlessly on a **single server**. When `~/biblemate` is set up, BibleMate Web auto-detects your installed agentic backends (`agy`, `claude`, `codex`, `grok`, `gemini_api`) and lets you launch **Studio Mode** as a standalone tool tab or side-by-side inside **Multi-Tool Workspace** (`AI: Studio Mode`). See the [Studio Mode Guide](docs/english/ai_features/studio_mode.md).
+> **Note:** For the CLI Version, MCP Server, Agent Mode backend, Partner Mode, and Bible Data, see [BibleMate AI](https://github.com/eliranwong/biblemate).
 
-<img width="1842" height="964" alt="biblemateweb_screenshot" src="https://github.com/user-attachments/assets/d86e74da-c7f1-432a-a4de-124f3c6daf99" />
+<img width="1843" height="864" alt="BibleMateAIWEB" src="https://github.com/user-attachments/assets/4515e001-d5c3-4aed-8bc8-07e7d0e0cf37" />
 
 ## Table of Contents
 
@@ -42,6 +43,7 @@ BibleMate AI Web provides a unified web interface combining the best features of
 - **Commentaries**: 30+ classic Bible commentaries and AI Commentary with quick switching and export
 - **Book, Chapter & Verse Indexes**: Whole-book, chapter, and verse study dashboards featuring **Translation Vocabulary**, **Vocabulary & Rare Words**, **Chapter Map**, **People Relationship Graph**, and quick-launch tool buttons
 - **Reference Books**: Read `.book` files (chapter-by-chapter) in a built-in reader, with clickable Bible references; add your own by dropping files into a folder ([guide](docs/english/tools/tool_books.md))
+- **Custom Data & Study Materials (`~/biblemate/data_custom/`)**: Integrate your own Bible translations (`.bible`), OPB clause modules (`.clause`), reference books (`.book`), and `tagged_translations.sqlite` into BibleMate Web—automatically available across menus, search, and the REST API (protected by `custom_token` when configured; see [Custom Resources](docs/english/integrations/custom_resources.md))
 - **Topical Studies**: Nave's, Thompson Chain, Torrey's topical Bibles
 - **Bible Dictionaries & Encyclopedias**: Easton's, Smith's, ISBE, and more
 
@@ -103,7 +105,13 @@ ollama pull paraphrase-multilingual
 
 ### Enabling Studio Mode (BibleMate Agentic Workspace)
 
-To bring **BibleMate Agentic Workspace** directly into **BibleMate Web** on the same server, download and unzip [`manual_setup.zip`](https://github.com/eliranwong/antigravity-biblemate-workspace/raw/main/manual_setup.zip) into `~/biblemate` and ensure at least one backend (`agy`, `claude`, `codex`, `grok`, or `GEMINI_API_KEY`) is configured. See the full [Studio Mode Setup Guide](docs/english/ai_features/studio_mode.md).
+`biblematedata` installs **BibleMate Agentic Workspace** into `~/biblemate` automatically. If you already have the Bible databases and only want to install the workspace, run:
+
+```bash
+biblematedata --workspace-only
+```
+
+Alternatively, you can manually download and unzip [`manual_setup.zip`](https://github.com/eliranwong/antigravity-biblemate-workspace/raw/main/manual_setup.zip) into `~/biblemate`. Ensure at least one backend (`agy`, `claude`, `codex`, `grok`, or `GEMINI_API_KEY`) is configured. See the full [Studio Mode Setup Guide](docs/english/ai_features/studio_mode.md).
 
 The web UI will be available at **http://localhost:33355**
 
@@ -194,7 +202,7 @@ config.hot_reload=False
 config.avatar=""                    # Custom avatar URL
 config.ai_backend=""                # Default AI backend
 config.embedding_model="paraphrase-multilingual"
-config.custom_token=""              # Token for custom data access
+config.custom_token=""              # Token to unlock ~/biblemate/data_custom/ resources
 config.google_client_id=""          # Google OAuth (for Drive notes)
 config.google_client_secret=""
 config.auth_uri=""                  # OAuth redirect URI override
@@ -368,8 +376,9 @@ Full documentation is available in the [Documentation Index](docs/README.md) ([E
 Contributions welcome! This project is part of the larger BibleMate AI ecosystem.
 
 **Related Repositories:**
-- [BibleMate AI](https://github.com/eliranwong/biblemate) - CLI, MCP Server, Agent backend
-- [UniqueBible](https://github.com/eliranwong/UniqueBible) - Desktop Bible study app
+- [UniqueBible](https://github.com/eliranwong/UniqueBible) - Desktop Bible study app and foundational biblical data
+- [BibleMate AI](https://github.com/eliranwong/biblemate) - CLI, MCP Server, Agent backend, and biblical data integration
+- [BibleMate Agentic Workspace](https://github.com/eliranwong/biblemate-agentic-workspace) - Autonomous agentic workspace powering Studio Mode
 
 **Support:**
 - [Issues](https://github.com/eliranwong/biblemateweb/issues) - Bug reports and feature requests

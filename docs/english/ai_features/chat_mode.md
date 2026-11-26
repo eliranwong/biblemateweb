@@ -10,7 +10,7 @@ A conversational assistant for questions about the Bible: verses, historical con
 ## Using it
 
 1. Type your request in the text box.
-2. Press **Send** or **Shift+Enter**.
+2. Press **Send** or **Ctrl+S** (**Cmd+S** on macOS).
 3. The answer streams in as formatted text. Each round is remembered, so you can ask follow-ups.
 4. While a task runs, the Send button becomes **Stop**; confirm to cancel.
 

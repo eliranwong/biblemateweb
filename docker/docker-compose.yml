@@ -21,6 +21,7 @@ services:
       ANTHROPIC_MODEL: glm-5.3-flash:cloud
       CLAUDE_CODE_MAX_CONTEXT_TOKENS: 256000
       CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS: 0
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
     volumes:
       - ~/biblemate:/home/${USER:-biblemate}/biblemate
       - ~/docker-agy/.gemini/antigravity-cli:/home/${USER:-biblemate}/.gemini/antigravity-cli
