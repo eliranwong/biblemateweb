@@ -38,7 +38,7 @@ RUN curl -fsSL https://antigravity.google/cli/install.sh | bash && \
 RUN \
     python3 -m venv "${VIRTUAL_ENV}" && \
     pip install --no-cache-dir --upgrade pip uv && \
-    uv pip install --no-cache "biblemateweb>=1.7.8" google-antigravity
+    uv pip install --no-cache "biblemateweb>=1.8.7"
 # Mount your workspace and agy auth/config at runtime (see scripts/docker-compose.yml):
 #   -v ~/biblemate:/home/${USER}/biblemate
 #   -v ~/docker-agy/.gemini/antigravity-cli:/home/${USER}/.gemini/antigravity-cli
