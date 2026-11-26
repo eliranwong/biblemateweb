@@ -116,6 +116,51 @@ curl -L -O https://github.com/eliranwong/antigravity-biblemate-workspace/raw/mai
   ```
 - 若將宿主機的 `~/.claude` 掛載進 Docker 容器且在 `~/.claude/settings.json` 中定義了 `"env"`，請將其中的 `ANTHROPIC_BASE_URL` 設為 `"http://host.docker.internal:11434"`（若使用 Compose `ollama` 服務則設為 `"http://ollama:11434"`），或從 `settings.json` 中省略 `ANTHROPIC_BASE_URL`，讓容器使用 `docker-compose.yml` 中的 `ANTHROPIC_BASE_URL` 設定。
 
+### 搭配 Azure OpenAI 模型使用 Codex CLI（`~/.codex/config.toml`）
+
+若您希望使用 **Codex CLI (`codex`)** 搭配 Azure OpenAI 模型（而非 ChatGPT／Codex 訂閱登入 `codex login`），可參考以下建議設定編輯 **`~/.codex/config.toml`**：
+
+```toml
+model = "gpt-6.1-sol"
+model_provider = "azure"
+model_reasoning_effort = "high"
+sandbox_mode = "danger-full-access"
+approval_policy = "never"
+web_search = "live"
+
+[model_providers.azure]
+name = "Azure OpenAI"
+base_url = "https://<project_name>.openai.azure.com/openai/v1"
+experimental_bearer_token = "<token>"
+#env_key = "AZURE_OPENAI_API_KEY"
+wire_api = "responses"
+
+[sandbox_workspace_write]
+network_access = true
+
+[projects."/tmp/codex-research"]
+trust_level = "trusted"
+
+[projects."/tmp/macro-codex"]
+trust_level = "trusted"
+
+[projects."/tmp/intl-scan"]
+trust_level = "trusted"
+
+[projects."/tmp"]
+trust_level = "trusted"
+
+[tui]
+screen_reader_detection_done = true
+
+[notice.model_migrations]
+"gpt-5.3-codex" = "gpt-5.4"
+"gpt-5.5" = "gpt-6-sol"
+```
+
+- 請將 `<project_name>` 替換為您的 Azure OpenAI 資源／專案名稱，並設定 `experimental_bearer_token = "<token>"`（或取消註解 `env_key = "AZURE_OPENAI_API_KEY"` 並在環境中設定 `AZURE_OPENAI_API_KEY`）。
+- 在 Docker（`uniquebible-server`）中，`~/.codex` 會自動掛載進容器，因此此設定同時適用於本機與 Docker 部署。
+
 ---
 
 ## 使用方式

@@ -116,6 +116,51 @@ When running `biblemateweb` inside a Docker container, set `ANTHROPIC_BASE_URL` 
   ```
 - If you bind-mount `~/.claude` into the Docker container and define `"env"` inside `~/.claude/settings.json`, set `"ANTHROPIC_BASE_URL": "http://host.docker.internal:11434"` (or `"http://ollama:11434"` for the Compose `ollama` service) in `~/.claude/settings.json`, or omit `ANTHROPIC_BASE_URL` from `settings.json` so the container uses `ANTHROPIC_BASE_URL` from `docker-compose.yml`.
 
+### Using Codex CLI with Azure OpenAI Models (`~/.codex/config.toml`)
+
+If you prefer using **Codex CLI (`codex`)** with Azure OpenAI models instead of a ChatGPT/Codex subscription (`codex login`), configure **`~/.codex/config.toml`** as follows:
+
+```toml
+model = "gpt-6.1-sol"
+model_provider = "azure"
+model_reasoning_effort = "high"
+sandbox_mode = "danger-full-access"
+approval_policy = "never"
+web_search = "live"
+
+[model_providers.azure]
+name = "Azure OpenAI"
+base_url = "https://<project_name>.openai.azure.com/openai/v1"
+experimental_bearer_token = "<token>"
+#env_key = "AZURE_OPENAI_API_KEY"
+wire_api = "responses"
+
+[sandbox_workspace_write]
+network_access = true
+
+[projects."/tmp/codex-research"]
+trust_level = "trusted"
+
+[projects."/tmp/macro-codex"]
+trust_level = "trusted"
+
+[projects."/tmp/intl-scan"]
+trust_level = "trusted"
+
+[projects."/tmp"]
+trust_level = "trusted"
+
+[tui]
+screen_reader_detection_done = true
+
+[notice.model_migrations]
+"gpt-5.3-codex" = "gpt-5.4"
+"gpt-5.5" = "gpt-6-sol"
+```
+
+- Replace `<project_name>` with your Azure OpenAI resource/project name, and set `experimental_bearer_token = "<token>"` (or uncomment `env_key = "AZURE_OPENAI_API_KEY"` and export `AZURE_OPENAI_API_KEY` in your environment).
+- In Docker (`uniquebible-server`), `~/.codex` is bind-mounted into the container, so this configuration works for both local and Docker deployments.
+
 ---
 
 ## How to Use
