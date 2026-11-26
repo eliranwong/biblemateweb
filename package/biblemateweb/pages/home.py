@@ -219,6 +219,7 @@ class BibleMateWeb:
             self.area1_wrapper = ui.column().classes('w-full h-full !gap-0')
             with self.area1_wrapper:
                 self.area1_tabs = ui.tabs(on_change=self.on_area1_tab_change).classes('w-full')
+                self.area1_tabs.bind_visibility_from(app.storage.user, 'show_tabs')
                 with self.area1_tabs:
                     if previous_tabs1:
                         for i in range(1, len(previous_tabs1)+1):
@@ -279,6 +280,7 @@ class BibleMateWeb:
             self.area2_wrapper = ui.column().classes('w-full h-full !gap-0')
             with self.area2_wrapper:
                 self.area2_tabs = ui.tabs().classes('w-full')
+                self.area2_tabs.bind_visibility_from(app.storage.user, 'show_tabs')
                 with self.area2_tabs:
                     if previous_tabs2:
                         for i in range(1, len(previous_tabs2)+1):
@@ -1642,6 +1644,13 @@ class BibleMateWeb:
                                 ui.menu_item(get_translation("Go"), on_click=toggleBibleSelectionButton)
                                 ui.space()
                                 ui.switch().bind_value(app.storage.user, 'bible_select_button')
+                            # tabs
+                            def toggleTabNames():
+                                app.storage.user["show_tabs"] = not app.storage.user.get("show_tabs", True)
+                            with ui.row().tooltip(get_translation("Toggle Display of Tab Names")):
+                                ui.menu_item(get_translation("Tabs"), on_click=toggleTabNames)
+                                ui.space()
+                                ui.switch().bind_value(app.storage.user, 'show_tabs')
                             # notes
                             def toggleNotes():
                                 app.storage.user["notes"] = not app.storage.user["notes"]
@@ -1716,6 +1725,7 @@ class BibleMateWeb:
 
             ui.switch(get_translation("Go")).bind_value(app.storage.user, 'bible_select_button')
             ui.switch(get_translation("Swap")).bind_value(app.storage.user, 'layout_swap_button')
+            ui.switch(get_translation("Tabs")).bind_value(app.storage.user, 'show_tabs')
             ui.switch(get_translation("Notes"), value=app.storage.user["notes"], on_change=toggleNotes)
             ui.switch(get_translation("Tooltip")).bind_value(app.storage.user, 'hover_tooltip').on_value_change(
                 lambda e: ui.run_javascript(f"window.BIBLEMATE_HOVER_TOOLTIP = {'true' if e.value else 'false'};")

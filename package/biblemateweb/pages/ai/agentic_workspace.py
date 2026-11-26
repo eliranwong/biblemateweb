@@ -201,7 +201,10 @@ def render_workspace_page(backend: str | None = None, ref: str = '', dark: bool 
         return
 
     if not backend or backend not in available:
-        backend = get_default_workspace_backend(available)
+        saved_backend = app.storage.user.get('workspace_backend')
+        backend = saved_backend if saved_backend in available else get_default_workspace_backend(available)
+    if backend in available:
+        app.storage.user['workspace_backend'] = backend
 
     mod, err = load_workspace_module(backend)
     if err or mod is None:
@@ -359,7 +362,7 @@ def ai_agentic_workspace(gui=None, **kwargs):
                     options=options,
                     value=selected_backend,
                     on_change=on_backend_change,
-                ).props('dense outlined options-dense').classes('min-w-[170px]')
+                ).bind_value(app.storage.user, 'workspace_backend').props('dense outlined options-dense').classes('min-w-[170px]')
 
                 def reload_iframe():
                     cur = app.storage.user.get('workspace_backend', selected_backend)

@@ -8,6 +8,7 @@ The gear icon in the header.
 | Bible Only / Tool Only / Bible & Tool | [Toggle layout](toggle_layout.md) |
 | Swap switch | Show/hide the [Swap button](floating_buttons.md) |
 | Go switch | Show/hide the [Go button](floating_buttons.md) |
+| Tabs switch | Show/hide the tab bars to save vertical space |
 | Notes switch | Show/hide note indicators (reloads the page) |
 | Tooltip switch | Toggle hover word tooltips (when off, click a word to show its [tooltip](../integrations/word_tooltips.md)) |
 | Sync switch | Toggle [Sync](sync.md) |

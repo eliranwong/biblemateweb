@@ -721,6 +721,7 @@ USER_DEFAULT_SETTINGS = {
     'layout_swap_button_pos': None,
     'bible_select_button': True,
     'bible_select_button_pos': None,
+    'show_tabs': True,
     'loop_audio': True,
     'loop_podcast': True,
     'prompt_engineering': True,

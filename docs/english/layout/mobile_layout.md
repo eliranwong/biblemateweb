@@ -6,7 +6,7 @@ On narrow screens, the header shows a **hamburger button** that opens a left dra
 
 - Avatar/title button (shows [URL & QR code](url_qr_code.md))
 - [Quick Search](quick_search.md)
-- Switches: `Go`, `Swap`, `Notes`, `Tooltip`, `Sync`, `Fullscreen`, `Dark Mode`
+- Switches: `Go`, `Swap`, `Tabs`, `Notes`, `Tooltip`, `Sync`, `Fullscreen`, `Dark Mode`
 - Expandable lists of Bibles and tools
 - Layout options: Bible Only, Tool Only, Bible & Tool
 

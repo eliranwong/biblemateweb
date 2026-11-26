@@ -8,6 +8,7 @@ Open the **Settings** (gear) menu in the navigation bar.
 | Bible Only / Tool Only / Bible & Tool | [Change layout](../layout/toggle_layout.md) | Bible & Tool |
 | Swap | Show/hide the Swap Layout button | On |
 | Go | Show/hide the Go (select verse) button | On |
+| Tabs | Show/hide the tab bars to save vertical space | On |
 | Notes | Show/hide note indicators (page reloads) | On |
 | Tooltip | Hover to show word tooltips (when Off, click a word to show its tooltip; [details](../integrations/word_tooltips.md)) | On |
 | <a id="sync"></a>Sync | Keep Bible and tool windows on the same chapter ([details](../layout/sync.md)) | On |
