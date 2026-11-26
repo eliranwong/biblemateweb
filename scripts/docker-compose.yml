@@ -1,0 +1,31 @@
+services:
+  biblemateweb:
+    build:
+      context: ..
+      dockerfile: scripts/Dockerfile
+      args:
+        USER: ${USER:-biblemate}
+        UID: ${UID:-1000}
+    container_name: biblemateweb
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    ports:
+      - "33355:33355"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      ANTHROPIC_AUTH_TOKEN: ollama
+      ANTHROPIC_API_KEY: ""
+      ANTHROPIC_BASE_URL: http://host.docker.internal:11434
+      ANTHROPIC_MODEL: glm-5.3-flash:cloud
+      CLAUDE_CODE_MAX_CONTEXT_TOKENS: 256000
+      CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS: 0
+    volumes:
+      - ~/biblemate:/home/${USER:-biblemate}/biblemate
+      - ~/docker-agy/.gemini/antigravity-cli:/home/${USER:-biblemate}/.gemini/antigravity-cli
+      - ~/docker-agy/.gemini/antigravity:/home/${USER:-biblemate}/.gemini/antigravity
+      - ~/docker-agy/.config/antigravity:/home/${USER:-biblemate}/.config/antigravity
+      - ~/docker-agy/.claude:/home/${USER:-biblemate}/.claude
+      - ~/docker-agy/.grok:/home/${USER:-biblemate}/.grok
+      - ~/docker-agy/.codex:/home/${USER:-biblemate}/.codex

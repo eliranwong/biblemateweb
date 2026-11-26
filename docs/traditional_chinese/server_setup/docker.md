@@ -82,5 +82,43 @@ docker run -d \
 docker exec -it biblemateweb biblematedata
 ```
 
+## Antigravity CLI（`agy`）與持久化登入（Docker Compose）
+
+專案已內建 [Dockerfile](../../../scripts/Dockerfile) 與 [docker-compose.yml](../../../scripts/docker-compose.yml)，並透過以下指令安裝 Antigravity CLI（`agy`）：
+
+```bash
+curl -fsSL https://antigravity.google/cli/install.sh | bash
+```
+
+由於容器檔案系統會在重建時重置，系統會將以下三個主機目錄綁定掛載到容器中，以保存 `agy` 的登入憑證與 CLI 狀態：
+
+- `~/.gemini/antigravity-cli`（CLI 設定、`installation_id`、狀態與對話紀錄）
+- `~/.gemini/antigravity`（共用 Antigravity 狀態）
+- `~/.config/antigravity`（`credential-user-scope`）
+
+### 1. 建立主機目錄並啟動容器
+
+請先在主機建立目錄（避免 Docker 以 `root` 權限自動建立），再以主機的 `USER` 與 `UID` 建置並啟動：
+
+```bash
+mkdir -p ~/biblemate ~/docker-agy/.gemini/antigravity-cli ~/docker-agy/.gemini/antigravity ~/docker-agy/.config/antigravity
+USER="$(whoami)" UID="$(id -u)" docker compose -f scripts/docker-compose.yml up -d --build
+```
+
+> [!TIP]
+> 若希望與主機共用現有的 `agy` 登入狀態，而不是使用獨立的 Docker 登入目錄，可直接掛載主機的 `~/.gemini/antigravity-cli`、`~/.gemini/antigravity` 與 `~/.config/antigravity` 取代 `~/docker-agy/...`。
+
+### 2. 一次性手動登入
+
+在運行中的容器內啟動互動式 `agy` 工作階段：
+
+```bash
+docker compose -f scripts/docker-compose.yml exec biblemateweb agy
+```
+
+依畫面上的驗證提示完成帳號與訂閱登入，之後輸入 `/exit` 或按 `Ctrl+D Ctrl+D` 離開 `agy`。
+
+由於驗證與設定目錄皆保存在主機上，之後無論執行 `docker compose restart`、`docker compose down && up` 或重新建置映像檔，登入與訂閱狀態都會持續保留。
+
 另請參閱：[安裝指南](installation.md)、[啟動與運行伺服器](running_the_server.md)、[安全與部署](security_and_deployment.md)。
 

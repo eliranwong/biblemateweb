@@ -82,5 +82,43 @@ If you want to pre-download Bible databases (`biblematedata`) or inspect the con
 docker exec -it biblemateweb biblematedata
 ```
 
+## Antigravity CLI (`agy`) & Persistent Login (Docker Compose)
+
+The repository includes a ready-to-use [Dockerfile](../../../scripts/Dockerfile) and [docker-compose.yml](../../../scripts/docker-compose.yml) that install the Antigravity CLI (`agy`) via:
+
+```bash
+curl -fsSL https://antigravity.google/cli/install.sh | bash
+```
+
+Because container filesystems are ephemeral, `agy` login credentials and CLI state are persisted by bind-mounting three host directories into the container:
+
+- `~/.gemini/antigravity-cli` (CLI settings, `installation_id`, state, conversations)
+- `~/.gemini/antigravity` (shared Antigravity state)
+- `~/.config/antigravity` (`credential-user-scope`)
+
+### 1. Create host directories & start the container
+
+Pre-create the host directories so Docker does not create them as `root`, then build and start with your host `USER` and `UID`:
+
+```bash
+mkdir -p ~/biblemate ~/docker-agy/.gemini/antigravity-cli ~/docker-agy/.gemini/antigravity ~/docker-agy/.config/antigravity
+USER="$(whoami)" UID="$(id -u)" docker compose -f scripts/docker-compose.yml up -d --build
+```
+
+> [!TIP]
+> If you prefer to share your existing host `agy` login instead of keeping a separate Docker login, mount `~/.gemini/antigravity-cli`, `~/.gemini/antigravity`, and `~/.config/antigravity` directly in place of `~/docker-agy/...`.
+
+### 2. One-time manual login
+
+Open an interactive `agy` session inside the running container:
+
+```bash
+docker compose -f scripts/docker-compose.yml exec biblemateweb agy
+```
+
+Follow the on-screen authentication prompt to sign in to your account/subscription, then exit `agy` (`/exit` or `Ctrl+D Ctrl+D`).
+
+Because the auth and config directories live on the host, your login and subscription persist across `docker compose restart`, `docker compose down && up`, and image rebuilds.
+
 See also [Installation](installation.md), [Running the Server](running_the_server.md), and [Security & Deployment](security_and_deployment.md).
 

@@ -332,16 +332,27 @@ class BibleMateWeb:
                                     ui.label('Please select a tool from the menu.').classes('text-gray-600')
 
         # A Draggable Container
-        def make_draggable(element):
+        def make_draggable(element, storage_key=None):
             """
             Applies drag-and-drop logic to any UI element.
-            Snap-to-position on drag end.
+            Snap-to-position on drag end and optionally persist position in user storage.
             """
+            if storage_key:
+                saved_pos = app.storage.user.get(storage_key)
+                if isinstance(saved_pos, dict) and 'top' in saved_pos and 'left' in saved_pos:
+                    element.style(f"top: {saved_pos['top']}px; left: {saved_pos['left']}px; bottom: auto; right: auto")
+
             def handle_drag_end(e):
-                x = e.args['clientX']
-                y = e.args['clientY']
+                x = e.args.get('clientX')
+                y = e.args.get('clientY')
+                if x is None or y is None or (x == 0 and y == 0):
+                    return
+                top = max(0, y - 20)
+                left = max(0, x - 20)
                 # Position element based on drop location, centered
-                element.style(f'top: {y - 20}px; left: {x - 20}px; bottom: auto; right: auto')
+                element.style(f'top: {top}px; left: {left}px; bottom: auto; right: auto')
+                if storage_key:
+                    app.storage.user[storage_key] = {'top': top, 'left': left}
 
             element.props('draggable="true"') \
                 .style('cursor: grab') \
@@ -351,7 +362,7 @@ class BibleMateWeb:
         with ui.column().classes('fixed bottom-6 right-6 z-50 touch-none') \
                 .props('draggable="true"') \
                 .style('cursor: grab') as self.fab_container1:
-            make_draggable(self.fab_container1)
+            make_draggable(self.fab_container1, 'layout_swap_button_pos')
             self.fab_container1.bind_visibility_from(app.storage.user, 'layout_swap_button')
 
             # - 'fab-mini': Quasar's specific prop for a smaller floating action button.
@@ -366,7 +377,7 @@ class BibleMateWeb:
         with ui.column().classes('fixed bottom-6 right-20 z-50 touch-none') \
                 .props('draggable="true"') \
                 .style('cursor: grab') as self.fab_container2:
-            make_draggable(self.fab_container2)
+            make_draggable(self.fab_container2, 'bible_select_button_pos')
             self.fab_container2.bind_visibility_from(app.storage.user, 'bible_select_button')
 
             # - 'fab-mini': Quasar's specific prop for a smaller floating action button.

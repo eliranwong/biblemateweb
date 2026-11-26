@@ -8,7 +8,7 @@ from biblemateweb import config, get_translation
 
 WORKSPACE_BACKENDS = {
     'agy': {
-        'label': 'Antigravity (agy)',
+        'label': 'Antigravity',
         'file': 'web_app_agy.py',
         'description': 'Signed-in Google subscription via Antigravity CLI',
     },
@@ -173,8 +173,12 @@ def render_workspace_page(backend: str | None = None, ref: str = '', dark: bool 
     app_instance = mod.BibleMateApp()
     app_instance.build_ui(dark_mode=dark_mode, initial_ref=ref, embedded=True)
     _apply_biblemateweb_theme(dark_mode=dark_mode)
-    if ref and getattr(app_instance, 'message_input', None) is not None:
-        app_instance.message_input.props(f'placeholder="Ask about {ref} (or any Bible topic)..."')
+    if getattr(app_instance, 'message_input', None) is not None:
+        app_instance.message_input.props('dense rows=1')
+        if ref:
+            app_instance.message_input.props(f'placeholder="Ask about {ref} (or any Bible topic)..."')
+    if getattr(app_instance, 'action_button', None) is not None:
+        app_instance.action_button.props('size=sm dense', remove='size=lg').classes(remove='mb-1')
 
 
 def _apply_biblemateweb_theme(dark_mode: bool = True) -> None:
@@ -194,6 +198,20 @@ def _apply_biblemateweb_theme(dark_mode: bool = True) -> None:
         """
         .nicegui-content {
             padding: 0 !important;
+        }
+        .q-header {
+            padding: 2px 12px !important;
+            min-height: 42px !important;
+        }
+        .q-footer {
+            padding: 4px 12px !important;
+        }
+        .q-btn.send-button {
+            width: 34px !important;
+            height: 34px !important;
+            min-width: 34px !important;
+            min-height: 34px !important;
+            margin-bottom: 0 !important;
         }
         """
     )
@@ -280,7 +298,7 @@ def ai_agentic_workspace(gui=None, **kwargs):
     options = {k: meta['label'] for k, meta in available.items()}
 
     with ui.column().classes('w-full h-full no-wrap gap-0').style('height: 100%; min-height: 100%; overflow: hidden;'):
-        with ui.row().classes('w-full items-center justify-between px-3 py-1.5 border-b gap-2 flex-wrap').style('flex: 0 0 auto;'):
+        with ui.row().classes('w-full items-center justify-between px-2 py-0.5 border-b gap-2 flex-wrap').style('flex: 0 0 auto; min-height: 42px;'):
             with ui.row().classes('items-center gap-2'):
                 ui.icon('smart_toy', size='sm').classes('text-secondary')
                 ui.label(get_translation('Studio Mode')).classes('font-semibold text-secondary')
@@ -300,9 +318,8 @@ def ai_agentic_workspace(gui=None, **kwargs):
                 ui.select(
                     options=options,
                     value=selected_backend,
-                    label=get_translation('Backend'),
                     on_change=on_backend_change,
-                ).props('dense outlined options-dense').classes('min-w-[190px]')
+                ).props('dense outlined options-dense').classes('min-w-[170px]')
 
                 def reload_iframe():
                     cur = app.storage.user.get('workspace_backend', selected_backend)
